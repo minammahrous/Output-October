@@ -8,6 +8,11 @@ from sqlalchemy import create_engine
 # Database connection
 DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
 engine = create_engine(DB_URL)
+def clean_numeric_columns(df, numeric_cols):
+    """Convert empty strings in numeric columns to None or 0"""
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce')  # Convert to NaN if invalid
+    return df
 st.title("Shift Output Report")
 
 # Initialize session state for submitted data and modify mode
@@ -252,7 +257,7 @@ if st.session_state.product_batches[selected_product]:
             st.subheader("Submitted AV Data")
             st.dataframe(st.session_state.submitted_av_df)
 
-          # Provide two options: Approve and Save or Modify Data
+         # Provide two options: Approve and Save or Modify Data
 col1, col2 = st.columns(2)
 with col1:
     if st.button("Approve and Save"):
@@ -261,9 +266,17 @@ with col1:
             print(st.session_state.submitted_archive_df)
             print(st.session_state.submitted_av_df)
 
+            # Identify numeric columns (adjust column names as per your table schema)
+            numeric_cols_archive = ["time", "quantity", "rate", "standard rate", "efficiency"]
+            numeric_cols_av = ["some_numeric_column"]  # Adjust based on `av` table schema
+
+            # Clean DataFrames
+            archive_df = clean_numeric_columns(st.session_state.submitted_archive_df.copy(), numeric_cols_archive)
+            av_df = clean_numeric_columns(st.session_state.submitted_av_df.copy(), numeric_cols_av)
+
             # Save data to PostgreSQL
-            st.session_state.submitted_archive_df.to_sql("archive", engine, if_exists="append", index=False)
-            st.session_state.submitted_av_df.to_sql("av", engine, if_exists="append", index=False)
+            archive_df.to_sql("archive", engine, if_exists="append", index=False)
+            av_df.to_sql("av", engine, if_exists="append", index=False)
 
             st.success("Data saved to database successfully!")
         except Exception as e:
@@ -281,9 +294,14 @@ if st.session_state.get("modify_mode", False):
 
     if st.button("Confirm Modifications and Save"):
         try:
+            # Clean DataFrames before saving
+            modified_archive_df = clean_numeric_columns(modified_archive_df, numeric_cols_archive)
+            modified_av_df = clean_numeric_columns(modified_av_df, numeric_cols_av)
+
             # Save modified data to PostgreSQL
             modified_archive_df.to_sql("archive", engine, if_exists="replace", index=False)
             modified_av_df.to_sql("av", engine, if_exists="replace", index=False)
+            
             st.success("Modified data saved to database successfully.")
             st.session_state.modify_mode = False  # Exit modify mode
         except Exception as e:
