@@ -3,7 +3,11 @@ import datetime
 import pandas as pd
 import csv
 import os
+from sqlalchemy import create_engine
 
+# Database connection
+DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
+engine = create_engine(DB_URL)
 st.title("Shift Output Report")
 
 # Initialize session state for submitted data and modify mode
@@ -248,32 +252,26 @@ if st.session_state.product_batches[selected_product]:
             st.subheader("Submitted AV Data")
             st.dataframe(st.session_state.submitted_av_df)
 
-            # Provide two options: Approve and Save or Modify Data
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("Approve and Save"):
-                    try:
-                        # Debugging: Print current working directory
-                        print("Current Working Directory:", os.getcwd())
-        
-                        # Debugging: Print data frames to check their content
-                        print(st.session_state.submitted_archive_df)
-                        print(st.session_state.submitted_av_df)
-        
-                        # Use full file paths
-                        archive_file_path = os.path.join(os.getcwd(), "archive.csv")
-                        av_file_path = os.path.join(os.getcwd(), "av.csv")
-        
-                        # Save data to CSV files
-                        st.session_state.submitted_archive_df.to_csv(archive_file_path, index=False)
-                        st.session_state.submitted_av_df.to_csv(av_file_path, index=False)
-        
-                        st.success("Data saved successfully!")
-                    except Exception as e:
-                        st.error(f"Error saving data: {e}")
-            with col2:
-                if st.button("Modify Data"):
-                    st.session_state.modify_mode = True
+          # Provide two options: Approve and Save or Modify Data
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("Approve and Save"):
+        try:
+            # Debugging: Print data frames to check their content
+            print(st.session_state.submitted_archive_df)
+            print(st.session_state.submitted_av_df)
+
+            # Save data to PostgreSQL
+            st.session_state.submitted_archive_df.to_sql("archive", engine, if_exists="append", index=False)
+            st.session_state.submitted_av_df.to_sql("av", engine, if_exists="append", index=False)
+
+            st.success("Data saved to database successfully!")
+        except Exception as e:
+            st.error(f"Error saving data: {e}")
+
+with col2:
+    if st.button("Modify Data"):
+        st.session_state.modify_mode = True
 
 # Modify mode
 if st.session_state.get("modify_mode", False):
@@ -283,10 +281,10 @@ if st.session_state.get("modify_mode", False):
 
     if st.button("Confirm Modifications and Save"):
         try:
-            # Save modified data to CSV files
-            modified_archive_df.to_csv("archive.csv", index=False)
-            modified_av_df.to_csv("av.csv", index=False)
-            st.success("Modified data saved successfully.")
+            # Save modified data to PostgreSQL
+            modified_archive_df.to_sql("archive", engine, if_exists="replace", index=False)
+            modified_av_df.to_sql("av", engine, if_exists="replace", index=False)
+            st.success("Modified data saved to database successfully.")
             st.session_state.modify_mode = False  # Exit modify mode
         except Exception as e:
             st.error(f"Error saving modified data: {e}")
