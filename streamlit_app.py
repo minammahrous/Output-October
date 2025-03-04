@@ -3,7 +3,21 @@ import datetime
 import pandas as pd
 import csv
 import os
+import streamlit as st
+import psycopg2
 
+# Load database credentials
+db_params = st.secrets["postgres"]
+
+# Establish connection
+def get_connection():
+    return psycopg2.connect(
+        dbname=db_params["database"],
+        user=db_params["user"],
+        password=db_params["password"],
+        host=db_params["host"],
+        port=db_params["port"]
+    )
 st.title("Shift Output Report")
 
 # Initialize session state for submitted data and modify mode
@@ -251,26 +265,39 @@ if st.session_state.product_batches[selected_product]:
             # Provide two options: Approve and Save or Modify Data
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("Approve and Save"):
-                    try:
-                        # Debugging: Print current working directory
-                        print("Current Working Directory:", os.getcwd())
-        
-                        # Debugging: Print data frames to check their content
-                        print(st.session_state.submitted_archive_df)
-                        print(st.session_state.submitted_av_df)
-        
-                        # Use full file paths
-                        archive_file_path = os.path.join(os.getcwd(), "archive.csv")
-                        av_file_path = os.path.join(os.getcwd(), "av.csv")
-        
-                        # Save data to CSV files
-                        st.session_state.submitted_archive_df.to_csv(archive_file_path, index=False)
-                        st.session_state.submitted_av_df.to_csv(av_file_path, index=False)
-        
-                        st.success("Data saved successfully!")
+               if st.button("Approve and Save"):
+                   try:
+                       conn = get_connection()
+                       cursor = conn.cursor()
+                       # Insert data into archive tabl
+                    for _, row in st.session_state.submitted_archive_df.iterrows():
+                        cursor.execute(
+                            """
+                            INSERT INTO archive (date, machine, shift_type, activity, time, product, batch_number, quantity, comments, rate, standard_rate, efficiency)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            """,
+                            tuple(row)
+                        )
+                            # Insert data into av table
+                    for _, row in st.session_state.submitted_av_df.iterrows():
+                        cursor.execute(
+                            """
+                            INSERT INTO av (date, machine, shift_type, hours, shift_duration, total_production_time, availability, avg_efficiency, oee)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            """,
+                            tuple(row)
+                        )
+                        conn.commit()
+                        st.success("Data saved to Neon PostgreSQL successfully!")
+
                     except Exception as e:
-                        st.error(f"Error saving data: {e}")
+                       conn.rollback()
+                       st.error(f"Error saving data: {e}")
+
+                    finally:
+                        cursor.close()
+                        conn.close()
+
             with col2:
                 if st.button("Modify Data"):
                     st.session_state.modify_mode = True
@@ -282,11 +309,40 @@ if st.session_state.get("modify_mode", False):
     modified_av_df = st.data_editor(st.session_state.submitted_av_df, key="av_editor")
 
     if st.button("Confirm Modifications and Save"):
-        try:
-            # Save modified data to CSV files
-            modified_archive_df.to_csv("archive.csv", index=False)
-            modified_av_df.to_csv("av.csv", index=False)
-            st.success("Modified data saved successfully.")
-            st.session_state.modify_mode = False  # Exit modify mode
-        except Exception as e:
-            st.error(f"Error saving modified data: {e}")
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Update archive table
+        for _, row in modified_archive_df.iterrows():
+            cursor.execute(
+                """
+                UPDATE archive
+                SET time = %s, product = %s, batch_number = %s, quantity = %s, comments = %s, rate = %s, standard_rate = %s, efficiency = %s
+                WHERE date = %s AND machine = %s AND shift_type = %s AND activity = %s
+                """,
+                (row['time'], row['product'], row['batch number'], row['quantity'], row['commnets'], row['rate'], row['standard rate'], row['efficiency'], row['Date'], row['Machine'], row['Day/Night/plan'], row['Activity'])
+            )
+
+        # Update av table
+        for _, row in modified_av_df.iterrows():
+            cursor.execute(
+                """
+                UPDATE av
+                SET hours = %s, shift_duration = %s, total_production_time = %s, availability = %s, avg_efficiency = %s, oee = %s
+                WHERE date = %s AND machine = %s AND shift_type = %s
+                """,
+                (row['hours'], row['shift'], row['T.production time'], row['Availability'], row['Av Efficiency'], row['OEE'], row['date'], row['machine'], row['shift type'])
+            )
+
+        conn.commit()
+        st.success("Modified data saved successfully.")
+        st.session_state.modify_mode = False  # Exit modify mode
+
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Error updating data: {e}")
+
+    finally:
+        cursor.close()
+        conn.close()
