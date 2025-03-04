@@ -1,149 +1,133 @@
 import streamlit as st
+import datetime
 import pandas as pd
 import psycopg2
 import csv
-from datetime import datetime
+import os
 
-# Function to get connection to Neon PostgreSQL
+# Load database credentials
+db_params = st.secrets["postgres"]
+
 def get_connection():
     return psycopg2.connect(
-        dbname="your_db_name",
-        user="your_db_user",
-        password="your_db_password",
-        host="your_db_host",
-        port="your_db_port"
+        dbname=db_params["database"],
+        user=db_params["user"],
+        password=db_params["password"],
+        host=db_params["host"],
+        port=db_params["port"]
     )
 
-# Load machine list
-try:
-    machine_list = pd.read_csv("machines.csv", header=None).squeeze().tolist()
-except FileNotFoundError:
-    st.error("machines.csv file not found. Please create the file.")
-    machine_list = []
+st.title("Shift Output Report")
 
-# Load product list
-try:
-    product_list = pd.read_csv("products.csv", header=None).squeeze().tolist()
-except FileNotFoundError:
-    st.error("products.csv file not found. Please create the file.")
-    product_list = []
+# Initialize session state
+if "submitted_archive_df" not in st.session_state:
+    st.session_state.submitted_archive_df = pd.DataFrame()
+if "submitted_av_df" not in st.session_state:
+    st.session_state.submitted_av_df = pd.DataFrame()
+if "modify_mode" not in st.session_state:
+    st.session_state.modify_mode = False
 
-# Streamlit UI
-st.title("Production Data Entry")
-
-# Select Machine
-date = st.date_input("Select Date", datetime.today())
-machine = st.selectbox("Select Machine", machine_list)
-shift_type = st.selectbox("Select Shift", ["Day", "Night", "Planned Downtime"])
-
-# Input Production Data
-activity = st.text_input("Activity")
-time = st.number_input("Time (hours)", min_value=0.0, step=0.1)
-product = st.selectbox("Select Product", product_list)
-batch_number = st.text_input("Batch Number")
-quantity = st.number_input("Quantity Produced", min_value=0, step=1)
-comments = st.text_area("Comments")
-rate = st.number_input("Rate", min_value=0.0, step=0.1)
-standard_rate = st.number_input("Standard Rate", min_value=0.0, step=0.1)
-efficiency = st.number_input("Efficiency (%)", min_value=0.0, max_value=100.0, step=0.1)
-
-# Handle downtime input
-downtime_types = ["Mechanical", "Electrical", "Changeover", "Quality", "Cleaning"]
-downtime_data = {}
-for dt_type in downtime_types:
-    downtime_data[dt_type] = st.number_input(f"{dt_type} Downtime (hours)", min_value=0.0, step=0.1)
-    downtime_data[dt_type + "_comment"] = st.text_area(f"Comment for {dt_type}") if downtime_data[dt_type] > 0 else ""
-
-# Store input in session state if not exists
-if "batch_data" not in st.session_state:
-    st.session_state.batch_data = []
-
-# Add entry to batch
-if st.button("Add to Batch"):
-    new_entry = {
-        "Date": date,
-        "Machine": machine,
-        "Shift": shift_type,
-        "Activity": activity,
-        "Time": time,
-        "Product": product,
-        "Batch Number": batch_number,
-        "Quantity": quantity,
-        "Comments": comments,
-        "Rate": rate,
-        "Standard Rate": standard_rate,
-        "Efficiency": efficiency,
-        **downtime_data
-    }
-    st.session_state.batch_data.append(new_entry)
-    st.success("Entry added to batch!")
-
-# Display batch data
-if st.session_state.batch_data:
-    st.dataframe(pd.DataFrame(st.session_state.batch_data))
-
-# Submit to Database
-if st.button("Submit to Database"):
+# Load machine and product lists
+machine_list, product_list = [], []
+for filename, target_list in zip(["machines.csv", "products.csv"], [machine_list, product_list]):
     try:
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        for entry in st.session_state.batch_data:
-            cursor.execute(
-                """
-                INSERT INTO archive (date, machine, shift_type, activity, time, product, batch_number, quantity, comments, rate, standard_rate, efficiency)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (
-                    entry["Date"], entry["Machine"], entry["Shift"], entry["Activity"], entry["Time"],
-                    entry["Product"], entry["Batch Number"], entry["Quantity"], entry["Comments"],
-                    entry["Rate"], entry["Standard Rate"], entry["Efficiency"]
-                )
-            )
-        conn.commit()
-        st.success("Data saved successfully!")
-        st.session_state.batch_data = []
+        with open(filename, "r") as file:
+            target_list.extend(row[0] for row in csv.reader(file))
+    except FileNotFoundError:
+        st.error(f"{filename} file not found. Please create the file.")
     except Exception as e:
-        conn.rollback()
-        st.error(f"Error saving data: {e}")
-    finally:
-        cursor.close()
-        conn.close()
+        st.error(f"Error reading {filename}: {e}")
 
-# Modify Data Mode
-if st.button("Modify Existing Data"):
-    st.session_state.modify_mode = True
+# Ensure product list is not empty
+if not product_list:
+    st.error("Product list is empty. Please check products.csv.")
+else:
+    try:
+        shifts_df = pd.read_csv("shifts.csv")
+        shift_durations = shifts_df["code"].tolist()
+    except FileNotFoundError:
+        st.error("shifts.csv file not found.")
+        shift_durations = []
 
-if "modify_mode" in st.session_state and st.session_state.modify_mode:
-    conn = get_connection()
-    df = pd.read_sql("SELECT * FROM archive", conn)
-    conn.close()
-    modified_df = st.data_editor(df, num_rows="dynamic")
+    selected_machine = st.selectbox("Select Machine", machine_list)
+    date = st.date_input("Date", datetime.datetime.now().date())
+    shift_type = st.selectbox("Shift Type", ["Day", "Night", "Plan"])
+    shift_duration = st.selectbox("Shift Duration", shift_durations)
+    
+    # Downtime inputs
+    downtime_data = {}
+    downtime_types = ["Maintenance DT", "Production DT", "Material DT", "Utility DT", "QC DT", "Cleaning DT", "QA DT", "Changeover DT"]
+    for dt_type in downtime_types:
+        downtime_data[dt_type] = st.number_input(dt_type, min_value=0.0, step=0.1, format="%.1f")
+        if downtime_data[dt_type] > 0:
+            downtime_data[dt_type + "_comment"] = st.text_area(f"Comment for {dt_type}")
+        else:
+            downtime_data[dt_type + "_comment"] = ""
 
-    if st.button("Confirm Modifications and Save"):
+    # Product batch entry
+    selected_product = st.selectbox("Select Product", product_list)
+    if "product_batches" not in st.session_state:
+        st.session_state.product_batches = {}
+    if selected_product not in st.session_state.product_batches:
+        st.session_state.product_batches[selected_product] = []
+    
+    with st.form("batch_entry_form"):
+        batch = st.text_input("Batch Number")
+        quantity = st.number_input("Production Quantity", min_value=0.0, step=0.1)
+        time_consumed = st.number_input("Time Consumed (hours)", min_value=0.0, step=0.1)
+        if st.form_submit_button("Add Batch"):
+            if len(st.session_state.product_batches[selected_product]) < 5:
+                st.session_state.product_batches[selected_product].append({
+                    "batch": batch, "quantity": quantity, "time_consumed": time_consumed
+                })
+            else:
+                st.error("Max 5 batches per product.")
+
+    if st.button("Submit Report"):
+        archive_data = [
+            {
+                "Date": date, "Machine": selected_machine, "Day/Night/plan": shift_type,
+                "Activity": dt_type, "time": downtime_data[dt_type], "Product": "",
+                "batch number": "", "quantity": "", "commnets": downtime_data[dt_type + "_comment"],
+                "rate": "", "standard rate": "", "efficiency": ""
+            }
+            for dt_type in downtime_types if downtime_data[dt_type] > 0
+        ]
+        
+        try:
+            rates_df = pd.read_csv("rates.csv")
+            for batch in st.session_state.product_batches[selected_product]:
+                rate = batch["quantity"] / batch["time_consumed"]
+                standard_rate = rates_df.loc[(rates_df['Product'] == selected_product) & (rates_df['Machine'] == selected_machine), 'Rate'].iloc[0]
+                efficiency = rate / standard_rate if standard_rate != 0 else 0
+                archive_data.append({
+                    "Date": date, "Machine": selected_machine, "Day/Night/plan": shift_type,
+                    "Activity": "Production", "time": batch["time_consumed"], "Product": selected_product,
+                    "batch number": batch["batch"], "quantity": batch["quantity"], "commnets": "",
+                    "rate": rate, "standard rate": standard_rate, "efficiency": efficiency
+                })
+        except FileNotFoundError:
+            st.error("rates.csv was not found")
+        
+        archive_df = pd.DataFrame(archive_data)
+        st.session_state.submitted_archive_df = archive_df
+        
+        # Save to Neon PostgreSQL
         try:
             conn = get_connection()
             cursor = conn.cursor()
-
-            for _, row in modified_df.iterrows():
+            for _, row in archive_df.iterrows():
                 cursor.execute(
                     """
-                    UPDATE archive
-                    SET time = %s, product = %s, batch_number = %s, quantity = %s, comments = %s, rate = %s, standard_rate = %s, efficiency = %s
-                    WHERE date = %s AND machine = %s AND shift_type = %s AND activity = %s
-                    """,
-                    (
-                        row["Time"], row["Product"], row["Batch Number"], row["Quantity"], row["Comments"],
-                        row["Rate"], row["Standard Rate"], row["Efficiency"],
-                        row["Date"], row["Machine"], row["Shift"], row["Activity"]
-                    )
+                    INSERT INTO archive (date, machine, shift_type, activity, time, product, batch_number, quantity, comments, rate, standard_rate, efficiency)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, tuple(row)
                 )
             conn.commit()
-            st.success("Modifications saved successfully.")
-            st.session_state.modify_mode = False
+            st.success("Data saved to Neon PostgreSQL successfully!")
         except Exception as e:
             conn.rollback()
-            st.error(f"Error updating data: {e}")
+            st.error(f"Error saving data: {e}")
         finally:
             cursor.close()
             conn.close()
