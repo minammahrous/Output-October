@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import datetime
+import json
 from sqlalchemy import create_engine, text
 
 # Load database credentials from Streamlit secrets
@@ -13,18 +14,18 @@ def create_tables():
         conn.execute(text("""
         CREATE TABLE IF NOT EXISTS reports (
             id SERIAL PRIMARY KEY,
-            date DATE,
-            machine TEXT,
-            shift_type TEXT,
-            shift_duration TEXT,
-            downtime JSONB,
-            product TEXT,
-            batch TEXT,
-            quantity FLOAT,
-            time_consumed FLOAT
+            date DATE NOT NULL,
+            machine TEXT NOT NULL,
+            shift_type TEXT NOT NULL,
+            shift_duration TEXT NOT NULL,
+            downtime JSONB NOT NULL,
+            product TEXT NOT NULL,
+            batch TEXT NOT NULL,
+            quantity FLOAT NOT NULL,
+            time_consumed FLOAT NOT NULL
         );
         """))
-        conn.commit()  # Ensure changes are committed
+        conn.commit()
 
 # Initialize database
 create_tables()
@@ -41,7 +42,6 @@ def load_csv(filename):
 machines_df = load_csv("machines.csv")
 products_df = load_csv("products.csv")
 shifts_df = load_csv("shifts.csv")
-rates_df = load_csv("rates.csv")
 
 # Convert CSV data to lists
 machine_list = machines_df.iloc[:, 0].tolist() if not machines_df.empty else []
@@ -85,7 +85,7 @@ if st.button("Submit Report"):
                 "machine": selected_machine,
                 "shift_type": shift_type,
                 "shift_duration": shift_duration,
-                "downtime": str(downtime_data),
+                "downtime": json.dumps(downtime_data),  # Convert dict to JSON
                 "product": selected_product,
                 "batch": batch,
                 "quantity": quantity,
