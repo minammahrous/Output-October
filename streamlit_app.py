@@ -10,10 +10,10 @@ db_params = st.secrets["postgres"]
 
 def get_connection():
     return psycopg2.connect(
-        dbname=db_params["database"],
-        user=db_params["user"],
-        password=db_params["password"],
-        host=db_params["host"],
+        dbname=db_params["neondb"],
+        user=db_params["neondb_owner"],
+        password=db_params["npg_iP24WhuZvaws"],
+        host=db_params["ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech"],
         port=db_params["port"]
     )
 
