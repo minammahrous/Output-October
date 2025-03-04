@@ -6,7 +6,7 @@ import csv
 import os
 
 # Load database credentials
-db_params = st.secrets["postgresql"]
+db_params = st.secrets["postgres"]
 
 def get_connection():
     return psycopg2.connect(
