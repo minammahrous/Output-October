@@ -172,6 +172,18 @@ if "restart_form" not in st.session_state:
 
 # Submit report button
 if st.button("Submit Report"):
+    from sqlalchemy.sql import text  # Import SQL text wrapper
+
+# Ensure session state variables exist
+if "show_confirmation" not in st.session_state:
+    st.session_state.show_confirmation = False
+if "replace_data" not in st.session_state:
+    st.session_state.replace_data = False
+if "restart_form" not in st.session_state:
+    st.session_state.restart_form = False
+
+# Submit report button
+if st.button("Submit Report"):
     # Query the database to check for existing records
     query = text("""
     SELECT COUNT(*) FROM av 
@@ -187,7 +199,7 @@ if st.button("Submit Report"):
             st.session_state.show_confirmation = True  # Show confirmation buttons
         else:
             st.success("No existing record found. Proceeding with submission.")
-            # Continue with saving logic
+            # Add your normal saving logic here
 
     except Exception as e:
         st.error(f"Database error: {e}")
@@ -227,7 +239,6 @@ if st.session_state.replace_data:
 if st.session_state.restart_form:
     st.session_state.clear()  # Reset form
     st.rerun()  # Refresh UI
-
 
     else:
         # Validation: Check if comments are provided for downtime entries
