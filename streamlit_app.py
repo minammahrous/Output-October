@@ -161,13 +161,15 @@ if st.session_state.product_batches[selected_product]:
             st.rerun()  # refresh after any deletion.
     if st.button("Submit Report"):
           # Check if the same date + shift type + machine exists in the 'av' table
-        query = f"""
-        SELECT COUNT(*) FROM av 
-        WHERE date = '{date}' AND "shift type" = '{shift_type}' AND machine = '{selected_machine}'
-        """
-    
-    with engine.connect() as conn:
-        result = conn.execute(query).fetchone()
+        from sqlalchemy.sql import text  # Import SQL text wrapper
+
+            query = text("""
+            SELECT COUNT(*) FROM av 
+            WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
+            """)
+
+with engine.connect() as conn:
+    result = conn.execute(query, {"date": date, "shift_type": shift_type, "machine": selected_machine}).fetchone()
     
     if result[0] > 0:  # If a record already exists
         st.warning("A report for this date, shift type, and machine already exists.")
