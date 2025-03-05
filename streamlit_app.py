@@ -148,7 +148,7 @@ else:
                 st.error("You can add a maximum of 5 batches for this product.")
 
     # Display added batches for the selected product with delete buttons
-if st.session_state.product_batches[selected_product]:
+if selected_product in st.session_state.product_batches and st.session_state.product_batches[selected_product]:
     st.subheader(f"Added Batches for {selected_product}:")
     batch_data = st.session_state.product_batches[selected_product]
 
@@ -188,9 +188,8 @@ if "submitted" not in st.session_state:
     st.session_state.submitted = False  # Tracks if report is submitted
 
 def set_replace_data():
-    if "replace_data" not in st.session_state:
-        st.session_state["replace_data"] = False  # Ensure it exists
     st.session_state.replace_data = True
+
 def set_restart_form():
     st.session_state.restart_form = True
 
@@ -227,13 +226,16 @@ if "restart_form" not in st.session_state:
 if st.session_state.show_confirmation:
    col1, col2 = st.columns(2)
 
-with col1:
-    if st.button("Replace Existing Data", key="replace_data_button"):
-        set_replace_data()  # Ensure session state is properly updated
+    with col1:
+        if st.button("Replace Existing Data", key="replace_data_button"):
+            set_replace_data()  # Ensure session state is properly updated
 
-with col2:
-    if st.button("Restart Form", key="restart_form_button"):
-        set_restart_form()  # Ensure session state is properly updated
+    with col2:
+        if st.button("Restart Form", key="restart_form_button"):
+            with engine.begin() as conn:
+    conn.execute(delete_query, {"date": date, "shift_type": shift_type, "machine": selected_machine})
+
+set_restart_form()  # Ensure session state is properly updated
 
 # Handle replace action
 if st.session_state.replace_data:
@@ -255,9 +257,9 @@ if st.session_state.replace_data:
 
 # Handle restart action
 if st.session_state.restart_form:
-    st.session_state.clear()  # Reset form
-    st.rerun()  # Refresh UI
-
+    for key in session_state_keys:
+        st.session_state[key] = False  # Reset without clearing all state
+    st.rerun()
 
 else:
         # Validation: Check if comments are provided for downtime entries
