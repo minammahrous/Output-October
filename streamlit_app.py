@@ -164,6 +164,9 @@ if st.session_state.product_batches[selected_product]:
         from sqlalchemy.sql import text  # Ensure this is at the top of your script
 
 if st.button("Submit Report"):
+   from sqlalchemy.sql import text  # Ensure this is at the top of your script
+
+if st.button("Submit Report"):
     # Check if the same date + shift type + machine exists in the 'av' table
     query = text("""
     SELECT COUNT(*) FROM av 
@@ -176,14 +179,24 @@ if st.button("Submit Report"):
 
         if result and result[0] > 0:  # If a record already exists
             st.warning("A report for this date, shift type, and machine already exists.")
+
+            # Use session state to track button clicks
+            if "replace_data" not in st.session_state:
+                st.session_state.replace_data = False
+            if "restart_form" not in st.session_state:
+                st.session_state.restart_form = False
+
             col1, col2 = st.columns(2)
             
             with col1:
-                replace_data = st.button("Replace Existing Data")
+                if st.button("Replace Existing Data", key="replace"):
+                    st.session_state.replace_data = True
             with col2:
-                restart_form = st.button("Restart Form")
+                if st.button("Restart Form", key="restart"):
+                    st.session_state.restart_form = True
 
-            if replace_data:
+            # Handle button actions
+            if st.session_state.replace_data:
                 delete_query = text("""
                 DELETE FROM archive WHERE "Date" = :date AND "Day/Night/plan" = :shift_type AND "Machine" = :machine;
                 DELETE FROM av WHERE date = :date AND "shift type" = :shift_type AND machine = :machine;
@@ -194,8 +207,9 @@ if st.button("Submit Report"):
                     conn.commit()
 
                 st.success("Existing data deleted. You can now save the new report.")
+                st.session_state.replace_data = False  # Reset flag
 
-            elif restart_form:
+            if st.session_state.restart_form:
                 st.session_state.clear()  # Reset form
                 st.rerun()  # Refresh UI
 
