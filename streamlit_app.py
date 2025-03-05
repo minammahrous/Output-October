@@ -122,15 +122,20 @@ else:
                 downtime_data[dt_type + "_comment"] = ""
 
     # Initialize session state for product-specific batch data
-    if "product_batches" not in st.session_state:
-        st.session_state.product_batches = {}
+if "product_batches" not in st.session_state:
+    st.session_state.product_batches = {}
 
+# Ensure product_list is not empty before displaying selectbox
+if product_list:
     selected_product = st.selectbox("Select Product", product_list)
+else:
+    st.warning("No products available.")
+    selected_product = None
 
-    # Initialize batch data for the selected product if it doesn't exist
+# Initialize batch data for the selected product if it exists and is valid
+if selected_product:
     if selected_product not in st.session_state.product_batches:
         st.session_state.product_batches[selected_product] = []
-
     with st.form("batch_entry_form"):
         batch = st.text_input("Batch Number")
         quantity = st.number_input("Production Quantity", min_value=0.0, step=0.1, format="%.1f")  # quantity is now a float.
