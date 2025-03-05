@@ -229,7 +229,7 @@ if st.session_state.replace_data:
     """)
 
 
-    try:
+try:
         with engine.connect() as conn:
             conn.execute(delete_query, {"date": date, "shift_type": shift_type, "machine": selected_machine})
             conn.commit()
