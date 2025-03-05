@@ -182,8 +182,6 @@ if "replace_data" not in st.session_state:
 if "restart_form" not in st.session_state:
     st.session_state.restart_form = False
 
-# Submit report button
-if st.button("Submit Report"):
     # Query the database to check for existing records
     query = text("""
     SELECT COUNT(*) FROM av 
