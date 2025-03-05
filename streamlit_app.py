@@ -11,11 +11,12 @@ engine = create_engine(DB_URL)
 def clean_dataframe(df):
     """
     Cleans the dataframe by:
-    1. Stripping whitespaces from column names.
-    2. Converting empty strings in numeric columns to NaN.
-    3. Ensuring consistent data types.
+    1. Converting column names to strings to prevent errors.
+    2. Stripping whitespaces from column names.
+    3. Converting empty strings in numeric columns to NaN.
+    4. Ensuring consistent data types.
     """
-    df.columns = df.columns.str.strip()  # Ensure no leading/trailing spaces in column names
+    df.columns = df.columns.astype(str).str.strip()  # Ensure all column names are strings
     
     numeric_cols = ["time", "quantity", "rate", "standard rate", "efficiency"]  # Adjust as needed
 
@@ -24,6 +25,7 @@ def clean_dataframe(df):
             df[col] = pd.to_numeric(df[col], errors="coerce")  # Convert to float, replace invalid values with NaN
     
     return df
+
 
 st.title("Shift Output Report")
 
