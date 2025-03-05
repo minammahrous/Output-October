@@ -203,17 +203,32 @@ if not st.session_state.submitted:  # Prevents duplicate rendering
         except Exception as e:
             st.error(f"Database error: {e}")
 
+# Define a function that updates session state variables safely
+def set_replace_data():
+    st.session_state["replace_data"] = True
+
+def set_restart_form():
+    st.session_state["restart_form"] = True
+
+# Ensure session state variables exist
+if "replace_data" not in st.session_state:
+    st.session_state["replace_data"] = False
+
+if "restart_form" not in st.session_state:
+    st.session_state["restart_form"] = False
+
 # Show confirmation buttons if needed
 if st.session_state.show_confirmation:
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("Replace Existing Data", key="replace_data", on_click=set_replace_data):
-            pass  # Button click triggers callback
+        if st.button("Replace Existing Data", key="replace_data"):
+            set_replace_data()  # Call function instead of using on_click
 
     with col2:
-        if st.button("Restart Form", key="restart_form", on_click=set_restart_form):
-            pass  # Button click triggers callback
+        if st.button("Restart Form", key="restart_form"):
+            set_restart_form()  # Call function instead of using on_click
+
 
 # Handle replace action
 if st.session_state.replace_data:
