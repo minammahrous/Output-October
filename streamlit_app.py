@@ -236,7 +236,7 @@ try:
 
             st.success("Existing data deleted. You can now save the new report.")
             st.session_state.replace_data = False  # Reset flag
-        except Exception as e:
+except Exception as e:
             st.error(f"Error deleting data: {e}")
 
 # Handle restart action
