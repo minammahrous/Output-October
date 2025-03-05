@@ -240,7 +240,7 @@ if st.session_state.restart_form:
     st.session_state.clear()  # Reset form
     st.rerun()  # Refresh UI
 
-    else:
+else:
         # Validation: Check if comments are provided for downtime entries
         missing_comments = [dt_type for dt_type in downtime_types if downtime_data[dt_type] > 0 and not downtime_data[dt_type + "_comment"]]
         if missing_comments:
