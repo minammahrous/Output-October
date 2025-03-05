@@ -226,11 +226,11 @@ if "restart_form" not in st.session_state:
 if st.session_state.show_confirmation:
    col1, col2 = st.columns(2)
 
-    with col1:
+with col1:
         if st.button("Replace Existing Data", key="replace_data_button"):
             set_replace_data()  # Ensure session state is properly updated
 
-    with col2:
+with col2:
         if st.button("Restart Form", key="restart_form_button"):
             with engine.begin() as conn:
     conn.execute(delete_query, {"date": date, "shift_type": shift_type, "machine": selected_machine})
