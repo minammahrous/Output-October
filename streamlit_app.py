@@ -128,15 +128,9 @@ else:
     selected_product = st.selectbox("Select Product", product_list)
 
     # Initialize batch data for the selected product if it doesn't exist
-    # Initialize session state for product-specific batch data
-if "product_batches" not in st.session_state:
-    st.session_state.product_batches = {}
+    if selected_product not in st.session_state.product_batches:
+        st.session_state.product_batches[selected_product] = []
 
-selected_product = st.selectbox("Select Product", product_list)
-
-# Ensure selected_product is initialized in session state
-if selected_product not in st.session_state.product_batches:
-    st.session_state.product_batches[selected_product] = []
     with st.form("batch_entry_form"):
         batch = st.text_input("Batch Number")
         quantity = st.number_input("Production Quantity", min_value=0.0, step=0.1, format="%.1f")  # quantity is now a float.
