@@ -160,14 +160,19 @@ if st.session_state.product_batches[selected_product]:
             del st.session_state.product_batches[selected_product][i]
             st.rerun()  # refresh after any deletion.
     if st.button("Submit Report"):
-          # Check if the same date + shift type + machine exists in the 'av' table
-        from sqlalchemy.sql import text  # Ensure this is at the top of your script
+         from sqlalchemy.sql import text  # Import SQL text wrapper
 
-if st.button("Submit Report"):
-   from sqlalchemy.sql import text  # Ensure this is at the top of your script
+# Ensure session state variables exist
+if "show_confirmation" not in st.session_state:
+    st.session_state.show_confirmation = False
+if "replace_data" not in st.session_state:
+    st.session_state.replace_data = False
+if "restart_form" not in st.session_state:
+    st.session_state.restart_form = False
 
+# Submit report button
 if st.button("Submit Report"):
-    # Check if the same date + shift type + machine exists in the 'av' table
+    # Query the database to check for existing records
     query = text("""
     SELECT COUNT(*) FROM av 
     WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
@@ -179,46 +184,49 @@ if st.button("Submit Report"):
 
         if result and result[0] > 0:  # If a record already exists
             st.warning("A report for this date, shift type, and machine already exists.")
-
-            # Use session state to track button clicks
-            if "replace_data" not in st.session_state:
-                st.session_state.replace_data = False
-            if "restart_form" not in st.session_state:
-                st.session_state.restart_form = False
-
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                if st.button("Replace Existing Data", key="replace"):
-                    st.session_state.replace_data = True
-            with col2:
-                if st.button("Restart Form", key="restart"):
-                    st.session_state.restart_form = True
-
-            # Handle button actions
-            if st.session_state.replace_data:
-                delete_query = text("""
-                DELETE FROM archive WHERE "Date" = :date AND "Day/Night/plan" = :shift_type AND "Machine" = :machine;
-                DELETE FROM av WHERE date = :date AND "shift type" = :shift_type AND machine = :machine;
-                """)
-
-                with engine.connect() as conn:
-                    conn.execute(delete_query, {"date": date, "shift_type": shift_type, "machine": selected_machine})
-                    conn.commit()
-
-                st.success("Existing data deleted. You can now save the new report.")
-                st.session_state.replace_data = False  # Reset flag
-
-            if st.session_state.restart_form:
-                st.session_state.clear()  # Reset form
-                st.rerun()  # Refresh UI
-
+            st.session_state.show_confirmation = True  # Show confirmation buttons
         else:
             st.success("No existing record found. Proceeding with submission.")
             # Continue with saving logic
 
     except Exception as e:
         st.error(f"Database error: {e}")
+
+# Only show confirmation buttons if a duplicate entry exists
+if st.session_state.show_confirmation:
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("Replace Existing Data", key="replace"):
+            st.session_state.replace_data = True
+            st.session_state.show_confirmation = False  # Hide buttons after selection
+
+    with col2:
+        if st.button("Restart Form", key="restart"):
+            st.session_state.restart_form = True
+            st.session_state.show_confirmation = False  # Hide buttons after selection
+
+# Handle replace action
+if st.session_state.replace_data:
+    delete_query = text("""
+    DELETE FROM archive WHERE "Date" = :date AND "Day/Night/plan" = :shift_type AND "Machine" = :machine;
+    DELETE FROM av WHERE date = :date AND "shift type" = :shift_type AND machine = :machine;
+    """)
+
+    try:
+        with engine.connect() as conn:
+            conn.execute(delete_query, {"date": date, "shift_type": shift_type, "machine": selected_machine})
+            conn.commit()
+
+        st.success("Existing data deleted. You can now save the new report.")
+        st.session_state.replace_data = False  # Reset flag
+    except Exception as e:
+        st.error(f"Error deleting data: {e}")
+
+# Handle restart action
+if st.session_state.restart_form:
+    st.session_state.clear()  # Reset form
+    st.rerun()  # Refresh UI
 
 
     else:
