@@ -174,10 +174,16 @@ if "restart_form" not in st.session_state:
 if "submitted" not in st.session_state:
     st.session_state.submitted = False  # Tracks if report is submitted
 
-# Submit report button (Assign a unique key)
+# Function to update session state safely
+def set_replace_data():
+    st.session_state.replace_data = True
+
+def set_restart_form():
+    st.session_state.restart_form = True
+
+# Submit report button
 if not st.session_state.submitted:  # Prevents duplicate rendering
     if st.button("Submit Report", key="submit_report"):
-        # Query the database to check for existing records
         query = text("""
         SELECT COUNT(*) FROM av 
         WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
@@ -193,7 +199,6 @@ if not st.session_state.submitted:  # Prevents duplicate rendering
             else:
                 st.success("No existing record found. Proceeding with submission.")
                 st.session_state.submitted = True  # Prevents re-rendering of button
-                # Add your normal saving logic here
 
         except Exception as e:
             st.error(f"Database error: {e}")
@@ -203,14 +208,12 @@ if st.session_state.show_confirmation:
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("Replace Existing Data", key="replace_data"):
-            st.session_state.replace_data = True
-            st.session_state.show_confirmation = False  # Hide buttons after selection
+        if st.button("Replace Existing Data", key="replace_data", on_click=set_replace_data):
+            pass  # Button click triggers callback
 
     with col2:
-        if st.button("Restart Form", key="restart_form"):
-            st.session_state.restart_form = True
-            st.session_state.show_confirmation = False  # Hide buttons after selection
+        if st.button("Restart Form", key="restart_form", on_click=set_restart_form):
+            pass  # Button click triggers callback
 
 # Handle replace action
 if st.session_state.replace_data:
@@ -234,6 +237,7 @@ if st.session_state.replace_data:
 if st.session_state.restart_form:
     st.session_state.clear()  # Reset form
     st.rerun()  # Refresh UI
+
 
 else:
         # Validation: Check if comments are provided for downtime entries
