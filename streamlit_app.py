@@ -8,19 +8,6 @@ from sqlalchemy import create_engine
 # Database connection
 DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
 engine = create_engine(DB_URL)
-# Initialize session state variables if they are not set
-session_state_keys = ["replace_data", "restart_form", "show_confirmation", "submitted", "modify_mode", "product_batches"]
-for key in session_state_keys:
-    if key not in st.session_state:
-        st.session_state[key] = False  # or an empty dictionary for "product_batches"
-
-# Initialize DataFrames in session state
-if "submitted_archive_df" not in st.session_state:
-    st.session_state.submitted_archive_df = pd.DataFrame()
-
-if "submitted_av_df" not in st.session_state:
-    st.session_state.submitted_av_df = pd.DataFrame()
-
 def clean_dataframe(df):
     """
     Cleans the dataframe by:
@@ -122,20 +109,15 @@ else:
                 downtime_data[dt_type + "_comment"] = ""
 
     # Initialize session state for product-specific batch data
-if "product_batches" not in st.session_state:
-    st.session_state.product_batches = {}
+    if "product_batches" not in st.session_state:
+        st.session_state.product_batches = {}
 
-# Ensure product_list is not empty before displaying selectbox
-if product_list:
     selected_product = st.selectbox("Select Product", product_list)
-else:
-    st.warning("No products available.")
-    selected_product = None
 
-# Initialize batch data for the selected product if it exists and is valid
-if selected_product:
+    # Initialize batch data for the selected product if it doesn't exist
     if selected_product not in st.session_state.product_batches:
         st.session_state.product_batches[selected_product] = []
+
     with st.form("batch_entry_form"):
         batch = st.text_input("Batch Number")
         quantity = st.number_input("Production Quantity", min_value=0.0, step=0.1, format="%.1f")  # quantity is now a float.
@@ -153,7 +135,7 @@ if selected_product:
                 st.error("You can add a maximum of 5 batches for this product.")
 
     # Display added batches for the selected product with delete buttons
-if selected_product in st.session_state.product_batches and st.session_state.product_batches[selected_product]:
+if st.session_state.product_batches[selected_product]:
     st.subheader(f"Added Batches for {selected_product}:")
     batch_data = st.session_state.product_batches[selected_product]
 
@@ -181,17 +163,18 @@ if selected_product in st.session_state.product_batches and st.session_state.pro
             st.rerun()  # refresh after any deletion.
     
 from sqlalchemy.sql import text  # Import SQL text wrapper
-# Initialize session state variables if not already set
-for key in ["replace_data", "restart_form", "show_confirmation", "submitted"]:
-    if key not in st.session_state:
-        st.session_state[key] = False
 
 # Ensure session state variables exist
 if "show_confirmation" not in st.session_state:
     st.session_state.show_confirmation = False
+if "replace_data" not in st.session_state:
+    st.session_state.replace_data = False
+if "restart_form" not in st.session_state:
+    st.session_state.restart_form = False
 if "submitted" not in st.session_state:
     st.session_state.submitted = False  # Tracks if report is submitted
 
+# Function to update session state safely
 def set_replace_data():
     st.session_state.replace_data = True
 
@@ -220,6 +203,13 @@ if not st.session_state.submitted:  # Prevents duplicate rendering
         except Exception as e:
             st.error(f"Database error: {e}")
 
+# Define a function that updates session state variables safely
+def set_replace_data():
+    st.session_state["replace_data"] = True
+
+def set_restart_form():
+    st.session_state["restart_form"] = True
+
 # Ensure session state variables exist
 if "replace_data" not in st.session_state:
     st.session_state["replace_data"] = False
@@ -229,18 +219,16 @@ if "restart_form" not in st.session_state:
 
 # Show confirmation buttons if needed
 if st.session_state.show_confirmation:
-   col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("Replace Existing Data", key="replace_data"):
+            set_replace_data()  # Call function instead of using on_click
 
-with col1:
-        if st.button("Replace Existing Data", key="replace_data_button"):
-            set_replace_data()  # Ensure session state is properly updated
+    with col2:
+        if st.button("Restart Form", key="restart_form"):
+            set_restart_form()  # Call function instead of using on_click
 
-with col2:
-        if st.button("Restart Form", key="restart_form_button"):
-            with engine.begin() as conn:
-                conn.execute(delete_query, {"date": date, "shift_type": shift_type, "machine": selected_machine})
-
-set_restart_form()  # Ensure session state is properly updated
 
 # Handle replace action
 if st.session_state.replace_data:
@@ -252,7 +240,7 @@ if st.session_state.replace_data:
     try:
         with engine.connect() as conn:
             conn.execute(delete_query, {"date": date, "shift_type": shift_type, "machine": selected_machine})
-            
+            conn.commit()
 
         st.success("Existing data deleted. You can now save the new report.")
         st.session_state.replace_data = False  # Reset flag
@@ -262,9 +250,9 @@ if st.session_state.replace_data:
 
 # Handle restart action
 if st.session_state.restart_form:
-    for key in session_state_keys:
-        st.session_state[key] = False  # Reset without clearing all state
-    st.rerun()
+    st.session_state.clear()  # Reset form
+    st.rerun()  # Refresh UI
+
 
 else:
         # Validation: Check if comments are provided for downtime entries
