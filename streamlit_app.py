@@ -349,12 +349,7 @@ else:
             st.session_state.submitted_archive_df = archive_df
             st.session_state.submitted_av_df = av_df
 
-            # Display submitted data
-            st.subheader("Submitted Archive Data")
-            st.dataframe(st.session_state.submitted_archive_df)
-            st.subheader("Submitted AV Data")
-            st.dataframe(st.session_state.submitted_av_df)
-
+           
          # Provide two options: Approve and Save or Modify Data
 # Provide two options: Approve and Save or Modify Data
 col1, col2 = st.columns(2)
