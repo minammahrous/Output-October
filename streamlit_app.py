@@ -234,10 +234,10 @@ try:
             conn.execute(delete_query, {"date": date, "shift_type": shift_type, "machine": selected_machine})
             conn.commit()
 
-        st.success("Existing data deleted. You can now save the new report.")
-        st.session_state.replace_data = False  # Reset flag
-    except Exception as e:
-        st.error(f"Error deleting data: {e}")
+            st.success("Existing data deleted. You can now save the new report.")
+            st.session_state.replace_data = False  # Reset flag
+        except Exception as e:
+            st.error(f"Error deleting data: {e}")
 
 # Handle restart action
 if st.session_state.restart_form:
