@@ -163,10 +163,10 @@ if st.session_state.product_batches[selected_product]:
           # Check if the same date + shift type + machine exists in the 'av' table
         from sqlalchemy.sql import text  # Import SQL text wrapper
 
-            query = text("""
-            SELECT COUNT(*) FROM av 
-            WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
-            """)
+        query = text("""
+        SELECT COUNT(*) FROM av 
+        WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
+        """)
 
 with engine.connect() as conn:
     result = conn.execute(query, {"date": date, "shift_type": shift_type, "machine": selected_machine}).fetchone()
