@@ -138,7 +138,7 @@ if st.session_state.product_batches[selected_product]:
     batch_data = st.session_state.product_batches[selected_product]
 
     if batch_data:  # check if batch_data is not empty
-        cols = st.columns(len(batch_data) + 1)  # +1 for the delete column
+        cols = st.columns(4)  # Fixed number of columns
 
         # Header row
         cols[0].write("Batch")
@@ -159,7 +159,6 @@ if st.session_state.product_batches[selected_product]:
         for i in sorted(batches_to_delete, reverse=True):
             del st.session_state.product_batches[selected_product][i]
             st.rerun()  # refresh after any deletion.
-
     if st.button("Submit Report"):
         # Validation: Check if comments are provided for downtime entries
         missing_comments = [dt_type for dt_type in downtime_types if downtime_data[dt_type] > 0 and not downtime_data[dt_type + "_comment"]]
