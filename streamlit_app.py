@@ -163,6 +163,10 @@ if st.session_state.product_batches[selected_product]:
             st.rerun()  # refresh after any deletion.
     
 from sqlalchemy.sql import text  # Import SQL text wrapper
+# Initialize session state variables if not already set
+for key in ["replace_data", "restart_form", "show_confirmation", "submitted"]:
+    if key not in st.session_state:
+        st.session_state[key] = False
 
 # Ensure session state variables exist
 if "show_confirmation" not in st.session_state:
