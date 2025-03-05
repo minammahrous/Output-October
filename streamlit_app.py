@@ -221,12 +221,12 @@ if st.session_state.show_confirmation:
 # Handle replace action
 if st.session_state.replace_data:
    delete_query = text("""
-DELETE FROM archive 
-WHERE "Date" = :date AND "Day/Night/plan" = :shift_type AND "Machine" = :machine;
+    DELETE FROM archive 
+    WHERE "Date" = :date AND "Day/Night/plan" = :shift_type AND "Machine" = :machine;
 
-DELETE FROM av 
-WHERE date = :date AND "shift type" = :shift_type AND machine = :machine;
-""")
+    DELETE FROM av 
+    WHERE date = :date AND "shift type" = :shift_type AND machine = :machine;
+    """)
 
 
     try:
