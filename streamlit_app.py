@@ -8,6 +8,19 @@ from sqlalchemy import create_engine
 # Database connection
 DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
 engine = create_engine(DB_URL)
+# Initialize session state variables if they are not set
+session_state_keys = ["replace_data", "restart_form", "show_confirmation", "submitted", "modify_mode", "product_batches"]
+for key in session_state_keys:
+    if key not in st.session_state:
+        st.session_state[key] = False  # or an empty dictionary for "product_batches"
+
+# Initialize DataFrames in session state
+if "submitted_archive_df" not in st.session_state:
+    st.session_state.submitted_archive_df = pd.DataFrame()
+
+if "submitted_av_df" not in st.session_state:
+    st.session_state.submitted_av_df = pd.DataFrame()
+
 def clean_dataframe(df):
     """
     Cleans the dataframe by:
@@ -180,6 +193,8 @@ if "submitted" not in st.session_state:
 
 # Function to update session state safely
 def set_replace_data():
+    if "replace_data" not in st.session_state:
+        st.session_state.replace_data = False  # Ensure it is initialized
     st.session_state.replace_data = True
 
 def set_restart_form():
@@ -224,15 +239,14 @@ if "restart_form" not in st.session_state:
 # Show confirmation buttons if needed
 if st.session_state.show_confirmation:
     col1, col2 = st.columns(2)
-    
-    with col1:
-        if st.button("Replace Existing Data", key="replace_data"):
-            set_replace_data()  # Call function instead of using on_click
 
-    with col2:
-        if st.button("Restart Form", key="restart_form"):
-            set_restart_form()  # Call function instead of using on_click
+with col1:
+    if st.button("Replace Existing Data", key="replace_data"):
+        set_replace_data()  # This function is now safe
 
+with col2:
+    if st.button("Restart Form", key="restart_form"):
+        set_restart_form()  # Ensure set_restart_form() is also properly initialized
 
 # Handle replace action
 if st.session_state.replace_data:
