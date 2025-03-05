@@ -184,19 +184,13 @@ for key in ["replace_data", "restart_form", "show_confirmation", "submitted"]:
 # Ensure session state variables exist
 if "show_confirmation" not in st.session_state:
     st.session_state.show_confirmation = False
-if "replace_data" not in st.session_state:
-    st.session_state.replace_data = False
-if "restart_form" not in st.session_state:
-    st.session_state.restart_form = False
 if "submitted" not in st.session_state:
     st.session_state.submitted = False  # Tracks if report is submitted
 
-# Function to update session state safely
 def set_replace_data():
     if "replace_data" not in st.session_state:
-        st.session_state.replace_data = False  # Ensure it is initialized
+        st.session_state["replace_data"] = False  # Ensure it exists
     st.session_state.replace_data = True
-
 def set_restart_form():
     st.session_state.restart_form = True
 
@@ -222,13 +216,6 @@ if not st.session_state.submitted:  # Prevents duplicate rendering
         except Exception as e:
             st.error(f"Database error: {e}")
 
-# Define a function that updates session state variables safely
-def set_replace_data():
-    st.session_state["replace_data"] = True
-
-def set_restart_form():
-    st.session_state["restart_form"] = True
-
 # Ensure session state variables exist
 if "replace_data" not in st.session_state:
     st.session_state["replace_data"] = False
@@ -238,15 +225,15 @@ if "restart_form" not in st.session_state:
 
 # Show confirmation buttons if needed
 if st.session_state.show_confirmation:
-    col1, col2 = st.columns(2)
+   col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("Replace Existing Data", key="replace_data"):
-        set_replace_data()  # This function is now safe
+    if st.button("Replace Existing Data", key="replace_data_button"):
+        set_replace_data()  # Ensure session state is properly updated
 
 with col2:
-    if st.button("Restart Form", key="restart_form"):
-        set_restart_form()  # Ensure set_restart_form() is also properly initialized
+    if st.button("Restart Form", key="restart_form_button"):
+        set_restart_form()  # Ensure session state is properly updated
 
 # Handle replace action
 if st.session_state.replace_data:
