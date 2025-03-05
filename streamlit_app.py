@@ -262,22 +262,7 @@ if st.session_state.restart_form:
     st.rerun()
 
 else:
-        # Validation: Check if comments are provided for downtime entries
-        missing_comments = [dt_type for dt_type in downtime_types if downtime_data[dt_type] > 0 and not downtime_data[dt_type + "_comment"]]
-        if missing_comments:
-            st.error(f"Please provide comments for the following downtime types: {', '.join(missing_comments)}")
-        else:
-            st.write("Report Submitted")
-            st.write(f"Machine: {selected_machine}")
-            st.write(f"Date: {date}")
-            st.write(f"Shift Type: {shift_type}")
-            st.write(f"Shift Duration: {shift_duration}")
-            for dt_type in downtime_types:
-                if downtime_data[dt_type] > 0:
-                    st.write(f"{dt_type}: {downtime_data[dt_type]} hours")
-                    st.write(f"Comment for {dt_type}: {downtime_data[dt_type + '_comment']}")
-            st.write(f"Product Batches: {st.session_state.product_batches}")
-
+      
             # Construct archive_df (Downtime records)
             archive_data = []
             for dt_type in downtime_types:
