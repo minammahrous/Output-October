@@ -164,33 +164,6 @@ if st.session_state.product_batches[selected_product]:
         missing_comments = [dt_type for dt_type in downtime_types if downtime_data[dt_type] > 0 and not downtime_data[dt_type + "_comment"]]
         if missing_comments:
             st.error(f"Please provide comments for the following downtime types: {', '.join(missing_comments)}")
-    else:
-        # Check if an entry with the same date, shift type, and machine exists in Neon
-        try:
-            with engine.connect() as connection:
-                query = "SELECT COUNT(*) FROM av WHERE date = %s AND \"shift type\" = %s AND machine = %s"
-                result = connection.execute(query, (date, shift_type, selected_machine)).fetchone()
-
-            if result[0] > 0:
-                st.warning(f"An entry with Date: {date}, Shift Type: {shift_type}, and Machine: {selected_machine} already exists.")
-                choice = st.radio("Choose an action:", ["Replace Saved Data", "Clear Form"])
-
-                if choice == "Replace Saved Data":
-                    # Construct archive_df and av_df (as you have them now)
-                    # ... (Your existing code to construct archive_df and av_df) ...
-                    try:
-                        archive_df.to_sql("archive", engine, if_exists="replace", index=False)
-                        av_df.to_sql("av", engine, if_exists="replace", index=False)
-                        st.success("Data replaced successfully!")
-                    except Exception as e:
-                        st.error(f"Error replacing data: {e}")
-
-                elif choice == "Clear Form":
-                    # Clear form inputs and session state
-                    st.session_state.product_batches = {}  # Clear product batches
-                    # Clear other session state variables as needed
-                    st.info("Form cleared.")
-
         else:
             st.write("Report Submitted")
             st.write(f"Machine: {selected_machine}")
@@ -310,13 +283,13 @@ with col1:
             av_df = clean_dataframe(st.session_state.submitted_av_df.copy())
 
             # Save cleaned data to PostgreSQL
-            # Save data to Neon
-                try:
-                    archive_df.to_sql("archive", engine, if_exists="append", index=False)
-                    av_df.to_sql("av", engine, if_exists="append", index=False)
-                    st.success("Data saved successfully!")
-                except Exception as e:
-                    st.error(f"Error saving data: {e}")
+            archive_df.to_sql("archive", engine, if_exists="append", index=False)
+            av_df.to_sql("av", engine, if_exists="append", index=False)
+
+            st.success("Data saved to database successfully!")
+        except Exception as e:
+            st.error(f"Error saving data: {e}")
+
 with col2:
     if st.button("Modify Data"):
         st.session_state.modify_mode = True
@@ -334,9 +307,11 @@ if st.session_state.get("modify_mode", False):
 
     if st.button("Confirm Modifications and Save"):
         try:
-            archive_df.to_sql("archive", engine, if_exists="append", index=False)
-            av_df.to_sql("av", engine, if_exists="append", index=False)
-            st.success("Data saved successfully!")
+            # Save modified data to PostgreSQL
+            modified_archive_df.to_sql("archive", engine, if_exists="replace", index=False)
+            modified_av_df.to_sql("av", engine, if_exists="replace", index=False)
+            
+            st.success("Modified data saved to database successfully.")
             st.session_state.modify_mode = False  # Exit modify mode
         except Exception as e:
             st.error(f"Error saving modified data: {e}")
