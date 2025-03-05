@@ -160,6 +160,39 @@ if st.session_state.product_batches[selected_product]:
             del st.session_state.product_batches[selected_product][i]
             st.rerun()  # refresh after any deletion.
     if st.button("Submit Report"):
+          # Check if the same date + shift type + machine exists in the 'av' table
+    query = f"""
+    SELECT COUNT(*) FROM av 
+    WHERE date = '{date}' AND "shift type" = '{shift_type}' AND machine = '{selected_machine}'
+    """
+    
+    with engine.connect() as conn:
+        result = conn.execute(query).fetchone()
+    
+    if result[0] > 0:  # If a record already exists
+        st.warning("A report for this date, shift type, and machine already exists.")
+        col1, col2 = st.columns(2)
+        with col1:
+            replace_data = st.button("Replace Existing Data")
+        with col2:
+            restart_form = st.button("Restart Form")
+
+        if replace_data:
+            # Delete existing data
+            delete_query = f"""
+            DELETE FROM archive WHERE "Date" = '{date}' AND "Day/Night/plan" = '{shift_type}' AND "Machine" = '{selected_machine}';
+            DELETE FROM av WHERE date = '{date}' AND "shift type" = '{shift_type}' AND machine = '{selected_machine}';
+            """
+            with engine.connect() as conn:
+                conn.execute(delete_query)
+                conn.commit()
+            st.success("Existing data deleted. You can now save the new report.")
+        
+        elif restart_form:
+            st.session_state.clear()  # Reset form
+            st.rerun()  # Refresh UI
+
+    else:
         # Validation: Check if comments are provided for downtime entries
         missing_comments = [dt_type for dt_type in downtime_types if downtime_data[dt_type] > 0 and not downtime_data[dt_type + "_comment"]]
         if missing_comments:
