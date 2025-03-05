@@ -161,10 +161,10 @@ if st.session_state.product_batches[selected_product]:
             st.rerun()  # refresh after any deletion.
     if st.button("Submit Report"):
           # Check if the same date + shift type + machine exists in the 'av' table
-    query = f"""
-    SELECT COUNT(*) FROM av 
-    WHERE date = '{date}' AND "shift type" = '{shift_type}' AND machine = '{selected_machine}'
-    """
+        query = f"""
+        SELECT COUNT(*) FROM av 
+        WHERE date = '{date}' AND "shift type" = '{shift_type}' AND machine = '{selected_machine}'
+        """
     
     with engine.connect() as conn:
         result = conn.execute(query).fetchone()
