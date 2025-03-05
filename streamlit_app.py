@@ -168,8 +168,9 @@ if st.session_state.product_batches[selected_product]:
         WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
         """)
 
-with engine.connect() as conn:
+File "/mount/src/aaa/streamlit_app.py", line 172, in <module>
     result = conn.execute(query, {"date": date, "shift_type": shift_type, "machine": selected_machine}).fetchone()
+                          ^^^^^
     
     if result[0] > 0:  # If a record already exists
         st.warning("A report for this date, shift type, and machine already exists.")
