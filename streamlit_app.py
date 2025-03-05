@@ -233,7 +233,7 @@ with col1:
 with col2:
         if st.button("Restart Form", key="restart_form_button"):
             with engine.begin() as conn:
-    conn.execute(delete_query, {"date": date, "shift_type": shift_type, "machine": selected_machine})
+                conn.execute(delete_query, {"date": date, "shift_type": shift_type, "machine": selected_machine})
 
 set_restart_form()  # Ensure session state is properly updated
 
