@@ -405,20 +405,21 @@ with col2:
 if st.session_state.get("modify_mode", False):
     st.subheader("Modify Submitted Data")
 
-    # Clean before displaying
-    cleaned_archive_df = clean_dataframe(st.session_state.submitted_archive_df)
-    cleaned_av_df = clean_dataframe(st.session_state.submitted_av_df)
+    if "submitted_archive_df" in st.session_state and not st.session_state.submitted_archive_df.empty:
+        cleaned_archive_df = clean_dataframe(st.session_state.submitted_archive_df)
+        cleaned_av_df = clean_dataframe(st.session_state.submitted_av_df)
 
-    modified_archive_df.to_sql("archive", engine, if_exists="append", index=False)
-    modified_av_df.to_sql("av", engine, if_exists="append", index=False)
+        modified_archive_df = st.data_editor(cleaned_archive_df, key="archive_editor")
+        modified_av_df = st.data_editor(cleaned_av_df, key="av_editor")
 
-    if st.button("Confirm Modifications and Save"):
-        try:
-            # Save modified data to PostgreSQL
-            modified_archive_df.to_sql("archive", engine, if_exists="replace", index=False)
-            modified_av_df.to_sql("av", engine, if_exists="replace", index=False)
-            
-            st.success("Modified data saved to database successfully.")
-            st.session_state.modify_mode = False  # Exit modify mode
-        except Exception as e:
-            st.error(f"Error saving modified data: {e}")
+        if st.button("Confirm Modifications and Save"):
+            try:
+                modified_archive_df.to_sql("archive", engine, if_exists="append", index=False)
+                modified_av_df.to_sql("av", engine, if_exists="append", index=False)
+                st.success("Modified data saved to database successfully.")
+                st.session_state.modify_mode = False  # Exit modify mode
+            except Exception as e:
+                st.error(f"Error saving modified data: {e}")
+
+    else:
+        st.error("No submitted data found to modify.")
