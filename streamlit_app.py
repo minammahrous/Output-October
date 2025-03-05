@@ -161,16 +161,7 @@ if st.session_state.product_batches[selected_product]:
         for i in sorted(batches_to_delete, reverse=True):
             del st.session_state.product_batches[selected_product][i]
             st.rerun()  # refresh after any deletion.
-    if st.button("Submit Report"):
-         from sqlalchemy.sql import text  # Import SQL text wrapper
-
-# Ensure session state variables exist
-if "show_confirmation" not in st.session_state:
-    st.session_state.show_confirmation = False
-if "replace_data" not in st.session_state:
-    st.session_state.replace_data = False
-if "restart_form" not in st.session_state:
-    st.session_state.restart_form = False
+    
 
 # Submit report button
 if st.button("Submit Report"):
