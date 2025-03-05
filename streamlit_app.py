@@ -161,39 +161,51 @@ if st.session_state.product_batches[selected_product]:
             st.rerun()  # refresh after any deletion.
     if st.button("Submit Report"):
           # Check if the same date + shift type + machine exists in the 'av' table
-        from sqlalchemy.sql import text  # Import SQL text wrapper
+        from sqlalchemy.sql import text  # Ensure this is at the top of your script
 
-        query = text("""
-        SELECT COUNT(*) FROM av 
-        WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
-        """)
+if st.button("Submit Report"):
+    # Check if the same date + shift type + machine exists in the 'av' table
+    query = text("""
+    SELECT COUNT(*) FROM av 
+    WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
+    """)
 
-File "/mount/src/aaa/streamlit_app.py", line 172, in <module>
-    result = conn.execute(query, {"date": date, "shift_type": shift_type, "machine": selected_machine}).fetchone()
-                          ^^^^^
-    
-    if result[0] > 0:  # If a record already exists
-        st.warning("A report for this date, shift type, and machine already exists.")
-        col1, col2 = st.columns(2)
-        with col1:
-            replace_data = st.button("Replace Existing Data")
-        with col2:
-            restart_form = st.button("Restart Form")
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(query, {"date": date, "shift_type": shift_type, "machine": selected_machine}).fetchone()
 
-        if replace_data:
-            # Delete existing data
-            delete_query = f"""
-            DELETE FROM archive WHERE "Date" = '{date}' AND "Day/Night/plan" = '{shift_type}' AND "Machine" = '{selected_machine}';
-            DELETE FROM av WHERE date = '{date}' AND "shift type" = '{shift_type}' AND machine = '{selected_machine}';
-            """
-            with engine.connect() as conn:
-                conn.execute(delete_query)
-                conn.commit()
-            st.success("Existing data deleted. You can now save the new report.")
-        
-        elif restart_form:
-            st.session_state.clear()  # Reset form
-            st.rerun()  # Refresh UI
+        if result and result[0] > 0:  # If a record already exists
+            st.warning("A report for this date, shift type, and machine already exists.")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                replace_data = st.button("Replace Existing Data")
+            with col2:
+                restart_form = st.button("Restart Form")
+
+            if replace_data:
+                delete_query = text("""
+                DELETE FROM archive WHERE "Date" = :date AND "Day/Night/plan" = :shift_type AND "Machine" = :machine;
+                DELETE FROM av WHERE date = :date AND "shift type" = :shift_type AND machine = :machine;
+                """)
+
+                with engine.connect() as conn:
+                    conn.execute(delete_query, {"date": date, "shift_type": shift_type, "machine": selected_machine})
+                    conn.commit()
+
+                st.success("Existing data deleted. You can now save the new report.")
+
+            elif restart_form:
+                st.session_state.clear()  # Reset form
+                st.rerun()  # Refresh UI
+
+        else:
+            st.success("No existing record found. Proceeding with submission.")
+            # Continue with saving logic
+
+    except Exception as e:
+        st.error(f"Database error: {e}")
+
 
     else:
         # Validation: Check if comments are provided for downtime entries
