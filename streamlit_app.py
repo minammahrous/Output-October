@@ -409,8 +409,8 @@ if st.session_state.get("modify_mode", False):
     cleaned_archive_df = clean_dataframe(st.session_state.submitted_archive_df)
     cleaned_av_df = clean_dataframe(st.session_state.submitted_av_df)
 
-    modified_archive_df = st.data_editor(cleaned_archive_df, key="archive_editor")
-    modified_av_df = st.data_editor(cleaned_av_df, key="av_editor")
+    modified_archive_df.to_sql("archive", engine, if_exists="append", index=False)
+    modified_av_df.to_sql("av", engine, if_exists="append", index=False)
 
     if st.button("Confirm Modifications and Save"):
         try:
