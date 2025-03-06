@@ -183,14 +183,13 @@ def set_restart_form():
 
 # Validation: Check if comments are provided for downtime entries
 missing_comments = [dt_type for dt_type in downtime_types if downtime_data[dt_type] > 0 and not downtime_data[dt_type + "_comment"]]
-        if missing_comments:
-            st.error(f"Please provide comments for the following downtime types: {', '.join(missing_comments)}")
-        else:
-           
-            st.write(f"Machine: {selected_machine}")
-            st.write(f"Date: {date}")
-            st.write(f"Shift Type: {shift_type}")
-            st.write(f"Shift Duration: {shift_duration}")
+if missing_comments:
+    st.error(f"Please provide comments for the following downtime types: {', '.join(missing_comments)}")
+else:     
+    st.write(f"Machine: {selected_machine}")
+    st.write(f"Date: {date}")
+    st.write(f"Shift Type: {shift_type}")
+    st.write(f"Shift Duration: {shift_duration}")
           
 
  
