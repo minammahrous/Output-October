@@ -193,24 +193,24 @@ else:
           
 
  
-            # Construct archive_df (Downtime records)
-            archive_data = []
-            for dt_type in downtime_types:
-                if downtime_data[dt_type] > 0:
-                    archive_row = {
-                        "Date": date,
-                        "Machine": selected_machine,
-                        "Day/Night/plan": shift_type,
-                        "Activity": dt_type,
-                        "time": downtime_data[dt_type],
-                        "Product": "",
-                        "batch number": "",
-                        "quantity": "",
-                        "commnets": downtime_data[dt_type + "_comment"],
-                        "rate": "",
-                        "standard rate": "",
-                        "efficiency": "",
-                    }
+    # Construct archive_df (Downtime records)
+    archive_data = []
+    for dt_type in downtime_types:
+        if downtime_data[dt_type] > 0:
+            archive_row = {
+            "Date": date,
+            "Machine": selected_machine,
+            "Day/Night/plan": shift_type,
+            "Activity": dt_type,
+            "time": downtime_data[dt_type],
+            "Product": "",
+            "batch number": "",
+            "quantity": "",
+            "commnets": downtime_data[dt_type + "_comment"],
+            "rate": "",
+            "standard rate": "",
+            "efficiency": "",
+             }
                     archive_data.append(archive_row)
             archive_df = pd.DataFrame(archive_data)
 
