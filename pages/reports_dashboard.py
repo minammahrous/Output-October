@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from sqlalchemy import create_engine
+import plotly.express as px
 
 # Database connection
 DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
@@ -22,22 +23,6 @@ st.title("Machine Performance Dashboard")
 # User inputs
 date_selected = st.date_input("Select Date")
 shift_selected = st.selectbox("Select Shift Type", ["Day", "Night", "Plan"])
-
-# Queries
-query_av = """
-    SELECT "machine", "Availability", "Av Efficiency", "OEE"
-    FROM av
-    WHERE "date" = %(date)s AND "shift type" = %(shift)s
-"""
-
-query_archive = """
-    SELECT "Machine", "Activity", SUM("time") as "Total_Time", AVG("efficiency") as "Avg_Efficiency"
-    FROM archive
-    WHERE "Date" = %(date)s AND "Day/Night/plan" = %(shift)s
-    GROUP BY "Machine", "Activity"
-"""
-import plotly.express as px
-
 # Debugging step
 st.write("AV Table Columns:", df_av.columns.tolist())
 
@@ -55,6 +40,23 @@ if not df_av.empty:
     st.plotly_chart(fig)
 else:
     st.warning("No data available for the selected filters.")
+
+# Queries
+query_av = """
+    SELECT "machine", "Availability", "Av Efficiency", "OEE"
+    FROM av
+    WHERE "date" = %(date)s AND "shift type" = %(shift)s
+"""
+
+query_archive = """
+    SELECT "Machine", "Activity", SUM("time") as "Total_Time", AVG("efficiency") as "Avg_Efficiency"
+    FROM archive
+    WHERE "Date" = %(date)s AND "Day/Night/plan" = %(shift)s
+    GROUP BY "Machine", "Activity"
+"""
+
+
+
 
 
 # Fetch data
