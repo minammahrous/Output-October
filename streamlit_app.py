@@ -180,80 +180,18 @@ def set_replace_data():
 def set_restart_form():
     st.session_state.restart_form = True
 
-# Submit report button
-if not st.session_state.submitted:  # Prevents duplicate rendering
-    if st.button("Submit Report", key="submit_report"):
-        query = text("""
-        SELECT COUNT(*) FROM av 
-        WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
-        """)
 
-        try:
-            with engine.connect() as conn:
-                result = conn.execute(query, {"date": date, "shift_type": shift_type, "machine": selected_machine}).fetchone()
-
-            if result and result[0] > 0:  # If a record already exists
-                st.warning("A report for this date, shift type, and machine already exists.")
-                st.session_state.show_confirmation = True  # Show confirmation buttons
-            else:
-                st.success("No existing record found. Proceeding with submission.")
-                st.session_state.submitted = True  # Prevents re-rendering of button
-
-        except Exception as e:
-            st.error(f"Database error: {e}")
-
-# Show confirmation buttons if needed
-if st.session_state.show_confirmation:
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        if st.button("Replace Existing Data", key="replace_data", on_click=set_replace_data):
-            pass  # Button click triggers callback
-
-    with col2:
-        if st.button("Restart Form", key="restart_form", on_click=set_restart_form):
-            pass  # Button click triggers callback
-
-# Handle replace action
-if st.session_state.replace_data:
-    delete_query = text("""
-    DELETE FROM archive WHERE "Date" = :date AND "Day/Night/plan" = :shift_type AND "Machine" = :machine;
-    DELETE FROM av WHERE date = :date AND "shift type" = :shift_type AND machine = :machine;
-    """)
-
-    try:
-        with engine.connect() as conn:
-            conn.execute(delete_query, {"date": date, "shift_type": shift_type, "machine": selected_machine})
-            conn.commit()
-
-        st.success("Existing data deleted. You can now save the new report.")
-        st.session_state.replace_data = False  # Reset flag
-        st.session_state.submitted = False  # Allow new submissions
-    except Exception as e:
-        st.error(f"Error deleting data: {e}")
-
-# Handle restart action
-if st.session_state.restart_form:
-    st.session_state.clear()  # Reset form
-    st.rerun()  # Refresh UI
-
-
-else:
         # Validation: Check if comments are provided for downtime entries
         missing_comments = [dt_type for dt_type in downtime_types if downtime_data[dt_type] > 0 and not downtime_data[dt_type + "_comment"]]
         if missing_comments:
             st.error(f"Please provide comments for the following downtime types: {', '.join(missing_comments)}")
         else:
-            st.write("Report Submitted")
+           
             st.write(f"Machine: {selected_machine}")
             st.write(f"Date: {date}")
             st.write(f"Shift Type: {shift_type}")
             st.write(f"Shift Duration: {shift_duration}")
-            for dt_type in downtime_types:
-                if downtime_data[dt_type] > 0:
-                    st.write(f"{dt_type}: {downtime_data[dt_type]} hours")
-                    st.write(f"Comment for {dt_type}: {downtime_data[dt_type + '_comment']}")
-            st.write(f"Product Batches: {st.session_state.product_batches}")
+          
 
  
             # Construct archive_df (Downtime records)
