@@ -39,4 +39,27 @@ query_archive = """
 """
 
 # Fetch data
-df_av = get_data(query_av, {"date": date_selecte
+df_av = get_data(query_av, {"date": date_selected, "shift": shift_selected})
+df_archive = get_data(query_archive, {"date": date_selected, "shift": shift_selected})
+
+# Debugging Step: Check if df_av has correct column names
+if not df_av.empty:
+    st.write("AV Table Columns:", df_av.columns.tolist())
+else:
+    st.warning("No data found in AV table for the selected filters.")
+
+# Visualization - AV Table Data
+if not df_av.empty:
+    st.subheader("Machine Efficiency, Availability & OEE")
+    fig = px.bar(df_av, 
+                 x="machine",  
+                 y=["Availability", "Av Efficiency", "OEE"],  
+                 barmode='group', 
+                 title="Performance Metrics per Machine")
+    st.plotly_chart(fig)
+else:
+    st.warning("No data available for the selected filters.")
+
+# Display Archive Data
+st.subheader("Machine Activity Summary")
+st.dataframe(df_archive)
