@@ -25,16 +25,18 @@ shift_selected = st.selectbox("Select Shift Type", ["Day", "Night", "Plan"])
 
 # Queries
 query_av = """
-    SELECT machine, Availability, "Av Efficiency", OEE 
-    FROM av 
-    WHERE date = %(date)s AND "shift type" = %(shift)s
+    SELECT "machine", "Availability", "Av Efficiency", "OEE"
+    FROM av
+    WHERE "date" = %(date)s AND "shift type" = %(shift)s
 """
+
 query_archive = """
-    SELECT Machine, Activity, SUM(time) as Total_Time, AVG(efficiency) as Avg_Efficiency
+    SELECT "Machine", "Activity", SUM("time") as "Total_Time", AVG("efficiency") as "Avg_Efficiency"
     FROM archive
-    WHERE Date = %(date)s AND "Day/Night/plan" = %(shift)s
-    GROUP BY Machine, Activity
+    WHERE "Date" = %(date)s AND "Day/Night/plan" = %(shift)s
+    GROUP BY "Machine", "Activity"
 """
+
 
 # Fetch data
 df_av = get_data(query_av, {"date": date_selected, "shift": shift_selected})
