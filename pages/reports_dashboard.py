@@ -46,8 +46,8 @@ query_production = """
     SELECT 
         "Machine", 
         "batch number",  
-        SUM("Qty") AS "Produced Quantity",
-        (SELECT SUM("Qty") 
+        SUM("quantity") AS "Produced Quantity",
+        (SELECT SUM("quantity") 
          FROM archive 
          WHERE archive."Machine" = a."Machine" 
          AND archive."batch numbe" = a."batch numbe" 
