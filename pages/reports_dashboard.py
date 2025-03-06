@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import psycopg2
 from sqlalchemy import create_engine
 
 # Database connection
@@ -9,10 +7,14 @@ DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pool
 engine = create_engine(DB_URL)
 
 def get_data(query, params=None):
-    """Fetch data from Neon PostgreSQL."""
-    with psycopg2.connect(**DB_CONFIG) as conn:
-        df = pd.read_sql(query, conn, params=params)
-    return df
+    """Fetch data from Neon PostgreSQL using SQLAlchemy."""
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(query, conn, params=params)
+        return df
+    except Exception as e:
+        st.error(f"Database connection failed: {e}")
+        return pd.DataFrame()
 
 # Streamlit UI
 st.title("Machine Performance Dashboard")
@@ -25,18 +27,18 @@ shift_selected = st.selectbox("Select Shift Type", ["Day", "Night", "Plan"])
 query_av = """
     SELECT machine, Availability, "Av Efficiency", OEE 
     FROM av 
-    WHERE date = %s AND "shift type" = %s
+    WHERE date = %(date)s AND "shift type" = %(shift)s
 """
 query_archive = """
     SELECT Machine, Activity, SUM(time) as Total_Time, AVG(efficiency) as Avg_Efficiency
     FROM archive
-    WHERE Date = %s AND "Day/Night/plan" = %s
+    WHERE Date = %(date)s AND "Day/Night/plan" = %(shift)s
     GROUP BY Machine, Activity
 """
 
 # Fetch data
-df_av = get_data(query_av, (date_selected, shift_selected))
-df_archive = get_data(query_archive, (date_selected, shift_selected))
+df_av = get_data(query_av, {"date": date_selected, "shift": shift_selected})
+df_archive = get_data(query_archive, {"date": date_selected, "shift": shift_selected})
 
 # Display Archive Data
 st.subheader("Machine Activity Summary")
@@ -50,4 +52,3 @@ if not df_av.empty:
     st.plotly_chart(fig)
 else:
     st.warning("No data available for the selected filters.")
-
