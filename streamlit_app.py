@@ -211,7 +211,7 @@ else:
             "standard rate": "",
             "efficiency": "",
              }
-                    archive_data.append(archive_row)
+            archive_data.append(archive_row)
             archive_df = pd.DataFrame(archive_data)
 
             # Construct archive_df (Production batch records)
