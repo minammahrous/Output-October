@@ -51,4 +51,5 @@ query_production = """
          AND "Activity" = 'Production') AS "Total Batch Quantity"
     FROM archive a
     WHERE a."Date" = %(date)s 
-    AND a."Day/Night/plan"
+    AND a."Day/Night/plan
+    """
