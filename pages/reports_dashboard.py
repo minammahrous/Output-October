@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import psycopg2
+from sqlalchemy import create_engine
 
 # Database connection
-Database connection
 DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
 engine = create_engine(DB_URL)
 
