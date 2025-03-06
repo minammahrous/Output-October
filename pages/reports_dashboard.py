@@ -36,6 +36,25 @@ query_archive = """
     WHERE "Date" = %(date)s AND "Day/Night/plan" = %(shift)s
     GROUP BY "Machine", "Activity"
 """
+import plotly.express as px
+
+# Debugging step
+st.write("AV Table Columns:", df_av.columns.tolist())
+
+# Ensure DataFrame is not empty
+if not df_av.empty:
+    st.subheader("Machine Efficiency, Availability & OEE")
+    
+    # Use exact column names
+    fig = px.bar(df_av, 
+                 x="machine",  
+                 y=["Availability", "Av Efficiency", "OEE"],  
+                 barmode='group', 
+                 title="Performance Metrics per Machine")
+    
+    st.plotly_chart(fig)
+else:
+    st.warning("No data available for the selected filters.")
 
 
 # Fetch data
