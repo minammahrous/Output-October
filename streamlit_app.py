@@ -364,8 +364,7 @@ else:
             st.dataframe(st.session_state.submitted_av_df)
 
          # Provide two options: Approve and Save or Modify Data
-
-      if st.button("Approve and Save"):
+    if st.button("Approve and Save"):
         try:
             # Clean DataFrames before using them
             archive_df = clean_dataframe(st.session_state.submitted_archive_df.copy())
