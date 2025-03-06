@@ -4,6 +4,8 @@ import pandas as pd
 import csv
 import os
 from sqlalchemy import create_engine
+import plotly.graph_objects as go
+import matplotlib.pyplot as plt
 
 # Database connection
 DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
@@ -289,8 +291,6 @@ else:
             total_downtime = sum(downtime_data[dt] for dt in downtime_types)
 
             total_recorded_time = total_production_time + total_downtime
-import plotly.graph_objects as go
-import matplotlib.pyplot as plt
 
 # Visualization of Total Recorded Time vs. Standard Shift Time
 st.subheader("Shift Time Utilization")
