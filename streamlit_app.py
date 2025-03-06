@@ -343,7 +343,7 @@ else:
                     "machine": selected_machine,
                     "shift type": shift_type,
                     "hours": total_production_time,
-                    "shift": shift_duration,
+                    "shift": standard_shift_time,
                     "T.production time": total_production_time,
                     "Availability": availability,
                     "Av Efficiency": average_efficiency,
