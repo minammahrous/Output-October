@@ -24,6 +24,10 @@ st.title("Machine Performance Dashboard")
 date_selected = st.date_input("Select Date")
 shift_selected = st.selectbox("Select Shift Type", ["Day", "Night", "Plan"])
 
+# Debugging
+st.write("Selected Date:", date_selected)
+st.write("Selected Shift:", shift_selected)
+
 # Queries
 query_av = """
     SELECT "machine", "Availability", "Av Efficiency", "OEE"
@@ -38,18 +42,46 @@ query_archive = """
     GROUP BY "Machine", "Activity"
 """
 
-# Production Summary Query (Extracting from archive table)
 query_production = """
     SELECT 
-        a."Machine", 
-        a."Batch Number", 
-        SUM(a."Qty") AS "Produced Quantity",
+        "Machine", 
+        "Batch",  
+        SUM("Qty") AS "Produced Quantity",
         (SELECT SUM("Qty") 
          FROM archive 
-         WHERE "Machine" = a."Machine" 
-         AND "Batch Number" = a."Batch Number" 
-         AND "Activity" = 'Production') AS "Total Batch Quantity"
+         WHERE archive."Machine" = a."Machine" 
+         AND archive."Batch" = a."Batch" 
+         AND archive."Activity" = 'Production') AS "Total Batch Quantity"
     FROM archive a
-    WHERE a."Date" = %(date)s 
-    AND a."Day/Night/plan
-    """
+    WHERE "Activity" = 'Production' AND "Date" = %(date)s AND "Day/Night/plan" = %(shift)s
+    GROUP BY "Machine", "Batch"
+    ORDER BY "Machine", "Batch";
+"""
+
+# Fetch data
+df_av = get_data(query_av, {"date": date_selected, "shift": shift_selected})
+df_archive = get_data(query_archive, {"date": date_selected, "shift": shift_selected})
+df_production = get_data(query_production, {"date": date_selected, "shift": shift_selected})
+
+# Debugging: Check if DataFrames have data
+st.write("AV Table Size:", df_av.shape)
+st.write("Archive Table Size:", df_archive.shape)
+st.write("Production Table Size:", df_production.shape)
+
+# Ensure DataFrame is not empty
+if not df_av.empty:
+    st.subheader("Machine Efficiency, Availability & OEE")
+    fig = px.bar(df_av, x="machine", y=["Availability", "Av Efficiency", "OEE"], 
+                 barmode='group', title="Performance Metrics per Machine")
+    st.plotly_chart(fig)
+else:
+    st.warning("No AV data available for the selected filters.")
+
+# Display Archive Data
+st.subheader("Machine Activity Summary")
+st.dataframe(df_archive)
+
+# Display Production Summary
+st.subheader("Production Summary per Machine")
+st.dataframe(df_production)
+
