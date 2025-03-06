@@ -286,17 +286,20 @@ else:
             st.dataframe(st.session_state.submitted_archive_df)
             st.subheader("Submitted AV Data")
             st.dataframe(st.session_state.submitted_av_df)
-            # Compute total recorded time (downtime + production time)
-            total_production_time = sum(batch["time_consumed"] for batch in st.session_state.product_batches[selected_product])
-            total_downtime = sum(downtime_data[dt] for dt in downtime_types)
+           # Compute total recorded time (downtime + production time)
+total_production_time = sum(batch["time_consumed"] for batch in st.session_state.product_batches[selected_product])
+total_downtime = sum(downtime_data[dt] for dt in downtime_types)
+total_recorded_time = total_production_time + total_downtime
 
-            total_recorded_time = total_production_time + total_downtime
-
-# Visualization of Total Recorded Time vs. Standard Shift Time
-st.subheader("Shift Time Utilization")
-
-# Ensure data is available
-if total_recorded_time and standard_shift_time:
+# Special check for "partial" shift
+if shift_duration == "partial":
+    if total_recorded_time > 7:
+        st.error("⚠️ Total recorded time cannot exceed 7 hours for a partial shift!")
+    # Skip visualization for partial shift
+    st.warning("⏳ Shift visualization is not available for 'partial' shifts.")
+else:
+    # Only show visualization if shift is NOT "partial"
+    st.subheader("Shift Time Utilization")
     fig, ax = plt.subplots(figsize=(5, 2))
     
     # Bar Chart
@@ -314,19 +317,21 @@ if total_recorded_time and standard_shift_time:
     # Optional: Display numeric comparison
     st.write(f"**Total Recorded Time:** {total_recorded_time:.2f} hrs")
     st.write(f"**Standard Shift Time:** {standard_shift_time:.2f} hrs")
-    
+
     # Warning if exceeding limit
     if total_recorded_time > standard_shift_time:
         st.warning("⚠️ Total recorded time exceeds the standard shift time!")
     elif total_recorded_time < 0.75 * standard_shift_time:
         st.warning("⚠️ Recorded time is less than 75% of the standard shift time.")
-
 # Fetch standard shift time
 try:
-    standard_shift_time = shifts_df.loc[shifts_df['code'] == shift_duration, 'working hours'].iloc[0]
+    if shift_duration == "partial":
+        standard_shift_time = None  # No standard time for partial shift
+    else:
+        standard_shift_time = shifts_df.loc[shifts_df['code'] == shift_duration, 'working hours'].iloc[0]
 except IndexError:
     st.error("Shift duration not found in shifts.csv")
-    standard_shift_time = 0
+    standard_shift_time = 0  # Default value
 
          # xchecks & Approve and Save 
     
