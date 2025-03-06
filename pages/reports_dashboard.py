@@ -35,7 +35,7 @@ query_archive = """
     FROM archive
     WHERE "Date" = %(date)s AND "Day/Night/plan" = %(shift)s
     GROUP BY "Machine", "Activity"
-"""
+
 
 
 # Fetch data
