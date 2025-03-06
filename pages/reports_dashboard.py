@@ -38,45 +38,17 @@ query_archive = """
     GROUP BY "Machine", "Activity"
 """
 
-# Production Summary Query
+# Production Summary Query (Extracting from archive table)
 query_production = """
-    SELECT p."Machine", p."Batch", p."Produced Quantity", 
-           (SELECT SUM("Produced Quantity") 
-            FROM production 
-            WHERE "Machine" = p."Machine" AND "Batch" = p."Batch") 
-           AS "Total Batch Quantity"
-    FROM production p
-    WHERE p."Date" = %(date)s AND p."Shift Type" = %(shift)s
-    ORDER BY p."Machine", p."Batch"
-"""
-
-# Fetch data
-df_av = get_data(query_av, {"date": date_selected, "shift": shift_selected})
-df_archive = get_data(query_archive, {"date": date_selected, "shift": shift_selected})
-df_production = get_data(query_production, {"date": date_selected, "shift": shift_selected})
-
-# Debugging Step: Check if df_av has correct column names
-if not df_av.empty:
-    st.write("AV Table Columns:", df_av.columns.tolist())
-else:
-    st.warning("No data found in AV table for the selected filters.")
-
-# Visualization - AV Table Data
-if not df_av.empty:
-    st.subheader("Machine Efficiency, Availability & OEE")
-    fig = px.bar(df_av, 
-                 x="machine",  
-                 y=["Availability", "Av Efficiency", "OEE"],  
-                 barmode='group', 
-                 title="Performance Metrics per Machine")
-    st.plotly_chart(fig)
-else:
-    st.warning("No data available for the selected filters.")
-
-# Display Archive Data
-st.subheader("Machine Activity Summary")
-st.dataframe(df_archive)
-
-# Display Production Summary
-st.subheader("Production Summary per Machine")
-st.dataframe(df_production)
+    SELECT 
+        a."Machine", 
+        a."Batch Number", 
+        SUM(a."Qty") AS "Produced Quantity",
+        (SELECT SUM("Qty") 
+         FROM archive 
+         WHERE "Machine" = a."Machine" 
+         AND "Batch Number" = a."Batch Number" 
+         AND "Activity" = 'Production') AS "Total Batch Quantity"
+    FROM archive a
+    WHERE a."Date" = %(date)s 
+    AND a."Day/Night/plan"
