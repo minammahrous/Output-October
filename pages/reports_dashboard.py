@@ -45,12 +45,12 @@ query_archive = """
 query_production = """
     SELECT 
         "Machine", 
-        "Batch",  
+        "batch number",  
         SUM("Qty") AS "Produced Quantity",
         (SELECT SUM("Qty") 
          FROM archive 
          WHERE archive."Machine" = a."Machine" 
-         AND archive."Batch" = a."Batch" 
+         AND archive."batch numbe" = a."batch numbe" 
          AND archive."Activity" = 'Production') AS "Total Batch Quantity"
     FROM archive a
     WHERE "Activity" = 'Production' AND "Date" = %(date)s AND "Day/Night/plan" = %(shift)s
