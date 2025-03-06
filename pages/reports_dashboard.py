@@ -15,7 +15,7 @@ def get_data(query, params=None):
         return df
     except Exception as e:
         st.error(f"Database connection failed: {e}")
-        return pd.DataFrame()
+        return pd.DataFrame()  # Return an empty DataFrame on failure
 
 # Streamlit UI
 st.title("Machine Performance Dashboard")
@@ -23,9 +23,6 @@ st.title("Machine Performance Dashboard")
 # User inputs
 date_selected = st.date_input("Select Date")
 shift_selected = st.selectbox("Select Shift Type", ["Day", "Night", "Plan"])
-# Debugging step
-st.write("AV Table Columns:", df_av.columns.tolist())
-
 
 # Queries
 query_av = """
@@ -40,33 +37,6 @@ query_archive = """
     WHERE "Date" = %(date)s AND "Day/Night/plan" = %(shift)s
     GROUP BY "Machine", "Activity"
 """
+
 # Fetch data
-df_av = get_data(query_av, {"date": date_selected, "shift": shift_selected})
-df_archive = get_data(query_archive, {"date": date_selected, "shift": shift_selected})
-# Ensure DataFrame is not empty
-if not df_av.empty:
-    st.subheader("Machine Efficiency, Availability & OEE")
-    
-    # Use exact column names
-    fig = px.bar(df_av, 
-                 x="machine",  
-                 y=["Availability", "Av Efficiency", "OEE"],  
-                 barmode='group', 
-                 title="Performance Metrics per Machine")
-    
-    st.plotly_chart(fig)
-else:
-    st.warning("No data available for the selected filters.")
-
-# Display Archive Data
-st.subheader("Machine Activity Summary")
-st.dataframe(df_archive)
-
-# Visualization - AV Table Data
-if not df_av.empty:
-    st.subheader("Machine Efficiency, Availability & OEE")
-    fig = px.bar(df_av, x="machine", y=["Availability", "Av Efficiency", "OEE"], 
-                 barmode='group', title="Performance Metrics per Machine")
-    st.plotly_chart(fig)
-else:
-    st.warning("No data available for the selected filters.")
+df_av = get_data(query_av, {"date": date_selecte
