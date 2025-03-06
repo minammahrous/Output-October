@@ -54,8 +54,8 @@ query_production = """
          AND archive."Activity" = 'Production') AS "Total Batch Quantity"
     FROM archive a
     WHERE "Activity" = 'Production' AND "Date" = %(date)s AND "Day/Night/plan" = %(shift)s
-    GROUP BY "Machine", "Batch"
-    ORDER BY "Machine", "Batch";
+    GROUP BY "Machine", "batch number"
+    ORDER BY "Machine", "batch number";
 """
 
 # Fetch data
