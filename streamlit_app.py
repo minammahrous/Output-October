@@ -348,7 +348,7 @@ else:
             st.subheader("Submitted AV Data")
             st.dataframe(st.session_state.submitted_av_df)
 
-         # Provide two options: Approve and Save or Modify Data
+         # xchecks & Approve and Save 
     
 if st.button("Approve and Save"):
         try:
