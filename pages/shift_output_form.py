@@ -299,7 +299,7 @@ try:
         standard_shift_time = shifts_df.loc[shifts_df['code'] == shift_duration, 'working hours'].iloc[0]
 except IndexError:
     st.error("Shift duration not found in shifts.csv")
-    standard_shift_time = 0  # Default value
+    standard_shift_time = 0  # Default to 0 to avoid None issues
 
 # Compute total recorded time (downtime + production time)
 total_production_time = sum(batch["time_consumed"] for batch in st.session_state.product_batches[selected_product])
@@ -318,15 +318,22 @@ else:
 
     # Bar Chart - Only add standard shift time if it's not None
     ax.barh(["Total Time"], [total_recorded_time], color="blue", label="Recorded Time")
-    
+
     if standard_shift_time is not None:
         ax.barh(["Total Time"], [standard_shift_time], color="gray", alpha=0.5, label="Shift Standard Time")
 
-    # Labels and limits
-    ax.set_xlim(0, max(filter(None, [standard_shift_time, total_recorded_time])) * 1.2)  # Filter None values
+    # Ensure limits are set correctly
+    valid_times = [total_recorded_time]
+    if standard_shift_time is not None:
+        valid_times.append(standard_shift_time)
+
+    # Set x-axis limits only if valid values exist
+    if valid_times:
+        ax.set_xlim(0, max(valid_times) * 1.2)
+
     ax.set_xlabel("Hours")
     ax.legend()
-    
+
     # Display Chart
     st.pyplot(fig)
 
