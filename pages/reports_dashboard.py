@@ -4,13 +4,9 @@ import plotly.express as px
 import psycopg2
 
 # Database connection
-DB_CONFIG = {
-    "dbname": "neondb",
-    "user": "your_username",
-    "password": "your_password",
-    "host": "ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech",
-    "port": "5432"
-}
+ Database connection
+DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
+engine = create_engine(DB_URL)
 
 def get_data(query, params=None):
     """Fetch data from Neon PostgreSQL."""
