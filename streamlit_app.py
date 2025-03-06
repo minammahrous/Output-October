@@ -341,9 +341,9 @@ else:
                 av_row = {
                     "date": date,
                     "machine": selected_machine,
-                    "shift type": shift_type,
-                    "hours": total_production_time,
-                    "shift": standard_shift_time,
+                    "shift type": shift_duration,
+                    "hours": standard_shift_time,
+                    "shift": shift_type,
                     "T.production time": total_production_time,
                     "Availability": availability,
                     "Av Efficiency": average_efficiency,
