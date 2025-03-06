@@ -291,38 +291,6 @@ total_production_time = sum(batch["time_consumed"] for batch in st.session_state
 total_downtime = sum(downtime_data[dt] for dt in downtime_types)
 total_recorded_time = total_production_time + total_downtime
 
-# Special check for "partial" shift
-if shift_duration == "partial":
-    if total_recorded_time > 7:
-        st.error("⚠️ Total recorded time cannot exceed 7 hours for a partial shift!")
-    # Skip visualization for partial shift
-    st.warning("⏳ Shift visualization is not available for 'partial' shifts.")
-else:
-    # Only show visualization if shift is NOT "partial"
-    st.subheader("Shift Time Utilization")
-    fig, ax = plt.subplots(figsize=(5, 2))
-    
-    # Bar Chart
-    ax.barh(["Total Time"], [total_recorded_time], color="blue", label="Recorded Time")
-    ax.barh(["Total Time"], [standard_shift_time], color="gray", alpha=0.5, label="Shift Standard Time")
-    
-    # Labels
-    ax.set_xlim(0, max(standard_shift_time, total_recorded_time) * 1.2)
-    ax.set_xlabel("Hours")
-    ax.legend()
-    
-    # Display Chart
-    st.pyplot(fig)
-
-    # Optional: Display numeric comparison
-    st.write(f"**Total Recorded Time:** {total_recorded_time:.2f} hrs")
-    st.write(f"**Standard Shift Time:** {standard_shift_time:.2f} hrs")
-
-    # Warning if exceeding limit
-    if total_recorded_time > standard_shift_time:
-        st.warning("⚠️ Total recorded time exceeds the standard shift time!")
-    elif total_recorded_time < 0.75 * standard_shift_time:
-        st.warning("⚠️ Recorded time is less than 75% of the standard shift time.")
 # Fetch standard shift time
 try:
     if shift_duration == "partial":
@@ -332,6 +300,47 @@ try:
 except IndexError:
     st.error("Shift duration not found in shifts.csv")
     standard_shift_time = 0  # Default value
+
+# Compute total recorded time (downtime + production time)
+total_production_time = sum(batch["time_consumed"] for batch in st.session_state.product_batches[selected_product])
+total_downtime = sum(downtime_data[dt] for dt in downtime_types)
+total_recorded_time = total_production_time + total_downtime
+
+# Special check for "partial" shift
+if shift_duration == "partial":
+    if total_recorded_time > 7:
+        st.error("⚠️ Total recorded time cannot exceed 7 hours for a partial shift!")
+    st.warning("⏳ Shift visualization is not available for 'partial' shifts.")
+else:
+    # Only show visualization if shift is NOT "partial"
+    st.subheader("Shift Time Utilization")
+    fig, ax = plt.subplots(figsize=(5, 2))
+
+    # Bar Chart - Only add standard shift time if it's not None
+    ax.barh(["Total Time"], [total_recorded_time], color="blue", label="Recorded Time")
+    
+    if standard_shift_time is not None:
+        ax.barh(["Total Time"], [standard_shift_time], color="gray", alpha=0.5, label="Shift Standard Time")
+
+    # Labels and limits
+    ax.set_xlim(0, max(filter(None, [standard_shift_time, total_recorded_time])) * 1.2)  # Filter None values
+    ax.set_xlabel("Hours")
+    ax.legend()
+    
+    # Display Chart
+    st.pyplot(fig)
+
+    # Display numeric comparison
+    st.write(f"**Total Recorded Time:** {total_recorded_time:.2f} hrs")
+    if standard_shift_time is not None:
+        st.write(f"**Standard Shift Time:** {standard_shift_time:.2f} hrs")
+
+    # Warnings
+    if standard_shift_time is not None:
+        if total_recorded_time > standard_shift_time:
+            st.warning("⚠️ Total recorded time exceeds the standard shift time!")
+        elif total_recorded_time < 0.75 * standard_shift_time:
+            st.warning("⚠️ Recorded time is less than 75% of the standard shift time.")
 
          # xchecks & Approve and Save 
     
