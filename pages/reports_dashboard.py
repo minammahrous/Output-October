@@ -42,11 +42,6 @@ query_archive = """
 df_av = get_data(query_av, {"date": date_selected, "shift": shift_selected})
 df_archive = get_data(query_archive, {"date": date_selected, "shift": shift_selected})
 
-# Debugging Step: Check if df_av has correct column names
-if not df_av.empty:
-    st.write("AV Table Columns:", df_av.columns.tolist())
-else:
-    st.warning("No data found in AV table for the selected filters.")
 
 # Visualization - AV Table Data
 if not df_av.empty:
