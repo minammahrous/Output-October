@@ -351,7 +351,21 @@ else:
          # xchecks & Approve and Save 
     
 if st.button("Approve and Save"):
-        try:
+    try:
+        # Check for duplicate entries in the database
+        query = text("""
+        SELECT COUNT(*) FROM av 
+        WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
+        """)
+
+        with engine.connect() as conn:
+            result = conn.execute(query, {"date": date, "shift_type": shift_type, "machine": selected_machine}).fetchone()
+
+        if result and result[0] > 0:  # If a record already exists
+            st.warning("A report for this date, shift type, and machine already exists. Modify or confirm replacement.")
+        else:
+            st.success("No existing record found. Proceeding with approval.")
+
             # Clean DataFrames before using them
             archive_df = clean_dataframe(st.session_state.submitted_archive_df.copy())
             av_df = clean_dataframe(st.session_state.submitted_av_df.copy())
@@ -377,8 +391,14 @@ if st.button("Approve and Save"):
                 av_df.to_sql("av", engine, if_exists="append", index=False)
                 st.success("Data saved to database successfully!")
 
-        except Exception as e:
-            st.error(f"Error saving data: {e}")
+    except Exception as e:
+        st.error(f"Error saving data: {e}")
+
+# Display submitted data
+st.subheader("Submitted Archive Data")
+st.dataframe(st.session_state.submitted_archive_df)
+st.subheader("Submitted AV Data")
+st.dataframe(st.session_state.submitted_av_df)
 
 
 
