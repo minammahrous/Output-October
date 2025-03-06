@@ -32,7 +32,7 @@ st.write("Selected Shift:", shift_selected)
 query_av = """
     SELECT "machine", "Availability", "Av Efficiency", "OEE"
     FROM av
-    WHERE "date" = %(date)s AND "shift type" = %(shift)s
+    WHERE "date" = %(date)s AND "shift" = %(shift)s
 """
 
 query_archive = """
