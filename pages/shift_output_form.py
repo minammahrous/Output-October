@@ -111,8 +111,8 @@ shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0,
 
 
     # Downtime inputs with comments
-    st.subheader("Downtime (hours)")
-    downtime_data = {}
+st.subheader("Downtime (hours)")
+downtime_data = {}
 
     downtime_types = ["Maintenance DT", "Production DT", "Material DT", "Utility DT", "QC DT", "Cleaning DT", "QA DT", "Changeover DT"]
     for dt_type in downtime_types:
