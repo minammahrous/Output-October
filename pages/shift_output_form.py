@@ -90,9 +90,9 @@ else:
         shift_durations = []
         shift_working_hours = []
     if st.button("Restart App"):
-    st.session_state["restart"] = True  # Set the restart flag
-    st.session_state["reset_form"] = True  # Ensures form resets
-    st.rerun()  # Force a fresh reload
+        st.session_state["restart"] = True  # Set the restart flag
+        st.session_state["reset_form"] = True  # Ensures form resets
+        st.rerun()  # Force a fresh reload
 
     # Force reset of widgets by ensuring session state starts fresh
 if "reset_form" not in st.session_state:
