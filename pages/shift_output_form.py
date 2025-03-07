@@ -130,8 +130,8 @@ if "product_batches" not in st.session_state:
 
 selected_product = st.selectbox("Select Product", [""] + product_list, index=0, key="product")
     # Initialize batch data for the selected product if it doesn't exist
-    if selected_product not in st.session_state.product_batches:
-        st.session_state.product_batches[selected_product] = []
+if selected_product not in st.session_state.product_batches:
+    st.session_state.product_batches[selected_product] = []
 
     with st.form("batch_entry_form"):
         batch = st.text_input("Batch Number")
