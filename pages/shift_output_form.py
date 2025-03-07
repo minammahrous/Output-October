@@ -97,7 +97,7 @@ else:
     selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0)
     shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0)
     shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0)
-    selected_product = st.selectbox("Select Product", [""] + product_list, index=0)
+    
     # Downtime inputs with comments
     st.subheader("Downtime (hours)")
     downtime_data = {}
@@ -117,8 +117,7 @@ else:
     if "product_batches" not in st.session_state:
         st.session_state.product_batches = {}
 
-    selected_product = st.selectbox("Select Product", product_list)
-
+   selected_product = st.selectbox("Select Product", [""] + product_list, index=0)
     # Initialize batch data for the selected product if it doesn't exist
     if selected_product not in st.session_state.product_batches:
         st.session_state.product_batches[selected_product] = []
