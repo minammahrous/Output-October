@@ -38,18 +38,9 @@ if "submitted_av_df" not in st.session_state:
     st.session_state.submitted_av_df = pd.DataFrame()
 if "modify_mode" not in st.session_state:
     st.session_state.modify_mode = False
-# Reset Form Button
 if st.button("Reset Form"):
-    st.session_state.product_batches = {}
-    st.session_state.submitted_archive_df = pd.DataFrame()
-    st.session_state.submitted_av_df = pd.DataFrame()
-    st.session_state.modify_mode = False
-    st.session_state.show_confirmation = False
-    st.session_state.replace_data = False
-    st.session_state.restart_form = False
-    st.session_state.submitted = False
+    st.session_state.clear()
     st.rerun()
-
 # Read machine list from CSV
 machine_list = []
 try:
