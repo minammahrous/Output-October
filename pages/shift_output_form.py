@@ -6,6 +6,7 @@ import os
 from sqlalchemy import create_engine
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
+import time
 
 # Database connection
 DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
@@ -39,12 +40,13 @@ if "submitted_av_df" not in st.session_state:
 if "modify_mode" not in st.session_state:
     st.session_state.modify_mode = False
 
-# Check if restart is triggered
-if st.session_state.get("restart", False):
-    st.session_state.clear()  # Reset everything
-    st.session_state["restart"] = False  # Prevent looping
-    st.rerun()  # Restart the app cleanly
-
+# Check if restart was triggered
+if "restart" in st.session_state and st.session_state["restart"]:
+    st.session_state.clear()  # Clear all session state variables
+    st.session_state["restart"] = False  # Prevent restart loops
+    time.sleep(1)  # Small delay to ensure clean reload
+    st.experimental_set_query_params()  # Clears URL params for a fresh reload
+    st.rerun()  # Safely rerun the app
 # Read machine list from CSV
 machine_list = []
 try:
@@ -86,11 +88,11 @@ else:
         st.error(f"An error occurred reading shifts.csv: {e}")
         shift_durations = []
         shift_working_hours = []
-    if st.button("Restart App"):
-        st.session_state["restart"] = True  # Set the restart flag
-        st.rerun()  # Force a fresh reload
+   if st.button("Restart App"):
+        st.session_state["restart"] = True  # Set restart flag
+        st.rerun()  # Trigger a clean restart
 
-    st.rerun()  # Trigger rerun
+
     shift_types = ["Day", "Night", "Plan"]
     date = st.date_input("Date", None, key="date")  
     selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
