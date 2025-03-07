@@ -40,7 +40,9 @@ if "modify_mode" not in st.session_state:
     st.session_state.modify_mode = False
 
 if st.button("Restart App"):
-    st.rerun()  # Correct method to restart the app
+    st.session_state.clear()  # Clear all stored session values
+    st.session_state["restart"] = True  # Set a flag to restart
+    st.rerun()  # Force script to rerun
 # Read machine list from CSV
 machine_list = []
 try:
