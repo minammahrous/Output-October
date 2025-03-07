@@ -386,7 +386,10 @@ if st.button("Approve and Save"):
 
     except Exception as e:
         st.error(f"Error saving data: {e}")
-
+if st.button("Restart App"):
+    for key in st.session_state.keys():
+        del st.session_state[key]  # Clear all session state variables
+    st.rerun()  # Restart the app
 # Display submitted data
 st.subheader("Submitted Archive Data")
 st.dataframe(st.session_state.submitted_archive_df)
