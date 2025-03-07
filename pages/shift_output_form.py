@@ -39,10 +39,12 @@ if "submitted_av_df" not in st.session_state:
 if "modify_mode" not in st.session_state:
     st.session_state.modify_mode = False
 
-if st.button("Restart App"):
-    st.session_state.clear()  # Clear all stored session values
-    st.session_state["restart"] = True  # Set a flag to restart
-    st.rerun()  # Force script to rerun
+# Check if restart is triggered
+if "restart" in st.session_state and st.session_state["restart"]:
+    st.session_state.clear()  # Completely reset all session data
+    st.session_state["restart"] = False  # Reset the flag
+    st.rerun()  # Fully rerun the script from the beginning
+
 # Read machine list from CSV
 machine_list = []
 try:
@@ -84,7 +86,9 @@ else:
         st.error(f"An error occurred reading shifts.csv: {e}")
         shift_durations = []
         shift_working_hours = []
-
+    if st.button("Restart App"):
+        st.session_state["restart"] = True  # Set the restart flag
+    st.rerun()  # Trigger rerun
     shift_types = ["Day", "Night", "Plan"]
     date = st.date_input("Date", None, key="date")  
     selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
