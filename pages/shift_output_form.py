@@ -151,9 +151,22 @@ if selected_product not in st.session_state.product_batches:
                 st.error("You can add a maximum of 5 batches for this product.")
 
     # Display added batches for the selected product with delete buttons
-if st.session_state.product_batches[selected_product]:
+# Ensure product_batches exists in session state
+if "product_batches" not in st.session_state:
+    st.session_state.product_batches = {}
+
+# Ensure selected_product is initialized before using it
+if "product" not in st.session_state:
+    st.session_state["product"] = ""
+
+selected_product = st.selectbox("Select Product", [""] + product_list, index=0, key="product")
+
+# Ensure batch_data is initialized safely
+batch_data = st.session_state.product_batches.get(selected_product, [])
+
+if batch_data:  # Check if batch_data is not empty
     st.subheader(f"Added Batches for {selected_product}:")
-    batch_data = st.session_state.product_batches[selected_product]
+
 
 if batch_data:  # check if batch_data is not empty
         cols = st.columns(4)  # Fixed number of columns
