@@ -39,8 +39,10 @@ if "submitted_av_df" not in st.session_state:
 if "modify_mode" not in st.session_state:
     st.session_state.modify_mode = False
 if st.button("Reset Form"):
-    st.session_state.clear()
-    st.rerun()
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]  # Delete each session state variable
+    st.rerun()  # Force the script to restart with cleared values
+
 # Read machine list from CSV
 machine_list = []
 try:
