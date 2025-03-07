@@ -38,11 +38,8 @@ if "submitted_av_df" not in st.session_state:
     st.session_state.submitted_av_df = pd.DataFrame()
 if "modify_mode" not in st.session_state:
     st.session_state.modify_mode = False
-if st.button("Reset Form"):
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]  # Fully remove each session state variable
-    st.rerun()  # Restart the app to apply changes
-
+if st.button("Restart App"):
+    st.experimental_rerun()  # Restarts the script completely
 # Read machine list from CSV
 machine_list = []
 try:
