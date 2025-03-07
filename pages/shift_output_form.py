@@ -38,8 +38,9 @@ if "submitted_av_df" not in st.session_state:
     st.session_state.submitted_av_df = pd.DataFrame()
 if "modify_mode" not in st.session_state:
     st.session_state.modify_mode = False
+
 if st.button("Restart App"):
-    st.experimental_rerun()  # Restarts the script completely
+    st.rerun()  # Correct method to restart the app
 # Read machine list from CSV
 machine_list = []
 try:
