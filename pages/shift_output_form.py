@@ -38,6 +38,17 @@ if "submitted_av_df" not in st.session_state:
     st.session_state.submitted_av_df = pd.DataFrame()
 if "modify_mode" not in st.session_state:
     st.session_state.modify_mode = False
+# Reset Form Button
+if st.button("Reset Form"):
+    st.session_state.product_batches = {}
+    st.session_state.submitted_archive_df = pd.DataFrame()
+    st.session_state.submitted_av_df = pd.DataFrame()
+    st.session_state.modify_mode = False
+    st.session_state.show_confirmation = False
+    st.session_state.replace_data = False
+    st.session_state.restart_form = False
+    st.session_state.submitted = False
+    st.rerun()
 
 # Read machine list from CSV
 machine_list = []
@@ -81,20 +92,12 @@ else:
         shift_durations = []
         shift_working_hours = []
 
-    selected_machine = st.selectbox("Select Machine", machine_list)
-
-    # Determine default date
-    now = datetime.datetime.now()
-    if now.hour < 9:
-        default_date = now.date() - datetime.timedelta(days=1)
-    else:
-        default_date = now.date()
-
-    date = st.date_input("Date", default_date)
-    shift_types = ["Day", "Night", "Plan"]  # updated shift types.
-    shift_type = st.selectbox("Shift Type", shift_types)
-    shift_duration = st.selectbox("Shift Duration", shift_durations)
-
+    
+    date = st.date_input("Date", none)  
+    selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0)
+    shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0)
+    shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0)
+    selected_product = st.selectbox("Select Product", [""] + product_list, index=0)
     # Downtime inputs with comments
     st.subheader("Downtime (hours)")
     downtime_data = {}
