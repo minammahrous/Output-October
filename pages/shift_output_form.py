@@ -93,7 +93,7 @@ else:
         shift_working_hours = []
 
     
-    date = st.date_input("Date", none)  
+    date = st.date_input("Date", None)  
     selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0)
     shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0)
     shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0)
