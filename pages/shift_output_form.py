@@ -386,12 +386,17 @@ if st.button("Approve and Save"):
 
     except Exception as e:
         st.error(f"Error saving data: {e}")
-if st.button("Restart App"):
-    for key in st.session_state.keys():
-        del st.session_state[key]  # Clear all session state variables
-    st.rerun()  # Restart the app
-# Display submitted data
-st.subheader("Submitted Archive Data")
-st.dataframe(st.session_state.submitted_archive_df)
+# JavaScript snippet to refresh the webpage
+refresh_js = """
+<script>
+    function refreshPage() {
+        location.reload();
+    }
+</script>
+<button onclick="refreshPage()">Restart App</button>
+"""
+
+# Display the button using Streamlit components
+st.markdown(refresh_js, unsafe_allow_html=True)
 st.subheader("Submitted AV Data")
 st.dataframe(st.session_state.submitted_av_df)
