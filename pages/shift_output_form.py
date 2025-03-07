@@ -6,7 +6,6 @@ import os
 from sqlalchemy import create_engine
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
-import time
 
 # Database connection
 DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
@@ -39,15 +38,8 @@ if "submitted_av_df" not in st.session_state:
     st.session_state.submitted_av_df = pd.DataFrame()
 if "modify_mode" not in st.session_state:
     st.session_state.modify_mode = False
-
-# Check if restart was triggered
-# Ensure a clean restart
-if "restart" in st.session_state and st.session_state["restart"]:
-    st.session_state.clear()  # Clear session state
-    st.session_state["restart"] = False  # Prevent infinite loops
-    time.sleep(1)  # Small delay to ensure refresh
-    st.rerun()  # Fully restart the app
-    
+if st.button("Restart App"):
+    st.experimental_rerun()  # Restarts the script completely
 # Read machine list from CSV
 machine_list = []
 try:
@@ -89,33 +81,19 @@ else:
         st.error(f"An error occurred reading shifts.csv: {e}")
         shift_durations = []
         shift_working_hours = []
-    if st.button("Restart App"):
-        st.session_state["restart"] = True  # Set the restart flag
-        st.session_state["reset_form"] = True  # Ensures form resets
-        st.rerun()  # Force a fresh reload
-shift_types = ["Day", "Night", "Plan"]  # updated shift types.
 
-    # Force reset of widgets by ensuring session state starts fresh
-if "reset_form" not in st.session_state:
-    st.session_state["machine"] = ""
-    st.session_state["date"] = None
-    st.session_state["shift_type"] = ""
-    st.session_state["shift_duration"] = ""
-    st.session_state["product"] = ""
-    st.session_state["reset_form"] = False  # Prevents re-running reset on every load
-
-# Now bind these cleared values to the input widgets
-selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
-date = st.date_input("Date", st.session_state["date"], key="date")
-shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0, key="shift_type")
-shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
-
-
+    shift_types = ["Day", "Night", "Plan"]
+    date = st.date_input("Date", None, key="date")  
+    selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
+    shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0, key="shift_type")
+    shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
+    
     # Downtime inputs with comments
-st.subheader("Downtime (hours)")
-downtime_data = {}
-downtime_types = ["Maintenance DT", "Production DT", "Material DT", "Utility DT", "QC DT", "Cleaning DT", "QA DT", "Changeover DT"]
-for dt_type in downtime_types:
+    st.subheader("Downtime (hours)")
+    downtime_data = {}
+
+    downtime_types = ["Maintenance DT", "Production DT", "Material DT", "Utility DT", "QC DT", "Cleaning DT", "QA DT", "Changeover DT"]
+    for dt_type in downtime_types:
         col1, col2 = st.columns(2)
         with col1:
             downtime_data[dt_type] = st.number_input(dt_type, min_value=0.0, step=0.1, format="%.1f")
@@ -126,12 +104,13 @@ for dt_type in downtime_types:
                 downtime_data[dt_type + "_comment"] = ""
 
     # Initialize session state for product-specific batch data
-if "product_batches" not in st.session_state:
-    st.session_state.product_batches = {}
+    if "product_batches" not in st.session_state:
+        st.session_state.product_batches = {}
 
+    selected_product = st.selectbox("Select Product", [""] + product_list, index=0, key="product")
     # Initialize batch data for the selected product if it doesn't exist
-if selected_product not in st.session_state.product_batches:
-    st.session_state.product_batches[selected_product] = []
+    if selected_product not in st.session_state.product_batches:
+        st.session_state.product_batches[selected_product] = []
 
     with st.form("batch_entry_form"):
         batch = st.text_input("Batch Number")
@@ -150,24 +129,11 @@ if selected_product not in st.session_state.product_batches:
                 st.error("You can add a maximum of 5 batches for this product.")
 
     # Display added batches for the selected product with delete buttons
-# Ensure product_batches exists in session state
-if "product_batches" not in st.session_state:
-    st.session_state.product_batches = {}
-
-# Ensure selected_product is initialized before using it
-if "product" not in st.session_state:
-    st.session_state["product"] = ""
-
-selected_product = st.selectbox("Select Product", [""] + product_list, index=0, key="product")
-
-# Ensure batch_data is initialized safely
-batch_data = st.session_state.product_batches.get(selected_product, [])
-
-if batch_data:  # Check if batch_data is not empty
+if st.session_state.product_batches[selected_product]:
     st.subheader(f"Added Batches for {selected_product}:")
+    batch_data = st.session_state.product_batches[selected_product]
 
-
-if batch_data:  # check if batch_data is not empty
+    if batch_data:  # check if batch_data is not empty
         cols = st.columns(4)  # Fixed number of columns
 
         # Header row
@@ -426,7 +392,3 @@ st.subheader("Submitted Archive Data")
 st.dataframe(st.session_state.submitted_archive_df)
 st.subheader("Submitted AV Data")
 st.dataframe(st.session_state.submitted_av_df)
-
-
-
-
