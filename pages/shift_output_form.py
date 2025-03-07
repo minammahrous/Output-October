@@ -40,8 +40,8 @@ if "modify_mode" not in st.session_state:
     st.session_state.modify_mode = False
 if st.button("Reset Form"):
     for key in list(st.session_state.keys()):
-        del st.session_state[key]  # Delete each session state variable
-    st.rerun()  # Force the script to restart with cleared values
+        del st.session_state[key]  # Fully remove each session state variable
+    st.rerun()  # Restart the app to apply changes
 
 # Read machine list from CSV
 machine_list = []
