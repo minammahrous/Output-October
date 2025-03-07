@@ -88,7 +88,7 @@ else:
         st.error(f"An error occurred reading shifts.csv: {e}")
         shift_durations = []
         shift_working_hours = []
-   if st.button("Restart App"):
+    if st.button("Restart App"):
         st.session_state["restart"] = True  # Set restart flag
         st.rerun()  # Trigger a clean restart
 
