@@ -41,12 +41,13 @@ if "modify_mode" not in st.session_state:
     st.session_state.modify_mode = False
 
 # Check if restart was triggered
-if st.session_state.get("restart", False):
-    st.session_state.clear()  # Clear all session variables
-    st.session_state["restart"] = False  # Prevent loop
+# Ensure a clean restart
+if "restart" in st.session_state and st.session_state["restart"]:
+    st.session_state.clear()  # Clear session state
+    st.session_state["restart"] = False  # Prevent infinite loops
     time.sleep(1)  # Small delay to ensure refresh
-    st.experimental_set_query_params()  # Clears URL params
-    st.rerun()  # Rerun the script fresh
+    st.rerun()  # Fully restart the app
+    
 # Read machine list from CSV
 machine_list = []
 try:
@@ -89,15 +90,26 @@ else:
         shift_durations = []
         shift_working_hours = []
     if st.button("Restart App"):
-        st.session_state["restart"] = True  # Set the restart flag
-        st.rerun()  # Force a fresh reload
+    st.session_state["restart"] = True  # Set the restart flag
+    st.session_state["reset_form"] = True  # Ensures form resets
+    st.rerun()  # Force a fresh reload
 
-    shift_types = ["Day", "Night", "Plan"]
-    date = st.date_input("Date", None, key="date")  
-    selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
-    shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0, key="shift_type")
-    shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
-    
+    # Force reset of widgets by ensuring session state starts fresh
+if "reset_form" not in st.session_state:
+    st.session_state["machine"] = ""
+    st.session_state["date"] = None
+    st.session_state["shift_type"] = ""
+    st.session_state["shift_duration"] = ""
+    st.session_state["product"] = ""
+    st.session_state["reset_form"] = False  # Prevents re-running reset on every load
+
+# Now bind these cleared values to the input widgets
+selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
+date = st.date_input("Date", st.session_state["date"], key="date")
+shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0, key="shift_type")
+shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
+
+
     # Downtime inputs with comments
     st.subheader("Downtime (hours)")
     downtime_data = {}
@@ -117,7 +129,7 @@ else:
     if "product_batches" not in st.session_state:
         st.session_state.product_batches = {}
 
-    selected_product = st.selectbox("Select Product", [""] + product_list, index=0, key="product")
+selected_product = st.selectbox("Select Product", [""] + product_list, index=0, key="product")
     # Initialize batch data for the selected product if it doesn't exist
     if selected_product not in st.session_state.product_batches:
         st.session_state.product_batches[selected_product] = []
