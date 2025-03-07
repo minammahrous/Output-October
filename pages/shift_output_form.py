@@ -155,7 +155,7 @@ if st.session_state.product_batches[selected_product]:
     st.subheader(f"Added Batches for {selected_product}:")
     batch_data = st.session_state.product_batches[selected_product]
 
-    if batch_data:  # check if batch_data is not empty
+if batch_data:  # check if batch_data is not empty
         cols = st.columns(4)  # Fixed number of columns
 
         # Header row
