@@ -41,12 +41,12 @@ if "modify_mode" not in st.session_state:
     st.session_state.modify_mode = False
 
 # Check if restart was triggered
-if "restart" in st.session_state and st.session_state["restart"]:
-    st.session_state.clear()  # Clear all session state variables
-    st.session_state["restart"] = False  # Prevent restart loops
-    time.sleep(1)  # Small delay to ensure clean reload
-    st.experimental_set_query_params()  # Clears URL params for a fresh reload
-    st.rerun()  # Safely rerun the app
+if st.session_state.get("restart", False):
+    st.session_state.clear()  # Clear all session variables
+    st.session_state["restart"] = False  # Prevent loop
+    time.sleep(1)  # Small delay to ensure refresh
+    st.experimental_set_query_params()  # Clears URL params
+    st.rerun()  # Rerun the script fresh
 # Read machine list from CSV
 machine_list = []
 try:
@@ -89,9 +89,8 @@ else:
         shift_durations = []
         shift_working_hours = []
     if st.button("Restart App"):
-        st.session_state["restart"] = True  # Set restart flag
-        st.rerun()  # Trigger a clean restart
-
+        st.session_state["restart"] = True  # Set the restart flag
+        st.rerun()  # Force a fresh reload
 
     shift_types = ["Day", "Night", "Plan"]
     date = st.date_input("Date", None, key="date")  
