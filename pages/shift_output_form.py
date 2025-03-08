@@ -143,7 +143,7 @@ if st.session_state.get("proceed_clicked", False):
 
                 st.success("✅ Existing records deleted. You can proceed with new data entry.")
 
-        st.session_state.proceed_clicked = False  # Reset proceed state
+                st.session_state.proceed_clicked = False  # Reset proceed state
 
     except Exception as e:
         st.error(f"❌ Error deleting records: {e}")
