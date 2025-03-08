@@ -111,9 +111,9 @@ if st.session_state.get("proceed_clicked", False):
     if col1.button("🗑️ Delete Existing Data and Proceed"):
         try:
             with engine.connect() as conn:
-            with conn.begin():  # Ensure the transaction is properly handled
+                with conn.begin():  # Ensure the transaction is properly handled
                 # Delete from av table
-                delete_query_av = text("""
+                    delete_query_av = text("""
                     DELETE FROM av WHERE date = :date AND shift = :shift AND machine = :machine
                 """)
                 conn.execute(delete_query_av, {"date": date, "shift": shift_type, "machine": selected_machine})
