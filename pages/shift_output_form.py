@@ -292,17 +292,20 @@ else:
             archive_df = pd.DataFrame(archive_data)
 
             # Construct archive_df (Production batch records)
-            try:
-                rates_df = pd.read_csv("rates.csv")
-                for product, batch_list in st.session_state.product_batches.items():
-                    for batch_data in batch_list:
-                        rate = batch_data["quantity"] / batch_data["time_consumed"]
-                    try:
-                        standard_rate = get_standard_rate(selected_product, selected_machine)
-                        if standard_rate == 0:
-                            st.error(f"No rate found for Product: {selected_product}, Machine: {selected_machine}")
-                    
+            efficiencies = []
+            for product, batch_list in st.session_state.product_batches.items():
+                for batch in batch_list:
+                    rate = batch["quantity"] / batch["time_consumed"] if batch["time_consumed"] != 0 else 0
+                    standard_rate = get_standard_rate(product, selected_machine)
+        
+                    if standard_rate == 0:
+                    st.warning(f"No rate found for Product: {product}, Machine: {selected_machine}. Using 0 as default.")
+        
                     efficiency = rate / standard_rate if standard_rate != 0 else 0
+                    efficiencies.append(efficiency)
+
+average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
+
                     archive_row = {
                         "Date": date,
                         "Machine": selected_machine,
