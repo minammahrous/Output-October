@@ -151,15 +151,15 @@ for dt_type in downtime_types:
                 downtime_data[dt_type + "_comment"] = ""
 
     # Initialize session state for product-specific batch data
-    if "product_batches" not in st.session_state:
+if "product_batches" not in st.session_state:
         st.session_state.product_batches = {}
 
-    selected_product = st.selectbox("Select Product", [""] + product_list, index=0, key="product")
+selected_product = st.selectbox("Select Product", [""] + product_list, index=0, key="product")
     # Initialize batch data for the selected product if it doesn't exist
-    if selected_product not in st.session_state.product_batches:
+if selected_product not in st.session_state.product_batches:
         st.session_state.product_batches[selected_product] = []
 
-    with st.form("batch_entry_form"):
+with st.form("batch_entry_form"):
         batch = st.text_input("Batch Number")
         quantity = st.number_input("Production Quantity", min_value=0.0, step=0.1, format="%.1f")  # quantity is now a float.
         time_consumed = st.number_input("Time Consumed (hours)", min_value=0.0, step=0.1, format="%.1f")
