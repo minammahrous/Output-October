@@ -120,8 +120,9 @@ if st.session_state.get("proceed_clicked", False):
 
                 # Delete from archive table
                 delete_query_archive = text("""
-                    DELETE FROM archive WHERE "Date" = :date AND "Machine" = :machine AND "Day/Night/Plan" = :shift
+                DELETE FROM archive WHERE "Date" = :date AND "Machine" = :machine AND "Day/Night/plan" = :shift
                 """)
+
                 conn.execute(delete_query_archive, {"date": date, "shift": shift_type, "machine": selected_machine})
 
                 st.success("✅ Existing records deleted. You can proceed with new data entry.")
