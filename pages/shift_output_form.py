@@ -105,6 +105,30 @@ for dt_type in downtime_types:
 # Assign session state data to a variable
 downtime_data = st.session_state.downtime_data
 
+# Define shift options
+shift_types = ["Day", "Night", "Plan"]
+
+# Initialize shift duration early to avoid NameError
+shift_duration = None  # Default value in case nothing is selected
+
+# Read shift durations from shifts.csv
+try:
+    shifts_df = pd.read_csv("shifts.csv")
+    shift_durations = shifts_df["code"].tolist()
+except FileNotFoundError:
+    st.error("shifts.csv file not found. Please create the file.")
+    shift_durations = []
+except Exception as e:
+    st.error(f"An error occurred reading shifts.csv: {e}")
+    shift_durations = []
+
+# Ensure shift_duration selection
+shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
+
+# Prevent NameError if shift_duration is empty
+if not shift_duration:
+    st.warning("⚠️ Please select a shift duration before proceeding.")
+    st.stop()
 # Assign session state data to a variable
 downtime_data = st.session_state.downtime_data
 shift_types = ["Day", "Night", "Plan"]
