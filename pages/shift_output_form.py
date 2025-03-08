@@ -356,8 +356,8 @@ for product, batch_list in st.session_state.product_batches.items():
 average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
 
 
-                OEE = 0.99 * availability * average_efficiency
-                av_row = {
+OEE = 0.99 * availability * average_efficiency
+av_row = {
                     "date": date,
                     "machine": selected_machine,
                     "shift type": shift_duration,
@@ -367,7 +367,7 @@ average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 
                     "Availability": availability,
                     "Av Efficiency": average_efficiency,
                     "OEE": OEE,
-                }
+}
                 av_df = pd.DataFrame([av_row])
 except FileNotFoundError:
                 st.error("shifts.csv or rates.csv was not found")
