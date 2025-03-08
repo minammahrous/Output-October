@@ -106,7 +106,7 @@ if st.session_state.get("proceed_clicked", False):
         st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
 
         col1, col2 = st.columns(2)
-   if col1.button("🗑️ Delete Existing Data and Proceed"):
+       if col1.button("🗑️ Delete Existing Data and Proceed"):
     try:
         with engine.connect() as conn:
             # Delete from av table
