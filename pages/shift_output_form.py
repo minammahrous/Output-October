@@ -169,7 +169,7 @@ if date and shift_type and selected_machine:
                 st.error("You can add a maximum of 5 batches for this product.")
 
     # Display added batches for the selected product with delete buttons
-if st.session_state.product_batches[selected_product]:
+if selected_product and selected_product in st.session_state.product_batches:
     st.subheader(f"Added Batches for {selected_product}:")
     batch_data = st.session_state.product_batches[selected_product]
 
