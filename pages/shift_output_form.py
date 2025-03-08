@@ -306,7 +306,7 @@ else:
 
 average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
 
-                    archive_row = {
+            archive_row = {
                         "Date": date,
                         "Machine": selected_machine,
                         "Day/Night/plan": shift_type,
