@@ -358,15 +358,15 @@ try:
 except FileNotFoundError:
                 st.error("shifts.csv or rates.csv was not found")
 
-            # Store submitted data in session state
-            st.session_state.submitted_archive_df = archive_df
-            st.session_state.submitted_av_df = av_df
+# Store submitted data in session state
+st.session_state.submitted_archive_df = archive_df
+st.session_state.submitted_av_df = av_df
 
-            # Display submitted data
-            st.subheader("Submitted Archive Data")
-            st.dataframe(st.session_state.submitted_archive_df)
-            st.subheader("Submitted AV Data")
-            st.dataframe(st.session_state.submitted_av_df)
+# Display submitted data
+st.subheader("Submitted Archive Data")
+st.dataframe(st.session_state.submitted_archive_df)
+st.subheader("Submitted AV Data")
+st.dataframe(st.session_state.submitted_av_df)
            # Compute total recorded time (downtime + production time)
 total_production_time = sum(batch["time_consumed"] for batch in st.session_state.product_batches[selected_product])
 total_downtime = sum(downtime_data[dt] for dt in downtime_types)
