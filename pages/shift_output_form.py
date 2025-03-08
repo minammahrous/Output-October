@@ -99,11 +99,11 @@ if st.session_state.get("proceed_clicked", False):
     # Query to check if a record exists in 'av' table
     query = text("""
         SELECT COUNT(*) FROM av 
-        WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
+        WHERE date = :date AND "shift" = :shift_type AND machine = :machine
     """)
 
     with engine.connect() as conn:
-        result = conn.execute(query, {"date": date, "shift_type": shift_type, "machine": selected_machine}).fetchone()
+        result = conn.execute(query, {"date": date, "shift": shift_type, "machine": selected_machine}).fetchone()
 
     if result and result[0] > 0:  # If a record already exists
         st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
@@ -112,15 +112,15 @@ if st.session_state.get("proceed_clicked", False):
         if col1.button("🗑️ Delete Existing Data and Proceed"):
             # Delete from both tables
             delete_query_av = text("""
-                DELETE FROM av WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
+                DELETE FROM av WHERE date = :date AND "shift" = :shift_type AND machine = :machine
             """)
             delete_query_archive = text("""
                 DELETE FROM archive WHERE date = :date AND machine = :machine AND "Day/Night/plan" = :shift_type
             """)
 
             with engine.connect() as conn:
-                conn.execute(delete_query_av, {"date": date, "shift_type": shift_type, "machine": selected_machine})
-                conn.execute(delete_query_archive, {"date": date, "shift_type": shift_type, "machine": selected_machine})
+                conn.execute(delete_query_av, {"date": date, "shift": shift_type, "machine": selected_machine})
+                conn.execute(delete_query_archive, {"date": date, "Day/Night/plan": shift_type, "machine": selected_machine})
                 conn.commit()
 
             st.success("✅ Existing records deleted. You can proceed with new data entry.")
