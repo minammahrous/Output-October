@@ -336,9 +336,9 @@ try:
                 efficiencies = []
                 for product, batch_list in st.session_state.product_batches.items():
                     for batch in batch_list:
-                    standard_rate = get_standard_rate(product, selected_machine)
-                    efficiency = (batch["quantity"] / (batch["time_consumed"] * standard_rate)) if (standard_rate != 0 and batch["time_consumed"] != 0) else 0
-                    efficiencies.append(efficiency)
+                        standard_rate = get_standard_rate(product, selected_machine)
+                        efficiency = (batch["quantity"] / (batch["time_consumed"] * standard_rate)) if (standard_rate != 0 and batch["time_consumed"] != 0) else 0
+                        efficiencies.append(efficiency)
 
                 average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
 
