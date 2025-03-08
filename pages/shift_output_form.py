@@ -11,18 +11,25 @@ import matplotlib.pyplot as plt
 # Database connection
 DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
 engine = create_engine(DB_URL)
-# get standard rate function
 def get_standard_rate(product, machine):
     query = text("""
         SELECT standard_rate FROM rates 
         WHERE product = :product AND machine = :machine
         LIMIT 1
     """)
+
     with engine.connect() as conn:
         result = conn.execute(query, {"product": product, "machine": machine}).fetchone()
-    
-    return result[0] if result else 0  # Return rate or 0 if not found
 
+    if result and result[0] is not None:
+        try:
+            return float(result[0])  # Ensure it's a valid float
+        except ValueError:
+            st.error(f"⚠️ Invalid standard_rate found for {product} - {machine}: {result[0]}")
+            return 1  # Default to 1 to avoid division by zero
+    else:
+        st.warning(f"⚠️ No standard rate found for {product} - {machine}. Using 1 as default.")
+        return 1  # Default to 1 to prevent division errors
 def clean_dataframe(df):
     """
     Cleans the dataframe by:
