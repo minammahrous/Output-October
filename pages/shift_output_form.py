@@ -90,6 +90,9 @@ st.subheader("Step 1: Select Shift Details")
 shift_types = ["Day", "Night", "Plan"]
 date = st.date_input("Date", None, key="date")  
 selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
+if st.button("Proceed"):
+    st.session_state.proceed_clicked = True
+    st.rerun()
 shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0, key="shift_type")
 
 if st.session_state.get("proceed_clicked", False):
