@@ -89,6 +89,43 @@ else:
     date = st.date_input("Date", None, key="date")  
     selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
     shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0, key="shift_type")
+    # Ensure selections are made before querying the database
+if date and shift_type and selected_machine:
+    # Check if a record exists for the selected combination in the 'av' table
+    query = text("""
+        SELECT COUNT(*) FROM av 
+        WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
+    """)
+
+    with engine.connect() as conn:
+        result = conn.execute(query, {"date": date, "shift_type": shift_type, "machine": selected_machine}).fetchone()
+
+    if result and result[0] > 0:  # If a record already exists
+        st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Please choose an action.")
+
+        col1, col2 = st.columns(2)
+        if col1.button("🗑️ Delete Existing Data and Continue"):
+            # Delete from both tables
+            delete_query_av = text("""
+                DELETE FROM av WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
+            """)
+            delete_query_archive = text("""
+                DELETE FROM archive WHERE date = :date AND machine = :machine AND "Day/Night/plan" = :shift_type
+            """)
+
+            with engine.connect() as conn:
+                conn.execute(delete_query_av, {"date": date, "shift_type": shift_type, "machine": selected_machine})
+                conn.execute(delete_query_archive, {"date": date, "shift_type": shift_type, "machine": selected_machine})
+                conn.commit()
+
+            st.success("✅ Existing records deleted. You can proceed with new data entry.")
+
+        if col2.button("🔄 Change Selection"):
+            st.warning("Please modify the Date, Shift Type, or Machine to proceed.")
+            st.stop()  # Prevents further execution
+
+        st.stop()  # Prevents user from entering more data until they take action
+
     shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
     
     # Downtime inputs with comments
