@@ -226,9 +226,7 @@ cols = st.columns(6)  # Increased column count
 cols[0].write("Batch")
 cols[1].write("Quantity")
 cols[2].write("Time Consumed")
-cols[3].write("Rate")  # ✅ New column
-cols[4].write("Standard Rate")  # ✅ New column
-cols[5].write("Delete")
+cols[3].write("Delete")
 
 # Ensure batch_data exists
 batches_to_delete = []
@@ -236,9 +234,7 @@ for i, batch in enumerate(batch_list):
     cols[0].write(batch["batch"])
     cols[1].write(batch["quantity"])
     cols[2].write(batch["time_consumed"])
-    cols[3].write(batch.get("rate", 0))  # ✅ Safe access
-    cols[4].write(batch.get("standard_rate", 0))  # ✅ Safe access
-
+    
     # Add delete button
     if cols[5].button("Delete", key=f"delete_{product}_{i}"):
         batches_to_delete.append(i)
