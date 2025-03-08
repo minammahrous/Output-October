@@ -211,33 +211,32 @@ with st.form("batch_entry_form"):
             st.error("Please select a product before adding a batch.")
     # Display added batches for the selected product with delete buttons
 for product, batch_list in st.session_state.product_batches.items():
-    if batch_list:
+    if batch_list:  # Only show if there are batches
         st.subheader(f"Added Batches for {product}:")
-        batch_data = batch_list
-
-
-    if batch_data:  # check if batch_data is not empty
-        cols = st.columns(4)  # Fixed number of columns
-
-        # Header row
+        
+        # Display table headers
+        cols = st.columns(4)
         cols[0].write("Batch")
         cols[1].write("Quantity")
         cols[2].write("Time Consumed")
         cols[3].write("Delete")
 
-        # Data rows and delete buttons
-        batches_to_delete = []  # create a list to store indexes to delete
-        for i, batch in enumerate(batch_data):
+        # Ensure batch_data exists
+        batches_to_delete = []
+        for i, batch in enumerate(batch_list):
             cols[0].write(batch["batch"])
             cols[1].write(batch["quantity"])
             cols[2].write(batch["time_consumed"])
-            if cols[3].button("Delete", key=f"delete_{selected_product}_{i}"):
-                batches_to_delete.append(i)  # add index to delete list
+            
+            # Delete button
+            if cols[3].button("Delete", key=f"delete_{product}_{i}"):
+                batches_to_delete.append(i)
 
-        # Delete the batches after the loop, in reverse order to avoid index issues.
+        # Remove selected batches
         for i in sorted(batches_to_delete, reverse=True):
-            del st.session_state.product_batches[selected_product][i]
-            st.rerun()  # refresh after any deletion.
+            del st.session_state.product_batches[product][i]
+            st.rerun()
+
 from sqlalchemy.sql import text  # Import SQL text wrapper
 
 # Ensure session state variables exist
@@ -306,25 +305,40 @@ else:
 
 average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
 
-archive_row = {
-                        "Date": date,
-                        "Machine": selected_machine,
-                        "Day/Night/plan": shift_type,
-                        "Activity": "Production",
-                        "time": batch_data["time_consumed"],
-                        "Product": selected_product,
-                        "batch number": batch_data["batch"],
-                        "quantity": batch_data["quantity"],
-                        "commnets": "",
-                        "rate": rate,
-                        "standard rate": standard_rate,
-                        "efficiency": efficiency,
-                    }
-archive_df = pd.concat([archive_df, pd.DataFrame([archive_row])], ignore_index=True)
-            
+archive_data = []
+for product, batch_list in st.session_state.product_batches.items():
+    for batch in batch_list:
+        rate = batch["quantity"] / batch["time_consumed"] if batch["time_consumed"] != 0 else 0
+        standard_rate = get_standard_rate(product, selected_machine)
+
+        if standard_rate == 0:
+            st.warning(f"No rate found for Product: {product}, Machine: {selected_machine}. Using 0 as default.")
+
+        efficiency = rate / standard_rate if standard_rate != 0 else 0
+
+        archive_data.append({
+            "Date": date,
+            "Machine": selected_machine,
+            "Day/Night/plan": shift_type,
+            "Activity": "Production",
+            "time": batch["time_consumed"],
+            "Product": product,
+            "batch number": batch["batch"],
+            "quantity": batch["quantity"],
+            "commnets": "",
+            "rate": rate,
+            "standard rate": standard_rate,
+            "efficiency": efficiency,
+        })
+
+archive_df = pd.DataFrame(archive_data)
+
             # Construct av_df
 try:
-                total_production_time = sum([batch["time_consumed"] for batch in st.session_state.product_batches[selected_product]])
+                total_production_time = sum(
+                    batch["time_consumed"] for product, batch_list in st.session_state.product_batches.items() for batch in batch_list
+                )
+
                 standard_shift_time = shifts_df.loc[shifts_df['code'] == shift_duration, 'working hours'].iloc[0]
 
                 if shift_duration == "partial":
@@ -340,7 +354,8 @@ try:
                         efficiency = (batch["quantity"] / (batch["time_consumed"] * standard_rate)) if (standard_rate != 0 and batch["time_consumed"] != 0) else 0
                         efficiencies.append(efficiency)
 
-                average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
+average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
+
 
                 OEE = 0.99 * availability * average_efficiency
                 av_row = {
@@ -368,7 +383,9 @@ st.dataframe(st.session_state.submitted_archive_df)
 st.subheader("Submitted AV Data")
 st.dataframe(st.session_state.submitted_av_df)
            # Compute total recorded time (downtime + production time)
-total_production_time = sum(batch["time_consumed"] for batch in st.session_state.product_batches[selected_product])
+total_production_time = sum(
+    batch["time_consumed"] for product, batch_list in st.session_state.product_batches.items() for batch in batch_list
+)
 total_downtime = sum(downtime_data[dt] for dt in downtime_types)
 total_recorded_time = total_production_time + total_downtime
 
