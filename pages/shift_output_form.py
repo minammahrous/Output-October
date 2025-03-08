@@ -214,22 +214,26 @@ for product, batch_list in st.session_state.product_batches.items():
     if batch_list:  # Only show if there are batches
         st.subheader(f"Added Batches for {product}:")
         
-        # Display table headers
-        cols = st.columns(4)
-        cols[0].write("Batch")
-        cols[1].write("Quantity")
-        cols[2].write("Time Consumed")
-        cols[3].write("Delete")
+       # Display table headers
+cols = st.columns(6)  # Increase column count
+cols[0].write("Batch")
+cols[1].write("Quantity")
+cols[2].write("Time Consumed")
+cols[3].write("Rate")  # New column
+cols[4].write("Standard Rate")  # New column
+cols[5].write("Delete")
 
-        # Ensure batch_data exists
-        batches_to_delete = []
-        for i, batch in enumerate(batch_list):
-            cols[0].write(batch["batch"])
-            cols[1].write(batch["quantity"])
-            cols[2].write(batch["time_consumed"])
+# Ensure batch_data exists
+batches_to_delete = []
+for i, batch in enumerate(batch_list):
+    cols[0].write(batch["batch"])
+    cols[1].write(batch["quantity"])
+    cols[2].write(batch["time_consumed"])
+    cols[3].write(batch["rate"])  # Display rate
+    cols[4].write(batch["standard_rate"])  # Display standard rate
             
-            # Delete button
-            if cols[3].button("Delete", key=f"delete_{product}_{i}"):
+# Delete button
+if cols[3].button("Delete", key=f"delete_{product}_{i}"):
                 batches_to_delete.append(i)
 
         # Remove selected batches
