@@ -4,6 +4,7 @@ import pandas as pd
 import csv
 import os
 from sqlalchemy import create_engine
+from sqlalchemy.sql import text  # Import SQL text wrapper
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 
