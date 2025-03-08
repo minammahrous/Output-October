@@ -90,11 +90,10 @@ if "downtime_data" not in st.session_state:
 
 # Assign session state data to a variable
 downtime_data = st.session_state.downtime_data
-
-    shift_types = ["Day", "Night", "Plan"]
-    date = st.date_input("Date", None, key="date")  
-    selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
-    shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0, key="shift_type")
+shift_types = ["Day", "Night", "Plan"]
+date = st.date_input("Date", None, key="date")  
+selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
+shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0, key="shift_type")
     # Ensure selections are made before querying the database
 if date and shift_type and selected_machine:
     # Check if a record exists for the selected combination in the 'av' table
