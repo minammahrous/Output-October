@@ -106,8 +106,8 @@ if st.session_state.get("proceed_clicked", False):
         st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
 
         col1, col2 = st.columns(2)
-    if col1.button("🗑️ Delete Existing Data and Proceed"):
-        try:
+   if col1.button("🗑️ Delete Existing Data and Proceed"):
+    try:
         with engine.connect() as conn:
             # Delete from av table
             delete_query_av = text("""
@@ -128,8 +128,6 @@ if st.session_state.get("proceed_clicked", False):
 
     except Exception as e:
         st.error(f"❌ Error deleting records: {e}")
-
-
         if col2.button("🔄 Change Selection"):
             st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
             st.session_state.proceed_clicked = False  # Reset proceed state
