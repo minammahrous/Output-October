@@ -92,14 +92,11 @@ date = st.date_input("Date", None, key="date")
 selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
 shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0, key="shift_type")
 
-# Step 2: Show a "Proceed" button
-if st.button("Proceed"):
-    st.session_state.proceed_clicked = True  # Save state to session
 if st.session_state.get("proceed_clicked", False):
     # Query to check if a record exists in 'av' table
     query = text("""
         SELECT COUNT(*) FROM av 
-        WHERE date = :date AND "shift" = :shift_type AND machine = :machine
+        WHERE date = :date AND shift = :shift AND machine = :machine
     """)
 
     with engine.connect() as conn:
@@ -112,15 +109,15 @@ if st.session_state.get("proceed_clicked", False):
         if col1.button("🗑️ Delete Existing Data and Proceed"):
             # Delete from both tables
             delete_query_av = text("""
-                DELETE FROM av WHERE date = :date AND "shift" = :shift_type AND machine = :machine
+                DELETE FROM av WHERE date = :date AND shift = :shift AND machine = :machine
             """)
             delete_query_archive = text("""
-                DELETE FROM archive WHERE date = :date AND machine = :machine AND "Day/Night/plan" = :shift_type
+                DELETE FROM archive WHERE date = :date AND machine = :machine AND "Day/Night/plan" = :shift
             """)
 
             with engine.connect() as conn:
                 conn.execute(delete_query_av, {"date": date, "shift": shift_type, "machine": selected_machine})
-                conn.execute(delete_query_archive, {"date": date, "Day/Night/plan": shift_type, "machine": selected_machine})
+                conn.execute(delete_query_archive, {"date": date, "shift": shift_type, "machine": selected_machine})
                 conn.commit()
 
             st.success("✅ Existing records deleted. You can proceed with new data entry.")
@@ -133,7 +130,6 @@ if st.session_state.get("proceed_clicked", False):
 
     else:
         st.success("✅ No existing record found. You can proceed with the form.")
-
     
 shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
     
