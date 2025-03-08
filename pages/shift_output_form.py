@@ -299,7 +299,7 @@ else:
                     standard_rate = get_standard_rate(product, selected_machine)
         
                     if standard_rate == 0:
-                    st.warning(f"No rate found for Product: {product}, Machine: {selected_machine}. Using 0 as default.")
+                        st.warning(f"No rate found for Product: {product}, Machine: {selected_machine}. Using 0 as default.")
         
                     efficiency = rate / standard_rate if standard_rate != 0 else 0
                     efficiencies.append(efficiency)
