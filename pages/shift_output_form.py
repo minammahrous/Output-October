@@ -85,13 +85,21 @@ else:
         shift_durations = []
         shift_working_hours = []
 
-# Ensure downtime_data and downtime_types are always initialized
-downtime_types = ["Maintenance DT", "Production DT", "Material DT", "Utility DT", 
-                  "QC DT", "Cleaning DT", "QA DT", "Changeover DT"]
+# Define downtime types (ensure this is always set)
+downtime_types = [
+    "Maintenance DT", "Production DT", "Material DT", "Utility DT", 
+    "QC DT", "Cleaning DT", "QA DT", "Changeover DT"
+]
 
+# Initialize downtime_data in session state
 if "downtime_data" not in st.session_state:
-    st.session_state.downtime_data = {dt_type: 0 for dt_type in downtime_types}
-    for dt_type in downtime_types:
+    st.session_state.downtime_data = {}
+
+# Ensure all downtime types and their comments are initialized
+for dt_type in downtime_types:
+    if dt_type not in st.session_state.downtime_data:
+        st.session_state.downtime_data[dt_type] = 0
+    if dt_type + "_comment" not in st.session_state.downtime_data:
         st.session_state.downtime_data[dt_type + "_comment"] = ""
 
 # Assign session state data to a variable
