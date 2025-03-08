@@ -111,26 +111,42 @@ if st.session_state.get("proceed_clicked", False):
     if col1.button("🗑️ Delete Existing Data and Proceed"):
         try:
             with engine.connect() as conn:
-                with conn.begin():  # Ensure the transaction is properly handled
-                # Delete from av table
+                # Check if records exist before deleting
+            check_query_av = text("""
+                SELECT * FROM av WHERE date = :date AND shift = :shift AND machine = :machine
+            """)
+            result_av = conn.execute(check_query_av, {"date": date, "shift": shift_type, "machine": selected_machine}).fetchall()
+
+            check_query_archive = text("""
+                SELECT * FROM archive WHERE "Date" = :date AND "Machine" = :machine AND "Day/Night/plan" = :shift
+            """)
+            result_archive = conn.execute(check_query_archive, {"date": date, "shift": shift_type, "machine": selected_machine}).fetchall()
+
+            # Show records before deletion
+            if not result_av and not result_archive:
+                st.warning("⚠️ No matching records found. Nothing to delete.")
+            else:
+                st.write("🔍 Records found in 'av':", result_av)
+                st.write("🔍 Records found in 'archive':", result_archive)
+
+                # Proceed with deletion if records exist
+                with conn.begin():
                     delete_query_av = text("""
-                    DELETE FROM av WHERE date = :date AND shift = :shift AND machine = :machine
-                """)
-                conn.execute(delete_query_av, {"date": date, "shift": shift_type, "machine": selected_machine})
+                        DELETE FROM av WHERE date = :date AND shift = :shift AND machine = :machine
+                    """)
+                    conn.execute(delete_query_av, {"date": date, "shift": shift_type, "machine": selected_machine})
 
-                # Delete from archive table
-                delete_query_archive = text("""
-                DELETE FROM archive WHERE "Date" = :date AND "Machine" = :machine AND "Day/Night/plan" = :shift
-                """)
-
-                conn.execute(delete_query_archive, {"date": date, "shift": shift_type, "machine": selected_machine})
+                    delete_query_archive = text("""
+                        DELETE FROM archive WHERE "Date" = :date AND "Machine" = :machine AND "Day/Night/plan" = :shift
+                    """)
+                    conn.execute(delete_query_archive, {"date": date, "shift": shift_type, "machine": selected_machine})
 
                 st.success("✅ Existing records deleted. You can proceed with new data entry.")
-                st.session_state.proceed_clicked = False  # Reset proceed state
 
-        except Exception as e:
-            st.error(f"❌ Error deleting records: {e}")
+        st.session_state.proceed_clicked = False  # Reset proceed state
 
+    except Exception as e:
+        st.error(f"❌ Error deleting records: {e}")
 
     if col2.button("🔄 Change Selection"):
             st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
