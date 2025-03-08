@@ -145,8 +145,8 @@ if st.session_state.get("proceed_clicked", False):
 
                 st.session_state.proceed_clicked = False  # Reset proceed state
 
-    except Exception as e:
-        st.error(f"❌ Error deleting records: {e}")
+        except Exception as e:
+            st.error(f"❌ Error deleting records: {e}")
 
     if col2.button("🔄 Change Selection"):
             st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
