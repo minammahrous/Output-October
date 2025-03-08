@@ -111,25 +111,25 @@ if st.session_state.get("proceed_clicked", False):
     if col1.button("🗑️ Delete Existing Data and Proceed"):
         try:
             with engine.connect() as conn:
-            # Delete from av table
+            with conn.begin():  # Ensure the transaction is properly handled
+                # Delete from av table
                 delete_query_av = text("""
-                DELETE FROM av WHERE date = :date AND shift = :shift AND machine = :machine
-            """)
-            conn.execute(delete_query_av, {"date": date, "shift": shift_type, "machine": selected_machine})
+                    DELETE FROM av WHERE date = :date AND shift = :shift AND machine = :machine
+                """)
+                conn.execute(delete_query_av, {"date": date, "shift": shift_type, "machine": selected_machine})
 
-            # Delete from archive table (properly quoted column names)
-            delete_query_archive = text("""
-                DELETE FROM archive WHERE "Date" = :date AND "Machine" = :machine AND "Day/Night/Plan" = :shift
-            """)
-            conn.execute(delete_query_archive, {"date": date, "shift": shift_type, "machine": selected_machine})
+                # Delete from archive table
+                delete_query_archive = text("""
+                    DELETE FROM archive WHERE "Date" = :date AND "Machine" = :machine AND "Day/Night/Plan" = :shift
+                """)
+                conn.execute(delete_query_archive, {"date": date, "shift": shift_type, "machine": selected_machine})
 
-            conn.commit()
-
-            st.success("✅ Existing records deleted. You can proceed with new data entry.")
-            st.session_state.proceed_clicked = False  # Reset proceed state
+                st.success("✅ Existing records deleted. You can proceed with new data entry.")
+                st.session_state.proceed_clicked = False  # Reset proceed state
 
         except Exception as e:
             st.error(f"❌ Error deleting records: {e}")
+
 
     if col2.button("🔄 Change Selection"):
             st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
