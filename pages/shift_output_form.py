@@ -320,7 +320,7 @@ archive_row = {
                         "standard rate": standard_rate,
                         "efficiency": efficiency,
                     }
-            archive_df = pd.concat([archive_df, pd.DataFrame([archive_row])], ignore_index=True)
+archive_df = pd.concat([archive_df, pd.DataFrame([archive_row])], ignore_index=True)
             
             # Construct av_df
             try:
