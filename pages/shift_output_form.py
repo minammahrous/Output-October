@@ -147,33 +147,19 @@ if date and shift_type and selected_machine:
     if "product_batches" not in st.session_state:
         st.session_state.product_batches = {}
 
-    selected_product = st.selectbox("Select Product", [""] + product_list, index=0, key="product")
-    # Initialize batch data for the selected product if it doesn't exist
-    if selected_product not in st.session_state.product_batches:
-        st.session_state.product_batches[selected_product] = []
+    # Ensure selected_product is initialized
+selected_product = st.selectbox("Select Product", [""] + product_list, index=0, key="product")
 
-    with st.form("batch_entry_form"):
-        batch = st.text_input("Batch Number")
-        quantity = st.number_input("Production Quantity", min_value=0.0, step=0.1, format="%.1f")  # quantity is now a float.
-        time_consumed = st.number_input("Time Consumed (hours)", min_value=0.0, step=0.1, format="%.1f")
-        add_batch = st.form_submit_button("Add Batch")
+# Initialize session state for product-specific batch data
+if "product_batches" not in st.session_state:
+    st.session_state.product_batches = {}
 
-        if add_batch:
-            if len(st.session_state.product_batches[selected_product]) < 5:
-                st.session_state.product_batches[selected_product].append({
-                    "batch": batch,
-                    "quantity": quantity,
-                    "time_consumed": time_consumed
-                })
-            else:
-                st.error("You can add a maximum of 5 batches for this product.")
-
-    # Display added batches for the selected product with delete buttons
+# Safely check if selected_product has been chosen
 if selected_product and selected_product in st.session_state.product_batches:
-    st.subheader(f"Added Batches for {selected_product}:")
     batch_data = st.session_state.product_batches[selected_product]
 
     if batch_data:  # check if batch_data is not empty
+        st.subheader(f"Added Batches for {selected_product}:")
         cols = st.columns(4)  # Fixed number of columns
 
         # Header row
@@ -195,6 +181,7 @@ if selected_product and selected_product in st.session_state.product_batches:
         for i in sorted(batches_to_delete, reverse=True):
             del st.session_state.product_batches[selected_product][i]
             st.rerun()  # refresh after any deletion.
+
 from sqlalchemy.sql import text  # Import SQL text wrapper
 
 # Ensure session state variables exist
