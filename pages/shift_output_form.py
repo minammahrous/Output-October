@@ -369,8 +369,6 @@ av_row = {
                     "OEE": OEE,
 }
 av_df = pd.DataFrame([av_row])
-except FileNotFoundError:
-                st.error("shifts.csv or rates.csv was not found")
 
 # Store submitted data in session state
 st.session_state.submitted_archive_df = archive_df
