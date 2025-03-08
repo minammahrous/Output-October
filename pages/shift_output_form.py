@@ -84,6 +84,12 @@ else:
         st.error(f"An error occurred reading shifts.csv: {e}")
         shift_durations = []
         shift_working_hours = []
+# Ensure downtime_data is initialized in session state early
+if "downtime_data" not in st.session_state:
+    st.session_state.downtime_data = {}
+
+# Assign session state data to a variable
+downtime_data = st.session_state.downtime_data
 
     shift_types = ["Day", "Night", "Plan"]
     date = st.date_input("Date", None, key="date")  
