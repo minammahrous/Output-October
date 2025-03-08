@@ -291,14 +291,16 @@ else:
             archive_df = pd.DataFrame(archive_data)
 
             # Construct archive_df (Production batch records)
-efficiencies = []
+efficiencies = []  # Declare only once
+
 for product, batch_list in st.session_state.get("product_batches", {}).items():
     for batch in batch_list:
         rate = batch["quantity"] / batch["time_consumed"] if batch["time_consumed"] != 0 else 0
-        standard_rate = get_standard_rate(product, selected_machine) or 1  # Default to 1 to avoid division by zero
+        standard_rate = get_standard_rate(product, selected_machine) or 1  # Avoid division by zero
         efficiency = rate / standard_rate
         efficiencies.append(efficiency)
 
+# Calculate average efficiency once at the end
 average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
 
 
@@ -342,16 +344,6 @@ if shift_duration == "partial":
     availability = total_production_time / (total_production_time + total_downtime) if (total_production_time + total_downtime) != 0 else 0
 else:
     availability = total_production_time / standard_shift_time if standard_shift_time != 0 else 0
-
-efficiencies = []
-for product, batch_list in st.session_state.product_batches.items():
-    for batch in batch_list:
-        standard_rate = get_standard_rate(product, selected_machine)
-        efficiency = (batch["quantity"] / (batch["time_consumed"] * standard_rate)) if (standard_rate != 0 and batch["time_consumed"] != 0) else 0
-        efficiencies.append(efficiency)
-
-average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
-
 
 OEE = 0.99 * availability * average_efficiency
 av_row = {
