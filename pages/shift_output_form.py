@@ -112,7 +112,7 @@ if st.session_state.get("proceed_clicked", False):
         try:
             with engine.connect() as conn:
                 # Check if records exist before deleting
-            check_query_av = text("""
+                check_query_av = text("""
                 SELECT * FROM av WHERE date = :date AND shift = :shift AND machine = :machine
             """)
             result_av = conn.execute(check_query_av, {"date": date, "shift": shift_type, "machine": selected_machine}).fetchall()
