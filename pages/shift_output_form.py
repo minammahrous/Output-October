@@ -110,7 +110,7 @@ if st.session_state.get("proceed_clicked", False):
         try:
             with engine.connect() as conn:
             # Delete from av table
-            delete_query_av = text("""
+                delete_query_av = text("""
                 DELETE FROM av WHERE date = :date AND shift = :shift AND machine = :machine
             """)
             conn.execute(delete_query_av, {"date": date, "shift": shift_type, "machine": selected_machine})
