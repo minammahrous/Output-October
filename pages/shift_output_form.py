@@ -11,6 +11,18 @@ import matplotlib.pyplot as plt
 # Database connection
 DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
 engine = create_engine(DB_URL)
+# get standard rate function
+def get_standard_rate(product, machine):
+    query = text("""
+        SELECT rate FROM rates 
+        WHERE product = :product AND machine = :machine
+        LIMIT 1
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"product": product, "machine": machine}).fetchone()
+    
+    return result[0] if result else 0  # Return rate or 0 if not found
+
 def clean_dataframe(df):
     """
     Cleans the dataframe by:
@@ -281,13 +293,10 @@ else:
                 for batch_data in st.session_state.product_batches[selected_product]:
                     rate = batch_data["quantity"] / batch_data["time_consumed"]
                     try:
-                        standard_rate = rates_df.loc[(rates_df['Product'] == selected_product) & (rates_df['Machine'] == selected_machine), 'Rate'].iloc[0]
-                    except IndexError:
-                        st.error(f"No rate found for Product: {selected_product}, Machine: {selected_machine}")
-                        standard_rate = 0  # or some default value
-                    except KeyError:
-                        st.error("The column 'Rate' does not exist in rates.csv")
-                        standard_rate = 0  # or some default value
+                        standard_rate = get_standard_rate(selected_product, selected_machine)
+                        if standard_rate == 0:
+                            st.error(f"No rate found for Product: {selected_product}, Machine: {selected_machine}")
+                    
                     efficiency = rate / standard_rate if standard_rate != 0 else 0
                     archive_row = {
                         "Date": date,
@@ -304,9 +313,7 @@ else:
                         "efficiency": efficiency,
                     }
                     archive_df = pd.concat([archive_df, pd.DataFrame([archive_row])], ignore_index=True)
-            except FileNotFoundError:
-                st.error("rates.csv was not found")
-
+            
             # Construct av_df
             try:
                 total_production_time = sum([batch["time_consumed"] for batch in st.session_state.product_batches[selected_product]])
@@ -318,7 +325,12 @@ else:
                 else:
                     availability = total_production_time / standard_shift_time if standard_shift_time != 0 else 0
 
-                efficiencies = [batch["quantity"] / (batch["time_consumed"] * rates_df.loc[(rates_df['Product'] == selected_product) & (rates_df['Machine'] == selected_machine), 'Rate'].iloc[0]) if (rates_df.loc[(rates_df['Product'] == selected_product) & (rates_df['Machine'] == selected_machine), 'Rate'].iloc[0] != 0 and batch["time_consumed"] != 0) else 0 for batch in st.session_state.product_batches[selected_product]]
+                efficiencies = [
+                    batch["quantity"] / (batch["time_consumed"] * get_standard_rate(selected_product, selected_machine))
+                    if (get_standard_rate(selected_product, selected_machine) != 0 and batch["time_consumed"] != 0)
+                    else 0 
+                    for batch in st.session_state.product_batches[selected_product]
+                ]
                 average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
                 OEE = 0.99 * availability * average_efficiency
                 av_row = {
