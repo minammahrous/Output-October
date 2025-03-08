@@ -221,13 +221,13 @@ for product, batch_list in st.session_state.product_batches.items():
     if batch_list:  # Only show if there are batches
         st.subheader(f"Added Batches for {product}:")
         
-       # Display table headers
-cols = st.columns(6)  # Increase column count
+     # Display table headers
+cols = st.columns(6)  # Increased column count
 cols[0].write("Batch")
 cols[1].write("Quantity")
 cols[2].write("Time Consumed")
-cols[3].write("Rate")  # New column
-cols[4].write("Standard Rate")  # New column
+cols[3].write("Rate")  # ✅ New column
+cols[4].write("Standard Rate")  # ✅ New column
 cols[5].write("Delete")
 
 # Ensure batch_data exists
@@ -236,18 +236,17 @@ for i, batch in enumerate(batch_list):
     cols[0].write(batch["batch"])
     cols[1].write(batch["quantity"])
     cols[2].write(batch["time_consumed"])
-    cols[3].write(batch["rate"])  # Display rate
-    cols[4].write(batch["standard_rate"])  # Display standard rate
-            
-# Delete button
-if cols[3].button("Delete", key=f"delete_{product}_{i}"):
-                batches_to_delete.append(i)
+    cols[3].write(batch.get("rate", 0))  # ✅ Safe access
+    cols[4].write(batch.get("standard_rate", 0))  # ✅ Safe access
 
-        # Remove selected batches
+    # Add delete button
+    if cols[5].button("Delete", key=f"delete_{product}_{i}"):
+        batches_to_delete.append(i)
+
+# Remove selected batches
 for i in sorted(batches_to_delete, reverse=True):
-            del st.session_state.product_batches[product][i]
-            st.rerun()
-
+    del st.session_state.product_batches[product][i]
+    st.rerun()
 from sqlalchemy.sql import text  # Import SQL text wrapper
 
 # Ensure session state variables exist
