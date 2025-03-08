@@ -334,12 +334,11 @@ for product, batch_list in st.session_state.product_batches.items():
 archive_df = pd.DataFrame(archive_data)
 
             # Construct av_df
-try:
-                total_production_time = sum(
-                    batch["time_consumed"] for product, batch_list in st.session_state.product_batches.items() for batch in batch_list
-                )
+total_production_time = sum(
+    batch["time_consumed"] for product, batch_list in st.session_state.product_batches.items() for batch in batch_list
+)
 
-                standard_shift_time = shifts_df.loc[shifts_df['code'] == shift_duration, 'working hours'].iloc[0]
+standard_shift_time = shifts_df.loc[shifts_df['code'] == shift_duration, 'working hours'].iloc[0]
 
                 if shift_duration == "partial":
                     total_downtime = sum(downtime_data.values()) - sum(1 for key in downtime_data if "_comment" in key)
