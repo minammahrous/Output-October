@@ -106,22 +106,29 @@ if st.session_state.get("proceed_clicked", False):
         st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
 
         col1, col2 = st.columns(2)
-        if col1.button("🗑️ Delete Existing Data and Proceed"):
-            # Delete from both tables
+       if col1.button("🗑️ Delete Existing Data and Proceed"):
+    try:
+        with engine.connect() as conn:
+            # Delete from av table
             delete_query_av = text("""
                 DELETE FROM av WHERE date = :date AND shift = :shift AND machine = :machine
             """)
+            conn.execute(delete_query_av, {"date": date, "shift": shift_type, "machine": selected_machine})
+
+            # Delete from archive table (properly quoted column names)
             delete_query_archive = text("""
-                DELETE FROM archive WHERE date = :date AND machine = :machine AND "Day/Night/plan" = :shift
+                DELETE FROM archive WHERE "Date" = :date AND "Machine" = :machine AND "Day/Night/Plan" = :shift
             """)
+            conn.execute(delete_query_archive, {"date": date, "shift": shift_type, "machine": selected_machine})
 
-            with engine.connect() as conn:
-                conn.execute(delete_query_av, {"date": date, "shift": shift_type, "machine": selected_machine})
-                conn.execute(delete_query_archive, {"date": date, "shift": shift_type, "machine": selected_machine})
-                conn.commit()
+            conn.commit()
 
-            st.success("✅ Existing records deleted. You can proceed with new data entry.")
-            st.session_state.proceed_clicked = False  # Reset proceed state
+        st.success("✅ Existing records deleted. You can proceed with new data entry.")
+        st.session_state.proceed_clicked = False  # Reset proceed state
+
+    except Exception as e:
+        st.error(f"❌ Error deleting records: {e}")
+
 
         if col2.button("🔄 Change Selection"):
             st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
