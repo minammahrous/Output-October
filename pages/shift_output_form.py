@@ -237,7 +237,7 @@ if cols[3].button("Delete", key=f"delete_{product}_{i}"):
                 batches_to_delete.append(i)
 
         # Remove selected batches
-        for i in sorted(batches_to_delete, reverse=True):
+for i in sorted(batches_to_delete, reverse=True):
             del st.session_state.product_batches[product][i]
             st.rerun()
 
