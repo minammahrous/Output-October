@@ -84,60 +84,18 @@ else:
         st.error(f"An error occurred reading shifts.csv: {e}")
         shift_durations = []
         shift_working_hours = []
-
-# Define downtime types (ensure this is always set)
-downtime_types = [
-    "Maintenance DT", "Production DT", "Material DT", "Utility DT", 
-    "QC DT", "Cleaning DT", "QA DT", "Changeover DT"
-]
-
-# Initialize downtime_data in session state
-if "downtime_data" not in st.session_state:
-    st.session_state.downtime_data = {}
-
-# Ensure all downtime types and their comments are initialized
-for dt_type in downtime_types:
-    if dt_type not in st.session_state.downtime_data:
-        st.session_state.downtime_data[dt_type] = 0
-    if dt_type + "_comment" not in st.session_state.downtime_data:
-        st.session_state.downtime_data[dt_type + "_comment"] = ""
-
-# Assign session state data to a variable
-downtime_data = st.session_state.downtime_data
-
-# Define shift options
-shift_types = ["Day", "Night", "Plan"]
-
-# Initialize shift duration early to avoid NameError
-shift_duration = None  # Default value in case nothing is selected
-
-# Read shift durations from shifts.csv
-try:
-    shifts_df = pd.read_csv("shifts.csv")
-    shift_durations = shifts_df["code"].tolist()
-except FileNotFoundError:
-    st.error("shifts.csv file not found. Please create the file.")
-    shift_durations = []
-except Exception as e:
-    st.error(f"An error occurred reading shifts.csv: {e}")
-    shift_durations = []
-
-# Ensure shift_duration selection
-shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
-
-# Prevent NameError if shift_duration is empty
-if not shift_duration:
-    st.warning("⚠️ Please select a shift duration before proceeding.")
-    st.stop()
-# Assign session state data to a variable
-downtime_data = st.session_state.downtime_data
+# Step 1: User selects Date, Machine, and Shift Type
+st.subheader("Step 1: Select Shift Details")
 shift_types = ["Day", "Night", "Plan"]
 date = st.date_input("Date", None, key="date")  
 selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
 shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0, key="shift_type")
-    # Ensure selections are made before querying the database
-if date and shift_type and selected_machine:
-    # Check if a record exists for the selected combination in the 'av' table
+
+# Step 2: Show a "Proceed" button
+if st.button("Proceed"):
+    st.session_state.proceed_clicked = True  # Save state to session
+if st.session_state.get("proceed_clicked", False):
+    # Query to check if a record exists in 'av' table
     query = text("""
         SELECT COUNT(*) FROM av 
         WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
@@ -147,10 +105,10 @@ if date and shift_type and selected_machine:
         result = conn.execute(query, {"date": date, "shift_type": shift_type, "machine": selected_machine}).fetchone()
 
     if result and result[0] > 0:  # If a record already exists
-        st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Please choose an action.")
+        st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
 
         col1, col2 = st.columns(2)
-        if col1.button("🗑️ Delete Existing Data and Continue"):
+        if col1.button("🗑️ Delete Existing Data and Proceed"):
             # Delete from both tables
             delete_query_av = text("""
                 DELETE FROM av WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
@@ -165,14 +123,18 @@ if date and shift_type and selected_machine:
                 conn.commit()
 
             st.success("✅ Existing records deleted. You can proceed with new data entry.")
+            st.session_state.proceed_clicked = False  # Reset proceed state
 
         if col2.button("🔄 Change Selection"):
-            st.warning("Please modify the Date, Shift Type, or Machine to proceed.")
+            st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
+            st.session_state.proceed_clicked = False  # Reset proceed state
             st.stop()  # Prevents further execution
 
-        st.stop()  # Prevents user from entering more data until they take action
+    else:
+        st.success("✅ No existing record found. You can proceed with the form.")
 
-    shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
+    
+shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
     
     # Downtime inputs with comments
     st.subheader("Downtime (hours)")
@@ -193,19 +155,33 @@ if date and shift_type and selected_machine:
     if "product_batches" not in st.session_state:
         st.session_state.product_batches = {}
 
-    # Ensure selected_product is initialized
-selected_product = st.selectbox("Select Product", [""] + product_list, index=0, key="product")
+    selected_product = st.selectbox("Select Product", [""] + product_list, index=0, key="product")
+    # Initialize batch data for the selected product if it doesn't exist
+    if selected_product not in st.session_state.product_batches:
+        st.session_state.product_batches[selected_product] = []
 
-# Initialize session state for product-specific batch data
-if "product_batches" not in st.session_state:
-    st.session_state.product_batches = {}
+    with st.form("batch_entry_form"):
+        batch = st.text_input("Batch Number")
+        quantity = st.number_input("Production Quantity", min_value=0.0, step=0.1, format="%.1f")  # quantity is now a float.
+        time_consumed = st.number_input("Time Consumed (hours)", min_value=0.0, step=0.1, format="%.1f")
+        add_batch = st.form_submit_button("Add Batch")
 
-# Safely check if selected_product has been chosen
-if selected_product and selected_product in st.session_state.product_batches:
+        if add_batch:
+            if len(st.session_state.product_batches[selected_product]) < 5:
+                st.session_state.product_batches[selected_product].append({
+                    "batch": batch,
+                    "quantity": quantity,
+                    "time_consumed": time_consumed
+                })
+            else:
+                st.error("You can add a maximum of 5 batches for this product.")
+
+    # Display added batches for the selected product with delete buttons
+if st.session_state.product_batches[selected_product]:
+    st.subheader(f"Added Batches for {selected_product}:")
     batch_data = st.session_state.product_batches[selected_product]
 
     if batch_data:  # check if batch_data is not empty
-        st.subheader(f"Added Batches for {selected_product}:")
         cols = st.columns(4)  # Fixed number of columns
 
         # Header row
@@ -227,7 +203,6 @@ if selected_product and selected_product in st.session_state.product_batches:
         for i in sorted(batches_to_delete, reverse=True):
             del st.session_state.product_batches[selected_product][i]
             st.rerun()  # refresh after any deletion.
-
 from sqlalchemy.sql import text  # Import SQL text wrapper
 
 # Ensure session state variables exist
