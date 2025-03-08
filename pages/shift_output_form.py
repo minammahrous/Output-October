@@ -182,22 +182,23 @@ for dt_type in downtime_types:
             else:
                 downtime_data[dt_type + "_comment"] = ""
 
-    # Initialize session state for product-specific batch data
 if "product_batches" not in st.session_state:
-        st.session_state.product_batches = {}
+    st.session_state.product_batches = {}
 
-selected_product = st.selectbox("Select Product", [""] + product_list, index=0, key="product")
-    # Initialize batch data for the selected product if it doesn't exist
-if selected_product not in st.session_state.product_batches:
+selected_product = st.selectbox("Select Product", [""] + product_list, index=0, key="selected_product")
+
+# Allow adding batches for multiple products
+if selected_product:
+    if selected_product not in st.session_state.product_batches:
         st.session_state.product_batches[selected_product] = []
-
 with st.form("batch_entry_form"):
-        batch = st.text_input("Batch Number")
-        quantity = st.number_input("Production Quantity", min_value=0.0, step=0.1, format="%.1f")  # quantity is now a float.
-        time_consumed = st.number_input("Time Consumed (hours)", min_value=0.0, step=0.1, format="%.1f")
-        add_batch = st.form_submit_button("Add Batch")
+    batch = st.text_input("Batch Number")
+    quantity = st.number_input("Production Quantity", min_value=0.0, step=0.1, format="%.1f")
+    time_consumed = st.number_input("Time Consumed (hours)", min_value=0.0, step=0.1, format="%.1f")
+    add_batch = st.form_submit_button("Add Batch")
 
-        if add_batch:
+    if add_batch:
+        if selected_product:
             if len(st.session_state.product_batches[selected_product]) < 5:
                 st.session_state.product_batches[selected_product].append({
                     "batch": batch,
@@ -205,12 +206,15 @@ with st.form("batch_entry_form"):
                     "time_consumed": time_consumed
                 })
             else:
-                st.error("You can add a maximum of 5 batches for this product.")
-
+                st.error(f"You can add a maximum of 5 batches for {selected_product}.")
+        else:
+            st.error("Please select a product before adding a batch.")
     # Display added batches for the selected product with delete buttons
-if st.session_state.product_batches[selected_product]:
-    st.subheader(f"Added Batches for {selected_product}:")
-    batch_data = st.session_state.product_batches[selected_product]
+for product, batch_list in st.session_state.product_batches.items():
+    if batch_list:
+        st.subheader(f"Added Batches for {product}:")
+        batch_data = batch_list
+
 
     if batch_data:  # check if batch_data is not empty
         cols = st.columns(4)  # Fixed number of columns
@@ -290,8 +294,9 @@ else:
             # Construct archive_df (Production batch records)
             try:
                 rates_df = pd.read_csv("rates.csv")
-                for batch_data in st.session_state.product_batches[selected_product]:
-                    rate = batch_data["quantity"] / batch_data["time_consumed"]
+                for product, batch_list in st.session_state.product_batches.items():
+                    for batch_data in batch_list:
+                        rate = batch_data["quantity"] / batch_data["time_consumed"]
                     try:
                         standard_rate = get_standard_rate(selected_product, selected_machine)
                         if standard_rate == 0:
@@ -325,13 +330,15 @@ else:
                 else:
                     availability = total_production_time / standard_shift_time if standard_shift_time != 0 else 0
 
-                efficiencies = [
-                    batch["quantity"] / (batch["time_consumed"] * get_standard_rate(selected_product, selected_machine))
-                    if (get_standard_rate(selected_product, selected_machine) != 0 and batch["time_consumed"] != 0)
-                    else 0 
-                    for batch in st.session_state.product_batches[selected_product]
-                ]
+                efficiencies = []
+                for product, batch_list in st.session_state.product_batches.items():
+                    for batch in batch_list:
+                    standard_rate = get_standard_rate(product, selected_machine)
+                    efficiency = (batch["quantity"] / (batch["time_consumed"] * standard_rate)) if (standard_rate != 0 and batch["time_consumed"] != 0) else 0
+                    efficiencies.append(efficiency)
+
                 average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
+
                 OEE = 0.99 * availability * average_efficiency
                 av_row = {
                     "date": date,
