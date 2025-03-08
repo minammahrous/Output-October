@@ -340,13 +340,13 @@ total_production_time = sum(
 
 standard_shift_time = shifts_df.loc[shifts_df['code'] == shift_duration, 'working hours'].iloc[0]
 
-                if shift_duration == "partial":
-                    total_downtime = sum(downtime_data.values()) - sum(1 for key in downtime_data if "_comment" in key)
-                    availability = total_production_time / (total_production_time + total_downtime) if (total_production_time + total_downtime) != 0 else 0
-                else:
-                    availability = total_production_time / standard_shift_time if standard_shift_time != 0 else 0
+if shift_duration == "partial":
+    total_downtime = sum(downtime_data.values()) - sum(1 for key in downtime_data if "_comment" in key)
+    availability = total_production_time / (total_production_time + total_downtime) if (total_production_time + total_downtime) != 0 else 0
+else:
+    availability = total_production_time / standard_shift_time if standard_shift_time != 0 else 0
 
-                efficiencies = []
+efficiencies = []
                 for product, batch_list in st.session_state.product_batches.items():
                     for batch in batch_list:
                         standard_rate = get_standard_rate(product, selected_machine)
