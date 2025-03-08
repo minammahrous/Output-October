@@ -107,7 +107,7 @@ if st.session_state.get("proceed_clicked", False):
 
         col1, col2 = st.columns(2)
     if col1.button("🗑️ Delete Existing Data and Proceed"):
-    try:
+        try:
         with engine.connect() as conn:
             # Delete from av table
             delete_query_av = text("""
