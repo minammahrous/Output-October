@@ -84,9 +84,18 @@ else:
         st.error(f"An error occurred reading shifts.csv: {e}")
         shift_durations = []
         shift_working_hours = []
-# Ensure downtime_data is initialized in session state early
+
+# Ensure downtime_data and downtime_types are always initialized
+downtime_types = ["Maintenance DT", "Production DT", "Material DT", "Utility DT", 
+                  "QC DT", "Cleaning DT", "QA DT", "Changeover DT"]
+
 if "downtime_data" not in st.session_state:
-    st.session_state.downtime_data = {}
+    st.session_state.downtime_data = {dt_type: 0 for dt_type in downtime_types}
+    for dt_type in downtime_types:
+        st.session_state.downtime_data[dt_type + "_comment"] = ""
+
+# Assign session state data to a variable
+downtime_data = st.session_state.downtime_data
 
 # Assign session state data to a variable
 downtime_data = st.session_state.downtime_data
