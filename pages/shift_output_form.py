@@ -368,7 +368,7 @@ av_row = {
                     "Av Efficiency": average_efficiency,
                     "OEE": OEE,
 }
-                av_df = pd.DataFrame([av_row])
+av_df = pd.DataFrame([av_row])
 except FileNotFoundError:
                 st.error("shifts.csv or rates.csv was not found")
 
