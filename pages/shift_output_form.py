@@ -14,7 +14,7 @@ engine = create_engine(DB_URL)
 # get standard rate function
 def get_standard_rate(product, machine):
     query = text("""
-        SELECT rate FROM rates 
+        SELECT standard_rate FROM rates 
         WHERE product = :product AND machine = :machine
         LIMIT 1
     """)
