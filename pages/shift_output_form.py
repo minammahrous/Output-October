@@ -107,10 +107,10 @@ if st.session_state.get("proceed_clicked", False):
 
         col1, col2 = st.columns(2)
     if col1.button("🗑️ Delete Existing Data and Proceed"):
-        try:
-            with engine.connect() as conn:
+    try:
+        with engine.connect() as conn:
             # Delete from av table
-                delete_query_av = text("""
+            delete_query_av = text("""
                 DELETE FROM av WHERE date = :date AND shift = :shift AND machine = :machine
             """)
             conn.execute(delete_query_av, {"date": date, "shift": shift_type, "machine": selected_machine})
@@ -125,9 +125,11 @@ if st.session_state.get("proceed_clicked", False):
 
         st.success("✅ Existing records deleted. You can proceed with new data entry.")
         st.session_state.proceed_clicked = False  # Reset proceed state
-        except Exception as e:
-            st.error(f"❌ Error deleting records: {e}")
-        if col2.button("🔄 Change Selection"):
+
+    except Exception as e:
+        st.error(f"❌ Error deleting records: {e}")
+
+    if col2.button("🔄 Change Selection"):
             st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
             st.session_state.proceed_clicked = False  # Reset proceed state
             st.stop()  # Prevents further execution
