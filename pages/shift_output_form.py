@@ -323,7 +323,7 @@ archive_row = {
 archive_df = pd.concat([archive_df, pd.DataFrame([archive_row])], ignore_index=True)
             
             # Construct av_df
-            try:
+try:
                 total_production_time = sum([batch["time_consumed"] for batch in st.session_state.product_batches[selected_product]])
                 standard_shift_time = shifts_df.loc[shifts_df['code'] == shift_duration, 'working hours'].iloc[0]
 
@@ -355,7 +355,7 @@ archive_df = pd.concat([archive_df, pd.DataFrame([archive_row])], ignore_index=T
                     "OEE": OEE,
                 }
                 av_df = pd.DataFrame([av_row])
-            except FileNotFoundError:
+except FileNotFoundError:
                 st.error("shifts.csv or rates.csv was not found")
 
             # Store submitted data in session state
