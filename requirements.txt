@@ -4,3 +4,4 @@ sqlalchemy
 plotly
 matplotlib
 pandas
+bcrypt
