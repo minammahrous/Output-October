@@ -86,7 +86,19 @@ except FileNotFoundError:
     st.error("products.csv file not found. Please create the file.")
 except Exception as e:
     st.error(f"An error occurred reading products.csv: {e}")
+# Fetch machine list from the database
+try:
+    machines_df = get_data("SELECT name FROM machines")
+    machine_list = machines_df["name"].tolist()
+except Exception as e:
+    st.error(f"An error occurred fetching machines from database: {e}")
 
+# Fetch product list from the database
+try:
+    products_df = get_data("SELECT name FROM products")
+    product_list = products_df["name"].tolist()
+except Exception as e:
+    st.error(f"An error occurred fetching products from database: {e}")
 # Check if product_list is empty
 if not product_list:
     st.error("Product list is empty. Please check products.csv.")
