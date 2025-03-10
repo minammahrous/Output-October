@@ -95,6 +95,7 @@ if st.session_state.get("show_form", False):
     batch_size = st.number_input("Batch Size", min_value=1.0, value=float(product_data["batch_size"]) if product_data is not None else 1.0)
     units_per_box = st.number_input("Units per Box", min_value=1.0, value=float(product_data["units_per_box"]) if product_data is not None else 1.0)
     primary_units_per_box = st.number_input("Primary Units per Box", min_value=1.0, value=float(product_data["primary_units_per_box"]) if product_data is not None else 1.0)
+
     oracle_code = st.text_input("Oracle Code (Optional)", value=product_data["oracle_code"] if product_data is not None else "")
 
     # Save button
