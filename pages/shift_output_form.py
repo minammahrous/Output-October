@@ -25,11 +25,11 @@ def get_standard_rate(product, machine):
         try:
             return float(result[0])  # Ensure it's a valid float
         except ValueError:
-            st.error(f"⚠️ Invalid standard_rate found for {product} - {machine}: {result[0]}")
-            return 1  # Default to 1 to avoid division by zero
+            st.error(f"❌ Invalid standard_rate found for {product} - {machine}: {result[0]}. Please update the correct standard rate.")
+            return None  # Prevent saving
     else:
-        st.warning(f"⚠️ No standard rate found for {product} - {machine}. Using 1 as default.")
-        return 1  # Default to 1 to prevent division errors
+        st.error(f"❌ No standard rate found for {product} - {machine}. Update the correct standard rate to be able to save.")
+        return None  # Prevent saving
 # Function to fetch data from PostgreSQL
 def fetch_data(query):
     """Fetch data from PostgreSQL and return as a list."""
@@ -310,28 +310,38 @@ for dt_type in downtime_types:
 # Compute efficiency for production records
 efficiencies = []
 production_records = []
+missing_rates = False  # Track if any standard rate is missing
 
 for product, batch_list in st.session_state.get("product_batches", {}).items():
     for batch in batch_list:
         rate = batch["quantity"] / batch["time_consumed"] if batch["time_consumed"] != 0 else 0
-        standard_rate = get_standard_rate(product, selected_machine) or 1  # Avoid division by zero
-        efficiency = rate / standard_rate if standard_rate != 0 else 0
-        efficiencies.append(efficiency)
+        standard_rate = get_standard_rate(product, selected_machine)
 
-        production_records.append({
-            "Date": date,
-            "Machine": selected_machine,
-            "Day/Night/plan": shift_type,
-            "Activity": "Production",
-            "time": batch["time_consumed"],
-            "Product": product,
-            "batch number": batch["batch"],
-            "quantity": batch["quantity"],
-            "commnets": "",
-            "rate": rate,
-            "standard rate": standard_rate,
-            "efficiency": efficiency,
-        })
+        if standard_rate is None:
+            missing_rates = True  # Mark that there's an issue
+        else:
+            efficiency = rate / standard_rate if standard_rate != 0 else 0
+            efficiencies.append(efficiency)
+
+            production_records.append({
+                "Date": date,
+                "Machine": selected_machine,
+                "Day/Night/plan": shift_type,
+                "Activity": "Production",
+                "time": batch["time_consumed"],
+                "Product": product,
+                "batch number": batch["batch"],
+                "quantity": batch["quantity"],
+                "comments": "",
+                "rate": rate,
+                "standard rate": standard_rate,
+                "efficiency": efficiency,
+            })
+
+# 🚨 Prevent Saving if Any Standard Rate is Missing
+if missing_rates:
+    st.error("❌ Cannot save data. Please update the correct standard rate in the database for all products before proceeding.")
+    st.stop()  # Stop execution to prevent saving invalid data
 
 # Calculate average efficiency once at the end
 average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
@@ -459,35 +469,33 @@ else:
          # xchecks & Approve and Save 
     
 if st.button("Approve and Save"):
-    try:
-        # Check for duplicate entries in the database
-        query = text("""
-        SELECT COUNT(*) FROM av 
-        WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
-        """)
+    # 🚨 Check if any standard rate is missing
+    if missing_rates:
+        st.error("❌ Cannot save data. Please update the correct standard rate in the database before proceeding.")
+    else:
+        try:
+            # 🚨 Check for duplicate entries in the database
+            query = text("""
+                SELECT COUNT(*) FROM av 
+                WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
+            """)
 
-        with engine.connect() as conn:
-            result = conn.execute(query, {"date": date, "shift_type": shift_type, "machine": selected_machine}).fetchone()
+            with engine.connect() as conn:
+                result = conn.execute(query, {"date": date, "shift_type": shift_type, "machine": selected_machine}).fetchone()
 
-        if result and result[0] > 0:  # If a record already exists
-            st.warning("A report for this date, shift type, and machine already exists. Modify or confirm replacement.")
-        else:
-            st.success("No existing record found. Proceeding with approval.")
+            if result and result[0] > 0:  # If a record already exists
+                st.warning("⚠️ A report for this date, shift type, and machine already exists. Modify or confirm replacement.")
+            else:
+                st.success("✅ No existing record found. Proceeding with approval.")
 
-            # Clean DataFrames before using them
-            archive_df = clean_dataframe(st.session_state.submitted_archive_df.copy())
-            av_df = clean_dataframe(st.session_state.submitted_av_df.copy())
+                # Save only if no missing rates and no duplicate entries
+                archive_df.to_sql("archive", engine, if_exists="append", index=False)
+                av_df.to_sql("av", engine, if_exists="append", index=False)
+                st.success("✅ Data saved to database successfully!")
 
-            # Get shift standard time
-            standard_shift_time = shifts_df.loc[shifts_df['code'] == shift_duration, 'working hours'].iloc[0]
+        except Exception as e:
+            st.error(f"❌ Error saving data: {e}")
 
-            # Validation checks
-            total_recorded_time = archive_df["time"].sum()
-            efficiency_invalid = (archive_df["efficiency"] > 1).any()
-            time_exceeds_shift = total_recorded_time > standard_shift_time
-            time_below_75 = total_recorded_time < (0.75 * standard_shift_time)
-
-            if efficiency_invalid:
                 st.error("Efficiency must not exceed 1. Please review and modify the data.")
             elif time_exceeds_shift:
                 st.error(f"Total recorded time ({total_recorded_time} hrs) exceeds shift standard time ({standard_shift_time} hrs). Modify the data.")
