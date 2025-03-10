@@ -9,9 +9,6 @@ engine = create_engine(DB_URL, pool_pre_ping=True)
 st.title("Manage Products")
 # Button to open the form
 if st.button("Edit Product Definition"):
-    st.session_state["show_form"] = True  # Store state to show for
-# Button to open the form
-if st.button("Edit Product Definition"):
     st.session_state["show_form"] = True  # Store state to show form
 st.title("Edit Product Standard Rate")
 if st.button("Edit Product Standard Rate"):
