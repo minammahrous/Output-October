@@ -119,3 +119,102 @@ if st.session_state.get("show_form", False):
             save_product(product_id, name, batch_size, units_per_box, primary_units_per_box, oracle_code)
         else:
             st.error("Please fill in all mandatory fields.")
+# Fetch products list
+def fetch_products():
+    query = "SELECT DISTINCT product FROM rates ORDER BY product"
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(text(query), conn)
+        return df
+    except Exception as e:
+        st.error(f"Error fetching products: {e}")
+        return pd.DataFrame()
+
+# Fetch rates for a product
+def fetch_rates(product):
+    query = """
+    SELECT r.machine, r.rate, m.qty_uom 
+    FROM rates r 
+    JOIN machines m ON r.machine = m.name 
+    WHERE r.product = :product 
+    ORDER BY r.machine
+    """
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(text(query), conn, params={"product": product})
+        return df
+    except Exception as e:
+        st.error(f"Error fetching rates: {e}")
+        return pd.DataFrame()
+
+# Fetch all machines
+def fetch_machines():
+    query = "SELECT name, qty_uom FROM machines ORDER BY name"
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(text(query), conn)
+        return df
+    except Exception as e:
+        st.error(f"Error fetching machines: {e}")
+        return pd.DataFrame()
+
+# Save updated rates
+def save_rates(product, updated_rates):
+    try:
+        with engine.connect() as conn:
+            with conn.begin():
+                for machine, rate in updated_rates.items():
+                    query = """
+                    INSERT INTO rates (product, machine, rate) 
+                    VALUES (:product, :machine, :rate) 
+                    ON CONFLICT (product, machine) 
+                    DO UPDATE SET rate = EXCLUDED.rate
+                    """
+                    conn.execute(text(query), {"product": product, "machine": machine, "rate": rate})
+        st.success("Rates updated successfully!")
+        st.rerun()
+    except Exception as e:
+        st.error(f"Error saving rates: {e}")
+
+# Streamlit UI
+st.title("Edit Product Standard Rate")
+
+if st.button("Edit Product Standard Rate"):
+    st.session_state["show_rates_form"] = True
+
+if st.session_state.get("show_rates_form", False):
+    products = fetch_products()
+    product_list = products["product"].tolist()
+    selected_product = st.selectbox("Select a product", ["Select"] + product_list)
+    
+    if selected_product != "Select":
+        rates_df = fetch_rates(selected_product)
+        machines_df = fetch_machines()
+        
+        # Convert existing rates to dictionary for easy updates
+        existing_rates = {row["machine"]: row["rate"] for _, row in rates_df.iterrows()}
+        
+        st.markdown("### Update Rates")
+        updated_rates = {}
+        
+        for _, row in machines_df.iterrows():
+            machine = row["name"]
+            qty_uom = row["qty_uom"]
+            rate_value = existing_rates.get(machine, 0)
+            updated_rate = st.number_input(f"{machine} (Rate in {qty_uom})", min_value=0.0, value=rate_value)
+            if updated_rate != rate_value:
+                updated_rates[machine] = updated_rate
+        
+        if updated_rates:
+            st.markdown("### Summary of Changes")
+            for machine, rate in updated_rates.items():
+                st.write(f"{machine}: {rate}")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Save Changes"):
+                    save_rates(selected_product, updated_rates)
+            with col2:
+                if st.button("Cancel"):
+                    st.session_state["show_rates_form"] = False
+                    st.rerun()
