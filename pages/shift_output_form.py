@@ -47,7 +47,26 @@ def clean_dataframe(df):
             df[col] = pd.to_numeric(df[col], errors="coerce")  # Convert to float, replace invalid values with NaN
     
     return df
+# Function to fetch data from PostgreSQL
+def fetch_data(query):
+    """Fetch data from PostgreSQL and return as a list."""
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(query, conn)
+        return df["name"].tolist()
+    except Exception as e:
+        st.error(f"❌ Database error: {e}")
+        return []
 
+# Fetch machine list from database
+machine_list = fetch_data("SELECT name FROM machines")
+
+# Fetch product list from database
+product_list = fetch_data("SELECT name FROM products")
+
+# Check if product_list is empty
+if not product_list:
+    st.error("⚠️ Product list is empty. Please check the database.")
 
 st.title("Shift Output Report")
 
