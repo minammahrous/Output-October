@@ -8,10 +8,10 @@ from sqlalchemy.sql import text  # Import SQL text wrapper
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
  
- # Database connection
- DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
- engine = create_engine(DB_URL)
- def get_standard_rate(product, machine):
+# Database connection
+DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
+engine = create_engine(DB_URL)
+def get_standard_rate(product, machine):
      query = text("""
          SELECT standard_rate FROM rates 
          WHERE product = :product AND machine = :machine
@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
      else:
          st.warning(f"⚠️ No standard rate found for {product} - {machine}. Using 1 as default.")
          return 1  # Default to 1 to prevent division errors
-# Function to fetch data from PostgreSQL
+      # Function to fetch data from PostgreSQL
 def fetch_data(query):
     """Fetch data from PostgreSQL and return as a list."""
     try:
