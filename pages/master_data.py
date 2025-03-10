@@ -61,7 +61,8 @@ def save_product(product_id, name, batch_size, units_per_box, primary_units_per_
                 })
             conn.commit()
         st.success("Product saved successfully!")
-        st.experimental_rerun()  # Refresh the page after saving
+        st.rerun()
+  # Refresh the page after saving
     except Exception as e:
         st.error(f"Error saving product: {e}")
 
