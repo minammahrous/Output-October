@@ -25,10 +25,10 @@ def get_standard_rate(product, machine):
         try:
             return float(result[0])  # Ensure it's a valid float
         except ValueError:
-            st.error(f"⚠️ Invalid standard_rate found for {product} - {machine}: {result[0]}")
+            st.error(f"âڑ ï¸ڈ Invalid standard_rate found for {product} - {machine}: {result[0]}")
             return 1  # Default to 1 to avoid division by zero
     else:
-        st.warning(f"⚠️ No standard rate found for {product} - {machine}. Using 1 as default.")
+        st.warning(f"âڑ ï¸ڈ No standard rate found for {product} - {machine}. Using 1 as default.")
         return 1  # Default to 1 to prevent division errors
 def clean_dataframe(df):
     """
@@ -63,11 +63,6 @@ if st.button("Restart App"):
         """<meta http-equiv="refresh" content="0">""",
         unsafe_allow_html=True,
     )
-def get_data(query):
-    """Fetch data from PostgreSQL and return as a DataFrame"""
-    with engine.connect() as conn:
-        df = pd.read_sql(query, conn)
-    return df
 # Read machine list from CSV
 machine_list = []
 try:
@@ -91,19 +86,7 @@ except FileNotFoundError:
     st.error("products.csv file not found. Please create the file.")
 except Exception as e:
     st.error(f"An error occurred reading products.csv: {e}")
-# Fetch machine list from the database
-try:
-    machines_df = get_data("SELECT name FROM machines")
-    machine_list = machines_df["name"].tolist()
-except Exception as e:
-    st.error(f"An error occurred fetching machines from database: {e}")
 
-# Fetch product list from the database
-try:
-    products_df = get_data("SELECT name FROM products")
-    product_list = products_df["name"].tolist()
-except Exception as e:
-    st.error(f"An error occurred fetching products from database: {e}")
 # Check if product_list is empty
 if not product_list:
     st.error("Product list is empty. Please check products.csv.")
@@ -141,10 +124,10 @@ if st.session_state.get("proceed_clicked", False):
         result = conn.execute(query, {"date": date, "shift": shift_type, "machine": selected_machine}).fetchone()
 
     if result and result[0] > 0:  # If a record already exists
-        st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
+        st.warning("âڑ ï¸ڈ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
 
     col1, col2 = st.columns(2)
-    if col1.button("🗑️ Delete Existing Data and Proceed"):
+    if col1.button("ًں—‘ï¸ڈ Delete Existing Data and Proceed"):
         try:
             with engine.begin() as conn:  # Use engine.begin() to keep connection open
             # Check if records exist before deleting
@@ -160,10 +143,10 @@ if st.session_state.get("proceed_clicked", False):
 
                 # Show records before deletion
                 if not result_av and not result_archive:
-                    st.warning("⚠️ No matching records found. Nothing to delete.")
+                    st.warning("âڑ ï¸ڈ No matching records found. Nothing to delete.")
                 else:
-                    st.write("🔍 Records found in 'av':", result_av)
-                    st.write("🔍 Records found in 'archive':", result_archive)
+                    st.write("ًں”چ Records found in 'av':", result_av)
+                    st.write("ًں”چ Records found in 'archive':", result_archive)
 
                     # Proceed with deletion if records exist
                     delete_query_av = text("""
@@ -176,19 +159,19 @@ if st.session_state.get("proceed_clicked", False):
                     """)
                     conn.execute(delete_query_archive, {"date": date, "shift": shift_type, "machine": selected_machine})
 
-                    st.success("✅ Existing records deleted. You can proceed with new data entry.")
+                    st.success("âœ… Existing records deleted. You can proceed with new data entry.")
                     st.session_state.proceed_clicked = False  # Reset proceed state
 
         except Exception as e:
-            st.error(f"❌ Error deleting records: {e}")
+            st.error(f"â‌Œ Error deleting records: {e}")
 
-    if col2.button("🔄 Change Selection"):
-            st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
+    if col2.button("ًں”„ Change Selection"):
+            st.warning("ًں”„ Please modify the Date, Shift Type, or Machine to proceed.")
             st.session_state.proceed_clicked = False  # Reset proceed state
             st.stop()  # Prevents further execution
 
     else:
-        st.success("✅ No existing record found. You can proceed with the form.")
+        st.success("âœ… No existing record found. You can proceed with the form.")
     
 shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
     
@@ -419,8 +402,8 @@ total_recorded_time = total_production_time + total_downtime
 # Special check for "partial" shift
 if shift_duration == "partial":
     if total_recorded_time > 7:
-        st.error("⚠️ Total recorded time cannot exceed 7 hours for a partial shift!")
-    st.warning("⏳ Shift visualization is not available for 'partial' shifts.")
+        st.error("âڑ ï¸ڈ Total recorded time cannot exceed 7 hours for a partial shift!")
+    st.warning("âڈ³ Shift visualization is not available for 'partial' shifts.")
 else:
     # Only show visualization if shift is NOT "partial"
     st.subheader("Shift Time Utilization")
@@ -455,9 +438,9 @@ else:
     # Warnings
     if standard_shift_time is not None:
         if total_recorded_time > standard_shift_time:
-            st.warning("⚠️ Total recorded time exceeds the standard shift time!")
+            st.warning("âڑ ï¸ڈ Total recorded time exceeds the standard shift time!")
         elif total_recorded_time < 0.75 * standard_shift_time:
-            st.warning("⚠️ Recorded time is less than 75% of the standard shift time.")
+            st.warning("âڑ ï¸ڈ Recorded time is less than 75% of the standard shift time.")
 
          # xchecks & Approve and Save 
     
