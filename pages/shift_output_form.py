@@ -274,11 +274,11 @@ else:
           
 
  
-    # Construct archive_df (Downtime records)
-    archive_data = []
-    for dt_type in downtime_types:
-        if downtime_data[dt_type] > 0:
-            archive_row = {
+   # Construct downtime records first
+downtime_records = []
+for dt_type in downtime_types:
+    if downtime_data[dt_type] > 0:
+        downtime_records.append({
             "Date": date,
             "Machine": selected_machine,
             "Day/Night/plan": shift_type,
@@ -291,36 +291,20 @@ else:
             "rate": "",
             "standard rate": "",
             "efficiency": "",
-             }
-            archive_data.append(archive_row)
-            archive_df = pd.DataFrame(archive_data)
+        })
 
-            # Construct archive_df (Production batch records)
-efficiencies = []  # Declare only once
+# Compute efficiency for production records
+efficiencies = []
+production_records = []
 
 for product, batch_list in st.session_state.get("product_batches", {}).items():
     for batch in batch_list:
         rate = batch["quantity"] / batch["time_consumed"] if batch["time_consumed"] != 0 else 0
         standard_rate = get_standard_rate(product, selected_machine) or 1  # Avoid division by zero
-        efficiency = rate / standard_rate
+        efficiency = rate / standard_rate if standard_rate != 0 else 0
         efficiencies.append(efficiency)
 
-# Calculate average efficiency once at the end
-average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
-
-
-archive_data = []
-for product, batch_list in st.session_state.product_batches.items():
-    for batch in batch_list:
-        rate = batch["quantity"] / batch["time_consumed"] if batch["time_consumed"] != 0 else 0
-        standard_rate = get_standard_rate(product, selected_machine)
-
-        if standard_rate == 0:
-            st.warning(f"No rate found for Product: {product}, Machine: {selected_machine}. Using 0 as default.")
-
-        efficiency = rate / standard_rate if standard_rate != 0 else 0
-
-        archive_data.append({
+        production_records.append({
             "Date": date,
             "Machine": selected_machine,
             "Day/Night/plan": shift_type,
@@ -335,11 +319,11 @@ for product, batch_list in st.session_state.product_batches.items():
             "efficiency": efficiency,
         })
 
-archive_df = pd.DataFrame(archive_data)  # Downtime records
+# Calculate average efficiency once at the end
+average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
 
-# Append production batch records instead of overwriting
-production_df = pd.DataFrame(archive_data)  # Production batch records
-archive_df = pd.concat([archive_df, production_df], ignore_index=True)
+# Combine downtime and production records into one DataFrame
+archive_df = pd.DataFrame(downtime_records + production_records)
 
             # Construct av_df
 total_production_time = sum(
