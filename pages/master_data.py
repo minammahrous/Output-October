@@ -75,12 +75,7 @@ def save_product(product_id, name, batch_size, units_per_box, primary_units_per_
     except Exception as e:
         st.error(f"Error saving product: {e}")
 
-# Streamlit UI
-st.title("Manage Products")
 
-# Button to open the form
-if st.button("Edit Product Definition"):
-    st.session_state["show_form"] = True  # Store state to show form
 
 # Show form only if button is clicked
 if st.session_state.get("show_form", False):
