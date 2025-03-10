@@ -41,9 +41,19 @@ def fetch_data(query):
         st.error(f"❌ Database error: {e}")
         return []
 
+def fetch_machine_data():
+    """Fetch machine names and their corresponding qty_uom values from the database."""
+    query = text("SELECT name, qty_uom FROM machines")
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(query, conn)
+        return df.set_index("name")["qty_uom"].to_dict()  # Convert to dictionary {machine_name: qty_uom}
+    except Exception as e:
+        st.error(f"❌ Database error: {e}")
+        return {}
 # Fetch machine list from database
-machine_list = fetch_data("SELECT name FROM machines")
-
+machine_data = fetch_machine_data()
+machine_list = list(machine_data.keys())  # Extract machine names
 # Fetch product list from database
 product_list = fetch_data("SELECT name FROM products")
 
@@ -105,6 +115,10 @@ st.subheader("Step 1: Select Shift Details")
 shift_types = ["Day", "Night", "Plan"]
 date = st.date_input("Date", None, key="date")  
 selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
+if selected_machine:
+    qty_uom = machine_data.get(selected_machine, "Unknown UOM")
+    st.info(f"ℹ️ **{selected_machine}**: Production quantity is entered as **{qty_uom}**")
+
 shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0, key="shift_type")
 if st.button("Proceed"):
     st.session_state.proceed_clicked = True
