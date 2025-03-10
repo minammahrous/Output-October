@@ -60,10 +60,7 @@ def save_rates(product, updated_rates):
         st.error(f"Error saving rates: {e}")
 
 # Streamlit UI
-st.title("Edit Product Standard Rate")
 
-if st.button("Edit Product Standard Rate"):
-    st.session_state["show_rates_form"] = True
 
 if st.session_state.get("show_rates_form", False):
     products = fetch_products()
