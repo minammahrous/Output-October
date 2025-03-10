@@ -13,8 +13,6 @@ if st.button("Edit Product Definition"):
 st.title("Edit Product Standard Rate")
 if st.button("Edit Product Standard Rate"):
     st.session_state["show_rates_form"] = True
-if "show_rates_form" not in st.session_state:
-    st.session_state["show_rates_form"] = False
 
 # Function to fetch products list
 def fetch_products():
