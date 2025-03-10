@@ -1,18 +1,20 @@
 import streamlit as st
-import psycopg2
 import pandas as pd
+from sqlalchemy import create_engine, text
 
-# Database connection
-DB_PARAMS = {
-    "dbname": "neondb",
-    "user": "your_username",
-    "password": "your_password",
-    "host": "ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech",
-    "port": "5432"
-}
+# Database connection URL
+DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
+engine = create_engine(DB_URL, isolation_level="AUTOCOMMIT")  # Ensures auto-commit for read queries
 
-def get_connection():
-    return psycopg2.connect(**DB_PARAMS)
+def get_connection(query, params=None):
+    """Fetch data from Neon PostgreSQL using SQLAlchemy."""
+    try:
+        with engine.begin() as conn:  # Ensures transaction handling and automatic closing
+            df = pd.read_sql(text(query), conn, params=params)
+        return df
+    except Exception as e:
+        st.error(f"Database connection failed: {e}")
+        return pd.DataFrame()
 
 # Fetch existing products
 def fetch_products():
