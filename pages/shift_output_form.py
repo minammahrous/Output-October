@@ -67,9 +67,7 @@ def clean_dataframe(df):
              df[col] = pd.to_numeric(df[col], errors="coerce")  # Convert to float, replace invalid values with NaN
  
      return df
- 
  st.title("Shift Output Report")
- 
  # Initialize session state for submitted data and modify mode
  if "submitted_archive_df" not in st.session_state:
      st.session_state.submitted_archive_df = pd.DataFrame()
