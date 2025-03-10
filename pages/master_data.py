@@ -163,5 +163,5 @@ with st.expander("Edit Product Standard Rate", expanded=False):
                     save_rates()
                     st.rerun()
             with col2:
-                if st.button("Cancel"):
+                if st.button("cancel"):
                     st.rerun()
