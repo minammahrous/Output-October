@@ -121,7 +121,7 @@ if st.session_state.get("proceed_clicked", False):
         result = conn.execute(query, {"date": date, "shift": shift_type, "machine": selected_machine}).fetchone()
 
     if result and result[0] > 0:  # If a record already exists
-        st.warning("âڑ ï¸ڈ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
+        st.warning("A report for this Date, Shift Type, and Machine already exists. Choose an action.")
 
     col1, col2 = st.columns(2)
     if col1.button("ًں—‘ï¸ڈ Delete Existing Data and Proceed"):
