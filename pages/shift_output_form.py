@@ -1,12 +1,12 @@
- import streamlit as st
- import datetime
- import pandas as pd
- import csv
- import os
- from sqlalchemy import create_engine
- from sqlalchemy.sql import text  # Import SQL text wrapper
- import plotly.graph_objects as go
- import matplotlib.pyplot as plt
+import streamlit as st
+import datetime
+import pandas as pd
+import csv
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.sql import text  # Import SQL text wrapper
+import plotly.graph_objects as go
+import matplotlib.pyplot as plt
  
  # Database connection
  DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
