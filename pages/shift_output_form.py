@@ -63,6 +63,11 @@ if st.button("Restart App"):
         """<meta http-equiv="refresh" content="0">""",
         unsafe_allow_html=True,
     )
+def get_data(query):
+    """Fetch data from PostgreSQL and return as a DataFrame"""
+    with engine.connect() as conn:
+        df = pd.read_sql(query, conn)
+    return df
 # Read machine list from CSV
 machine_list = []
 try:
