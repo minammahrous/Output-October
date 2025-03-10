@@ -342,7 +342,14 @@ total_production_time = sum(
     batch["time_consumed"] for product, batch_list in st.session_state.product_batches.items() for batch in batch_list
 )
 
-standard_shift_time = shifts_df.loc[shifts_df['code'] == shift_duration, 'working hours'].iloc[0]
+filtered_shift = shifts_df.loc[shifts_df['code'] == shift_duration, 'working hours']
+
+if not filtered_shift.empty:
+    standard_shift_time = filtered_shift.iloc[0]
+else:
+    st.error(f"⚠️ Shift duration '{shift_duration}' not found in shifts.csv.")
+    standard_shift_time = None  # Set default value or handle gracefully
+
 
 if shift_duration == "partial":
     total_downtime = sum(downtime_data.values()) - sum(1 for key in downtime_data if "_comment" in key)
