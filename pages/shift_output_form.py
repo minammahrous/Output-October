@@ -343,7 +343,11 @@ if shift_duration == "partial":
     total_downtime = sum(downtime_data.values()) - sum(1 for key in downtime_data if "_comment" in key)
     availability = total_production_time / (total_production_time + total_downtime) if (total_production_time + total_downtime) != 0 else 0
 else:
-    availability = total_production_time / standard_shift_time if standard_shift_time != 0 else 0
+    # Ensure total_production_time and standard_shift_time have valid values
+    if total_production_time is None or standard_shift_time is None:
+        availability = 0  # Default value when form is empty
+    else:
+        availability = total_production_time / standard_shift_time if standard_shift_time != 0 else 0
 
 OEE = 0.99 * availability * average_efficiency
 av_row = {
