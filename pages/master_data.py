@@ -14,6 +14,17 @@ st.title("Edit Product Standard Rate")
 if st.button("Edit Product Standard Rate"):
     st.session_state["show_rates_form"] = True
 
+def check_product_exists(name):
+    """Check if a product name already exists in the database."""
+    query = "SELECT COUNT(*) FROM products WHERE name = :name"
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text(query), {"name": name}).scalar()
+        return result > 0  # Returns True if the product exists
+    except Exception as e:
+        st.error(f"Error checking product: {e}")
+        return False
+
 # Function to fetch products list
 def fetch_products():
     """Fetch product names and IDs from the database."""
@@ -41,39 +52,40 @@ def fetch_product_details(product_id):
 # Function to insert or update product
 def save_product(product_id, name, batch_size, units_per_box, primary_units_per_box, oracle_code):
     """Insert a new product or update an existing one."""
+    if not product_id and check_product_exists(name):
+        st.error(f"A product with the name '{name}' already exists. Please choose a different name.")
+        return  # Stop execution if duplicate name is found
+    
     try:
         with engine.connect() as conn:
-            if product_id:
-                # Update existing product
-                query = """
-                    UPDATE products 
-                    SET name = :name, batch_size = :batch_size, units_per_box = :units_per_box, 
-                        primary_units_per_box = :primary_units_per_box, oracle_code = :oracle_code 
-                    WHERE id = :id
-                """
-                conn.execute(text(query), {
-                    "id": product_id, "name": name, "batch_size": batch_size,
-                    "units_per_box": units_per_box, "primary_units_per_box": primary_units_per_box,
-                    "oracle_code": oracle_code
-                })
-            else:
-                # Insert new product
-                query = """
-                    INSERT INTO products (name, batch_size, units_per_box, primary_units_per_box, oracle_code) 
-                    VALUES (:name, :batch_size, :units_per_box, :primary_units_per_box, :oracle_code)
-                """
-                conn.execute(text(query), {
-                    "name": name, "batch_size": batch_size, 
-                    "units_per_box": units_per_box, "primary_units_per_box": primary_units_per_box, 
-                    "oracle_code": oracle_code
-                })
-            conn.commit()
+            with conn.begin():  # Ensures transaction handling
+                if product_id:
+                    query = """
+                        UPDATE products 
+                        SET name = :name, batch_size = :batch_size, units_per_box = :units_per_box, 
+                            primary_units_per_box = :primary_units_per_box, oracle_code = :oracle_code 
+                        WHERE id = :id
+                    """
+                    conn.execute(text(query), {
+                        "id": product_id, "name": name, "batch_size": batch_size,
+                        "units_per_box": units_per_box, "primary_units_per_box": primary_units_per_box,
+                        "oracle_code": oracle_code
+                    })
+                else:
+                    query = """
+                        INSERT INTO products (name, batch_size, units_per_box, primary_units_per_box, oracle_code) 
+                        VALUES (:name, :batch_size, :units_per_box, :primary_units_per_box, :oracle_code)
+                    """
+                    conn.execute(text(query), {
+                        "name": name, "batch_size": batch_size, 
+                        "units_per_box": units_per_box, "primary_units_per_box": primary_units_per_box, 
+                        "oracle_code": oracle_code
+                    })
         st.success("Product saved successfully!")
-        st.rerun()  # Refresh the page after saving
+        st.session_state["show_form"] = False  # Collapse the form after saving
+        st.rerun()  # Refresh the UI
     except Exception as e:
         st.error(f"Error saving product: {e}")
-
-
 
 # Show form only if button is clicked
 if st.session_state.get("show_form", False):
