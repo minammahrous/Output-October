@@ -5,7 +5,10 @@ from sqlalchemy import create_engine, text
 # Database connection URL
 DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
 engine = create_engine(DB_URL, pool_pre_ping=True)
+st.title("Edit Product Standard Rate")
 
+if st.button("Edit Product Standard Rate"):
+    st.session_state["show_rates_form"] = True
 if "show_rates_form" not in st.session_state:
     st.session_state["show_rates_form"] = False
 
