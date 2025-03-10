@@ -68,7 +68,6 @@ def clean_dataframe(df):
  
      return df
  
- 
  st.title("Shift Output Report")
  
  # Initialize session state for submitted data and modify mode
