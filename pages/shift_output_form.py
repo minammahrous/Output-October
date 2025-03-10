@@ -496,7 +496,7 @@ if st.button("Approve and Save"):
         except Exception as e:
             st.error(f"❌ Error saving data: {e}")
 
-                st.error("Efficiency must not exceed 1. Please review and modify the data.")
+            st.error("Efficiency must not exceed 1. Please review and modify the data.")
             elif time_exceeds_shift:
                 st.error(f"Total recorded time ({total_recorded_time} hrs) exceeds shift standard time ({standard_shift_time} hrs). Modify the data.")
             elif time_below_75:
