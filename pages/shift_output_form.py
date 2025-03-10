@@ -335,7 +335,11 @@ for product, batch_list in st.session_state.product_batches.items():
             "efficiency": efficiency,
         })
 
-archive_df = pd.DataFrame(archive_data)
+archive_df = pd.DataFrame(archive_data)  # Downtime records
+
+# Append production batch records instead of overwriting
+production_df = pd.DataFrame(archive_data)  # Production batch records
+archive_df = pd.concat([archive_df, production_df], ignore_index=True)
 
             # Construct av_df
 total_production_time = sum(
