@@ -63,11 +63,30 @@ if st.button("Restart App"):
         """<meta http-equiv="refresh" content="0">""",
         unsafe_allow_html=True,
     )
+# Read machine list from CSV
+machine_list = []
+try:
+    with open("machines.csv", "r") as file:
+        reader = csv.reader(file)
+        for row in reader:
+            machine_list.append(row[0])
+except FileNotFoundError:
+    st.error("machines.csv file not found. Please create the file.")
+except Exception as e:
+    st.error(f"An error occurred reading machines.csv: {e}")
 
+# Read product list from CSV
+product_list = []
+try:
+    with open("products.csv", "r") as file:
+        reader = csv.reader(file)
+        for row in reader:
+            product_list.append(row[0])
+except FileNotFoundError:
+    st.error("products.csv file not found. Please create the file.")
+except Exception as e:
+    st.error(f"An error occurred reading products.csv: {e}")
 
-# Check if product_list is empty
-if not product_list:
-    st.error("⚠️ Product list is empty. Please check the database.")
 # Check if product_list is empty
 if not product_list:
     st.error("Product list is empty. Please check products.csv.")
