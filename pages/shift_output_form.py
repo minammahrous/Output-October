@@ -1,4 +1,4 @@
-import streamlit as st
+simport streamlit as st
 import datetime
 import pandas as pd
 import csv
@@ -301,7 +301,7 @@ for dt_type in downtime_types:
             "Product": "",
             "batch number": "",
             "quantity": "",
-            "commnets": downtime_data[dt_type + "_comment"],
+            "comments": downtime_data[dt_type + "_comment"],
             "rate": "",
             "standard rate": "",
             "efficiency": "",
