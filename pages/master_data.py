@@ -5,7 +5,8 @@ from sqlalchemy import create_engine, text
 # Database connection URL
 DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
 engine = create_engine(DB_URL)
-
+if "show_rates_form" not in st.session_state:
+    st.session_state["show_rates_form"] = False
 # Function to fetch products list
 def fetch_products():
     """Fetch product names and IDs from the database."""
