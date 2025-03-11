@@ -1,30 +1,51 @@
 import streamlit as st
+import psycopg2
 import bcrypt
 from db import get_db_connection
 
-def authenticate_user():
-    if "authenticated" not in st.session_state:
-        st.session_state["authenticated"] = False
+# Role-based access control
+ROLE_ACCESS = {
+    "admin": ["shift_output_form", "reports_dashboard", "master_data"],
+    "user": ["shift_output_form", "reports_dashboard"],
+    "power user": ["shift_output_form", "reports_dashboard", "master_data"],
+    "report": ["reports_dashboard"],
+}
 
-    # Show login form if not authenticated
-    if not st.session_state["authenticated"]:
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        if st.button("Login"):
-            conn = get_db_connection()
-            cur = conn.cursor()
-            cur.execute("SELECT username, password, role FROM users WHERE username = %s", (username,))
+def authenticate_user():
+    """Handles user authentication and assigns branch based on database records."""
+    
+    if "authenticated" in st.session_state and st.session_state.authenticated:
+        return st.session_state.username  # Already authenticated
+    
+    st.sidebar.header("Login")
+    username = st.sidebar.text_input("Username", key="username_input")
+    password = st.sidebar.text_input("Password", type="password", key="password_input")
+
+    if st.sidebar.button("Login"):
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        try:
+            # Fetch user details
+            cur.execute("SELECT username, password, role, branch FROM users WHERE username = %s", (username,))
             user = cur.fetchone()
+
+            if user and bcrypt.checkpw(password.encode(), user[1].encode()):
+                st.session_state.authenticated = True
+                st.session_state.username = user[0]
+                st.session_state.role = user[2]
+                st.session_state.branch = user[3]  # Assign branch from the users table
+                st.sidebar.success(f"Logged in as {user[0]} ({user[2]})")
+                st.rerun()
+            else:
+                st.sidebar.error("Invalid username or password")
+
+        except Exception as e:
+            st.sidebar.error("Database error. Please try again.")
+            print(f"Auth error: {e}")
+
+        finally:
             cur.close()
             conn.close()
 
-            if user and bcrypt.checkpw(password.encode(), user[1].encode()):
-                st.session_state["authenticated"] = True
-                st.session_state["username"] = user[0]
-                st.session_state["role"] = user[2]  # ✅ Store role
-                st.success(f"Logged in as {user[0]}")
-                st.rerun()  # ✅ Refresh app after login
-            else:
-                st.error("Invalid credentials")
-
-    return st.session_state.get("authenticated", False)
+    return None  # Authentication failed
