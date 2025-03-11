@@ -10,3 +10,13 @@ engine = create_engine(DB_URL, pool_pre_ping=True)
 def get_db_connection():
     """Returns a new database connection."""
     return engine.connect()
+def get_branches():
+    """Fetch available branches from the database."""
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT branch_name FROM branches"))
+            branches = [row[0] for row in result.fetchall()]
+        return branches
+    except Exception as e:
+        st.error(f"Failed to fetch branches: {e}")
+        return []
