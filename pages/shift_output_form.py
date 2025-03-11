@@ -7,10 +7,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.sql import text  # Import SQL text wrapper
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
+from db import get_db_connection
 
-# Database connection
-DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
-engine = create_engine(DB_URL)
+# Establish the connection
+conn = get_db_connection()
+if not conn:
+    st.error("❌ Database connection failed. Please check your credentials.")
+    st.stop()
+
 def get_standard_rate(product, machine):
     query = text("""
         SELECT standard_rate FROM rates 
@@ -18,8 +22,10 @@ def get_standard_rate(product, machine):
         LIMIT 1
     """)
 
-    with engine.connect() as conn:
-        result = conn.execute(query, {"product": product, "machine": machine}).fetchone()
+    cur = conn.cursor()
+    cur.execute(query, {"product": product, "machine": machine})
+    result = cur.fetchone()
+    cur.close()
 
     if result and result[0] is not None:
         try:
@@ -33,24 +39,40 @@ def get_standard_rate(product, machine):
 # Function to fetch data from PostgreSQL
 def fetch_data(query):
     """Fetch data from PostgreSQL and return as a list."""
+    conn = get_db_connection()  # ✅ Use the shared database connection
+
+    if not conn:
+        st.error("❌ Database connection failed.")
+        return []
+
     try:
-        with engine.connect() as conn:
-            df = pd.read_sql(query, conn)
+        df = pd.read_sql(query, conn)  # ✅ Use the connection correctly
         return df["name"].tolist()
     except Exception as e:
         st.error(f"❌ Database error: {e}")
         return []
+    finally:
+        conn.close()  # ✅ Close the connection after fetching data
 
+# Function to fetch machine data from PostgreSQL
 def fetch_machine_data():
     """Fetch machine names and their corresponding qty_uom values from the database."""
-    query = text("SELECT name, qty_uom FROM machines")
+    query = "SELECT name, qty_uom FROM machines"
+
+    conn = get_db_connection()  # ✅ Use shared DB connection
+
+    if not conn:
+        st.error("❌ Database connection failed.")
+        return {}
+
     try:
-        with engine.connect() as conn:
-            df = pd.read_sql(query, conn)
-        return df.set_index("name")["qty_uom"].to_dict()  # Convert to dictionary {machine_name: qty_uom}
+        df = pd.read_sql(query, conn)  # ✅ Fetch data using the connection
+        return df.set_index("name")["qty_uom"].to_dict()  # ✅ Convert to {machine_name: qty_uom}
     except Exception as e:
         st.error(f"❌ Database error: {e}")
         return {}
+    finally:
+        conn.close()  # ✅ Close connection after fetching data
 # Fetch machine list from database
 machine_data = fetch_machine_data()
 machine_list = list(machine_data.keys())  # Extract machine names
@@ -130,58 +152,78 @@ if st.session_state.get("proceed_clicked", False):
         WHERE date = :date AND shift = :shift AND machine = :machine
     """)
 
-    with engine.connect() as conn:
-        result = conn.execute(query, {"date": date, "shift": shift_type, "machine": selected_machine}).fetchone()
+    conn = get_db_connection()
+if not conn:
+    st.error("❌ Database connection failed. Please check credentials and try again.")
+    st.stop()
 
-    if result and result[0] > 0:  # If a record already exists
-        st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
+cur = conn.cursor()
 
-    col1, col2 = st.columns(2)
-    if col1.button("🗑️ Delete Existing Data and Proceed"):
-        try:
-            with engine.begin() as conn:  # Use engine.begin() to keep connection open
-            # Check if records exist before deleting
-                check_query_av = text("""
-                    SELECT * FROM av WHERE date = :date AND shift = :shift AND machine = :machine
-                """)
-                result_av = conn.execute(check_query_av, {"date": date, "shift": shift_type, "machine": selected_machine}).fetchall()
+# ✅ Check if a record already exists
+query = """
+    SELECT COUNT(*) FROM av WHERE date = %s AND shift = %s AND machine = %s
+"""
+cur.execute(query, (date, shift_type, selected_machine))
+result = cur.fetchone()
 
-                check_query_archive = text("""
-                    SELECT * FROM archive WHERE "Date" = :date AND "Machine" = :machine AND "Day/Night/plan" = :shift
-                """)
-                result_archive = conn.execute(check_query_archive, {"date": date, "shift": shift_type, "machine": selected_machine}).fetchall()
+if result and result[0] > 0:  # If a record already exists
+    st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
 
-                # Show records before deletion
-                if not result_av and not result_archive:
-                    st.warning("⚠️ No matching records found. Nothing to delete.")
-                else:
-                    st.write("🔍 Records found in 'av':", result_av)
-                    st.write("🔍 Records found in 'archive':", result_archive)
+col1, col2 = st.columns(2)
 
-                    # Proceed with deletion if records exist
-                    delete_query_av = text("""
-                        DELETE FROM av WHERE date = :date AND shift = :shift AND machine = :machine
-                    """)
-                    conn.execute(delete_query_av, {"date": date, "shift": shift_type, "machine": selected_machine})
+if col1.button("🗑️ Delete Existing Data and Proceed"):
+    try:
+        # ✅ Check for existing records before deleting
+        check_query_av = """
+            SELECT * FROM av WHERE date = %s AND shift = %s AND machine = %s
+        """
+        cur.execute(check_query_av, (date, shift_type, selected_machine))
+        result_av = cur.fetchall()
 
-                    delete_query_archive = text("""
-                        DELETE FROM archive WHERE "Date" = :date AND "Machine" = :machine AND "Day/Night/plan" = :shift
-                    """)
-                    conn.execute(delete_query_archive, {"date": date, "shift": shift_type, "machine": selected_machine})
+        check_query_archive = """
+            SELECT * FROM archive WHERE "Date" = %s AND "Machine" = %s AND "Day/Night/plan" = %s
+        """
+        cur.execute(check_query_archive, (date, selected_machine, shift_type))
+        result_archive = cur.fetchall()
 
-                    st.success("✅ Existing records deleted. You can proceed with new data entry.")
-                    st.session_state.proceed_clicked = False  # Reset proceed state
+        # ✅ Show records before deletion
+        if not result_av and not result_archive:
+            st.warning("⚠️ No matching records found. Nothing to delete.")
+        else:
+            st.write("🔍 Records found in 'av':", result_av)
+            st.write("🔍 Records found in 'archive':", result_archive)
 
-        except Exception as e:
-            st.error(f"❌ Error deleting records: {e}")
+            # ✅ Proceed with deletion
+            delete_query_av = """
+                DELETE FROM av WHERE date = %s AND shift = %s AND machine = %s
+            """
+            cur.execute(delete_query_av, (date, shift_type, selected_machine))
 
-    if col2.button("🔄 Change Selection"):
-            st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
+            delete_query_archive = """
+                DELETE FROM archive WHERE "Date" = %s AND "Machine" = %s AND "Day/Night/plan" = %s
+            """
+            cur.execute(delete_query_archive, (date, selected_machine, shift_type))
+
+            conn.commit()  # ✅ Commit changes
+
+            st.success("✅ Existing records deleted. You can proceed with new data entry.")
             st.session_state.proceed_clicked = False  # Reset proceed state
-            st.stop()  # Prevents further execution
 
-    else:
-        st.success("✅ No existing record found. You can proceed with the form.")
+    except Exception as e:
+        conn.rollback()  # ✅ Rollback in case of error
+        st.error(f"❌ Error deleting records: {e}")
+
+if col2.button("🔄 Change Selection"):
+    st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
+    st.session_state.proceed_clicked = False  # Reset proceed state
+    st.stop()  # Prevents further execution
+
+else:
+    st.success("✅ No existing record found. You can proceed with the form.")
+
+cur.close()
+conn.close()  # ✅ Ensure connection is closed
+
     
 shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
     
@@ -473,15 +515,22 @@ if st.button("Approve and Save"):
     if missing_rates:
         st.error("❌ Cannot save data. Please update the correct standard rate in the database before proceeding.")
     else:
+        conn = get_db_connection()  # ✅ Get the database connection
+        if not conn:
+            st.error("❌ Database connection failed. Please check credentials and try again.")
+            st.stop()
+
+        cur = conn.cursor()  # ✅ Use cursor for executing queries
+
         try:
             # 🚨 Check for duplicate entries in the database
-            query = text("""
+            query = """
                 SELECT COUNT(*) FROM av 
-                WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
-            """)
+                WHERE date = %s AND "shift type" = %s AND machine = %s
+            """
 
-            with engine.connect() as conn:
-                result = conn.execute(query, {"date": date, "shift_type": shift_type, "machine": selected_machine}).fetchone()
+            cur.execute(query, (date, shift_type, selected_machine))
+            result = cur.fetchone()
 
             if result and result[0] > 0:  # If a record already exists
                 st.warning("⚠️ A report for this date, shift type, and machine already exists. Modify or confirm replacement.")
@@ -509,10 +558,26 @@ if st.button("Approve and Save"):
                 elif time_below_75:
                     st.error(f"❌ Total recorded time ({total_recorded_time} hrs) is less than 75% of shift standard time ({0.75 * standard_shift_time} hrs). Modify the data.")
                 else:
-                    # ✅ Save to database
-                    archive_df.to_sql("archive", engine, if_exists="append", index=False)
-                    av_df.to_sql("av", engine, if_exists="append", index=False)
+                    # ✅ Save to database using SQL INSERT
+                    for _, row in archive_df.iterrows():
+                        cur.execute("""
+                            INSERT INTO archive ("Date", "Machine", "Day/Night/plan", "time", "efficiency")
+                            VALUES (%s, %s, %s, %s, %s)
+                        """, (row["Date"], row["Machine"], row["Day/Night/plan"], row["time"], row["efficiency"]))
+
+                    for _, row in av_df.iterrows():
+                        cur.execute("""
+                            INSERT INTO av (date, shift, machine, value)
+                            VALUES (%s, %s, %s, %s)
+                        """, (row["date"], row["shift"], row["machine"], row["value"]))
+
+                    conn.commit()  # ✅ Commit the changes
                     st.success("✅ Data saved to database successfully!")
 
         except Exception as e:
+            conn.rollback()  # ✅ Rollback changes in case of an error
             st.error(f"❌ Error saving data: {e}")
+
+        finally:
+            cur.close()
+            conn.close()  # ✅ Ensure connection is closed
