@@ -613,6 +613,4 @@ if st.button("Approve and Save"):
                     if not conn:
                         st.error("❌ Database connection failed. Please check credentials and try again.")
                         st.stop()
-
                     save_to_database(st.session_state.submitted_archive_df, st.session_state.submitted_av_df, conn)
-                 
