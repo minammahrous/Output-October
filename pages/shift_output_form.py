@@ -413,10 +413,18 @@ st.session_state.submitted_av_df = av_df
 
 # Display submitted data
 for col in ["quantity", "rate", "standard rate", "efficiency"]:
+    # ✅ Ensure column exists before converting
     if col in st.session_state.submitted_archive_df.columns:
-        st.session_state.submitted_archive_df[col] = st.session_state.submitted_archive_df[col].astype(float)
+        # ✅ Convert column to numeric safely, replacing errors with NaN
+        st.session_state.submitted_archive_df[col] = pd.to_numeric(
+            st.session_state.submitted_archive_df[col], errors="coerce"
+        ).fillna(0.0)  # Replace NaN values with 0.0
+
+    # ✅ Ensure column exists before converting in `submitted_av_df`
     if col in st.session_state.submitted_av_df.columns:
-        st.session_state.submitted_av_df[col] = st.session_state.submitted_av_df[col].astype(float)
+        st.session_state.submitted_av_df[col] = pd.to_numeric(
+            st.session_state.submitted_av_df[col], errors="coerce"
+        ).fillna(0.0)
 st.subheader("Submitted Archive Data")
 st.dataframe(st.session_state.submitted_archive_df)
   
