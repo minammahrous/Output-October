@@ -516,9 +516,14 @@ if selected_product and selected_product in st.session_state.product_batches:
 else:
     total_production_time = 0  # Default value when no product is selected
 
-total_downtime = sum(downtime_data[dt] for dt in downtime_types)
-total_recorded_time = Decimal(str(archive_df["time"].sum()))  # Ensure correct type
+from decimal import Decimal
+
+# ✅ Ensure 'time' column has no NaN values and is numeric
+total_recorded_time = archive_df["time"].fillna(0).astype(float).sum()  # Convert to float first
+total_recorded_time = Decimal(str(total_recorded_time))  # Convert to Decimal safely
+
 standard_shift_time = Decimal(str(standard_shift_time))  # Convert if needed
+
 
 # Special check for "partial" shift
 if shift_duration == "partial":
