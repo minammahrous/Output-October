@@ -582,7 +582,7 @@ if st.button("Approve and Save"):
                             Decimal(row["Availability"]) if isinstance(row["Availability"], float) else row["Availability"],
                             Decimal(row["Av Efficiency"]) if isinstance(row["Av Efficiency"], float) else row["Av Efficiency"],
                             Decimal(row["OEE"]) if isinstance(row["OEE"], float) else row["OEE"]
-                        )))
+                        ))
 
                     conn.commit()  # ✅ Commit the changes
                     st.success("✅ Data saved to database successfully!")
