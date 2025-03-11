@@ -3,30 +3,39 @@ from auth import authenticate_user, ROLE_ACCESS
 from db import get_branches, get_db_connection
 
 # Authenticate the user
-if not authenticate_user():
+user = authenticate_user()
+if not user:
     st.stop()
 
 # Title and sidebar
 st.title("Welcome to the App")
 st.write("Use the sidebar to navigate.")
 
-# Get user role and branch from session
-role = st.session_state.get("role")
-current_branch = st.session_state.get("branch")
+# Get user role and branch from session state
+role = user["role"]
+user_branch = user.get("branch", "main")  # Default branch is "main"
 
-# Fetch available branches (for admin role)
+# Ensure the branch is set in session state
+if "branch" not in st.session_state:
+    st.session_state["branch"] = user_branch
+
+# Fetch available branches (for admins)
 branches = get_branches()
 
-# ✅ Only admins can select a branch
+# Admins can select a branch
 if role == "admin":
-    selected_branch = st.selectbox("Select a branch:", branches, index=branches.index(current_branch) if current_branch in branches else 0)
-    
-    if selected_branch != current_branch:
-        st.session_state["branch"] = selected_branch
-        st.rerun()  # ✅ Force app refresh
+    selected_branch = st.selectbox(
+        "Select a branch:", branches, 
+        index=branches.index(st.session_state["branch"]) if st.session_state["branch"] in branches else 0
+    )
 
-st.success(f"Now working on: {st.session_state.get('branch', 'main')}")
-st.write("DEBUG: Assigned Branch →", st.session_state.get("branch", "main"))
+    # Update session state & refresh if branch changes
+    if selected_branch != st.session_state["branch"]:
+        st.session_state["branch"] = selected_branch
+        st.rerun()
+
+# Display the active branch
+st.success(f"Now working on: {st.session_state['branch']}")
 
 # Define accessible pages based on role
 allowed_pages = ROLE_ACCESS.get(role, [])
