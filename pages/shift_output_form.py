@@ -608,7 +608,7 @@ if st.button("Approve and Save"):
                     st.error(f"❌ Total recorded time ({total_recorded_time} hrs) exceeds shift standard time ({standard_shift_time} hrs). Modify the data.")
                 elif time_below_75:
                     st.error(f"❌ Total recorded time ({total_recorded_time} hrs) is less than 75% of shift standard time ({0.75 * standard_shift_time} hrs). Modify the data.")
-                else:
+                
         except:
                 conn = get_db_connection()
                 if not conn:
