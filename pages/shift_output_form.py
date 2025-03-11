@@ -8,6 +8,7 @@ from sqlalchemy.sql import text  # Import SQL text wrapper
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 from db import get_sqlalchemy_engine
+from db import get_db_connection
 from decimal import Decimal
 
 # Establish the connection
