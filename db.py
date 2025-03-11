@@ -12,44 +12,36 @@ def get_db_connection():
     branch = st.session_state.get("branch", "main")  # Default to 'main' if not set
 
     # Get the correct password and host for the selected branch
-    db_password = BRANCH_PASSWORDS.get(branch, BRANCH_PASSWORDS["main"])  # Default to 'main' password
-    db_host = DB_HOSTS.get(branch, DB_HOSTS["main"])  # Get branch-specific host
+    db_password = BRANCH_PASSWORDS.get(branch)
+    db_host = DB_HOSTS.get(branch)
 
-    # Modify database name dynamically if a different branch is selected
-    db_name = f"{DB_NAME}_{branch}" if branch != "main" else DB_NAME
+    if not db_password or not db_host:
+        st.error(f"⚠️ No credentials found for branch '{branch}'. Check Streamlit secrets.")
+        return None
 
-    # Construct the database URL securely with search_path set to "public"
-    db_url = f"postgresql://{DB_USER}:{db_password}@{db_host}/{db_name}?sslmode=require&options=-csearch_path=public"
+    # ✅ Removed search_path from connection string
+    db_url = f"postgresql://{DB_USER}:{db_password}@{db_host}/{DB_NAME}?sslmode=require"
 
     try:
         engine = create_engine(db_url, pool_pre_ping=True)
         conn = engine.connect()
-        st.write(f"DEBUG: Connected to → {db_host} (DB: {db_name})")  # ✅ Print which DB and host are used
-
-        # Debug: Print current database and schema
-        result = conn.execute(text("SELECT current_database(), current_schema();"))
-        st.write(f"DEBUG: Current DB & Schema → {result.fetchall()}")  
-
+        st.write(f"✅ Connected to → {db_host} (DB: {DB_NAME})")
         return conn
     except Exception as e:
-        st.error(f"Database connection error: {e}")
+        st.error(f"❌ Database connection failed: {e}")
         return None
 
 def get_branches():
     """Fetch available branches from the database."""
     try:
         with get_db_connection() as conn:
-            result = conn.execute(text("SELECT branch_name FROM public.branches"))
-            return [row[0] for row in result.fetchall()]
+            if conn:
+                result = conn.execute(text("SELECT branch_name FROM public.branches"))
+                return [row[0] for row in result.fetchall()]
     except Exception as e:
         st.error(f"Failed to fetch branches: {e}")
-        return ["main"]  # Return at least 'main' as a fallback
+        return ["main"]  # Fallback to 'main'
 
 # Streamlit UI: Branch selection
 selected_branch = st.selectbox("Select a branch", list(BRANCH_PASSWORDS.keys()))
-st.session_state["branch"] = selected_branch  # Save the selected branch in session state
-
-# Attempt connection when the user selects a branch
-connection = get_db_connection()
-if connection:
-    st.success(f"Connected to {selected_branch} branch successfully!")
+st.session_state["branch"] = selected
