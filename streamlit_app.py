@@ -1,7 +1,12 @@
 import streamlit as st
 from auth import authenticate_user, ROLE_ACCESS
 from db import get_branches, get_db_connection
+import sys
+import os
 
+sys.path.append(os.path.dirname(__file__))  # Ensure module is found
+
+from auth import authenticate_user, ROLE_ACCESS
 # Authenticate the user
 user = authenticate_user()
 if not user:
