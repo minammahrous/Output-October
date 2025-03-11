@@ -570,7 +570,7 @@ if st.button("Approve and Save"):
 
                     for _, row in av_df.iterrows():
                         cur.execute("""
-                            INSERT INTO av (date, machine, shift_type, hours, shift, T_production_time, availability, av_efficiency, oee)
+                            INSERT INTO av (date, machine, "shift type", hours, shift, T_production_time, availability, av_efficiency, oee)
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """, (
                             row["date"],
