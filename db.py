@@ -1,4 +1,3 @@
-import streamlit as st
 import psycopg2
 from sqlalchemy import create_engine
 import streamlit as st
@@ -6,7 +5,6 @@ import streamlit as st
 def get_sqlalchemy_engine():
     """Returns a SQLAlchemy engine for connecting to the correct PostgreSQL branch."""
     
-    # Get the user's assigned branch from session state
     branch = st.session_state.get("branch", "main")  # Default to "main"
 
     # Load database host from secrets based on the branch
@@ -19,18 +17,19 @@ def get_sqlalchemy_engine():
     db_url = f"postgresql://{db_user}:{db_password}@{db_host}/{db_name}"
 
     return create_engine(db_url, pool_pre_ping=True)
+
 def get_db_connection():
     """Establish and return a database connection based on the user's assigned branch."""
     try:
-        db_user = st.secrets["database"]["user"]
-        db_name = st.secrets["database"]["database"]
         branch = st.session_state.get("branch", "main")  # Default to 'main'
+
         db_host = st.secrets["database"]["hosts"].get(branch)
         db_password = st.secrets["branch_passwords"].get(branch)
+        db_user = st.secrets["database"]["user"]
+        db_name = st.secrets["database"]["database"]
 
         if not db_host or not db_password:
-            st.error("Invalid database host or missing password.")
-            return None
+            raise ValueError(f"❌ Invalid database host or missing password for branch: {branch}")
 
         conn = psycopg2.connect(
             dbname=db_name,
@@ -39,26 +38,28 @@ def get_db_connection():
             host=db_host,
             port=5432
         )
-
         return conn
 
     except Exception as e:
-        st.error(f"Database connection failed: {e}")
-        return None  # Return None if connection fails
+        print(f"❌ Database connection failed: {e}")  # ✅ Log error instead of using `st.error()`
+        return None  # Return None to be handled by the caller
 
 def get_branches():
     """Fetch available branches from the database."""
     conn = get_db_connection()
     if not conn:
         return ["main"]  # Fallback to 'main' if DB connection fails
-    
+
     try:
         cur = conn.cursor()
         cur.execute("SELECT branch_name FROM public.branches")  # Explicit schema
         branches = [row[0] for row in cur.fetchall()]
-        cur.close()
-        conn.close()
-        return branches
+        return branches  # ✅ Return fetched branches
     except Exception as e:
-        st.error(f"Failed to fetch branches: {e}")
+        print(f"❌ Failed to fetch branches: {e}")  # ✅ Log error instead of `st.error()`
         return ["main"]
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()  # ✅ Ensure connection is always closed
