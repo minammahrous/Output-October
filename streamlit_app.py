@@ -13,12 +13,14 @@ st.write("Use the sidebar to navigate.")
 role = st.session_state.get("role")
 branch = st.session_state.get("branch")
 
-# Define available pages based on role
-allowed_pages = ROLE_ACCESS.get(role, [])
-
-# Allow branch selection if user has access to "all" branches
+# Allow admin or 'all' branch users to select a branch
 if branch == "all":
     branch = st.selectbox("Select a branch:", ["branch1", "branch2", "branch3"])
+    st.session_state.branch = branch  # Update session with selected branch
+    st.success(f"Now working on: {branch}")
+
+# Define available pages based on role
+allowed_pages = ROLE_ACCESS.get(role, [])
 
 # Navigation links
 if "shift_output_form" in allowed_pages:
