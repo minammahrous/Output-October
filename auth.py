@@ -1,16 +1,15 @@
-from db import get_db_connection
-
 def authenticate_user():
-    """Authenticate the user and return user details"""
+    """Authenticate user login"""
+    from db import get_db_connection  # Lazy import
+
     conn = get_db_connection()
-    
     if not conn:
-        return None  # Connection failed, prevent further errors
+        return None  # Prevent further errors
 
     try:
         cur = conn.cursor()
-        # Your authentication logic...
-        return user  # Return authenticated user data
+        # Authentication logic here...
+        return user  # Return user data
     except Exception as e:
         return None
     finally:
