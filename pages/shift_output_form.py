@@ -567,21 +567,26 @@ if st.button("Approve and Save"):
                             Decimal(row["rate"]) if isinstance(row["rate"], float) else row["rate"],  
                             Decimal(row["standard rate"]) if isinstance(row["standard rate"], float) else row["standard rate"]
                             ))
-
+row["hours"] = float(row["hours"]) if row["hours"] else None
+row["T.production time"] = float(row["T.production time"]) if row["T.production time"] else None
+row["Availability"] = float(row["Availability"]) if row["Availability"] else None
+row["Av Efficiency"] = float(row["Av Efficiency"]) if row["Av Efficiency"] else None
+row["OEE"] = float(row["OEE"]) if row["OEE"] else None
+                    
                     for _, row in av_df.iterrows():
                         cur.execute("""
-                            "date", "machine", "shift type", "hours", "shift", "T.production time", "Availability", "Av Efficiency", "OEE")
+                            INSERT INTO av (date, shift, machine, "shift type", hours, "T.production time", Availability, "Av Efficiency", OEE)
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """, (
                             row["date"],
-                            row["machine"],
-                            row["shift type"],  # ✅ Ensure this matches the database column
-                            Decimal(row["hours"]) if isinstance(row["hours"], float) else row["hours"],
                             row["shift"],
-                            Decimal(row["T.production time"]) if isinstance(row["T.production time"], float) else row["T.production time"],
-                            Decimal(row["Availability"]) if isinstance(row["Availability"], float) else row["Availability"],
-                            Decimal(row["Av Efficiency"]) if isinstance(row["Av Efficiency"], float) else row["Av Efficiency"],
-                            Decimal(row["OEE"]) if isinstance(row["OEE"], float) else row["OEE"]
+                            row["machine"],
+                            row["shift type"],  # Quoted because it has a space
+                            row["hours"],
+                            row["T.production time"],  # Quoted because of the dot
+                            row["Availability"],
+                            row["Av Efficiency"],  # Quoted because of the space
+                            row["OEE"]
                         ))
 
                     conn.commit()  # ✅ Commit the changes
