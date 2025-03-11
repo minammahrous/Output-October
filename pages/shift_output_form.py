@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from db import get_sqlalchemy_engine
 from db import get_db_connection
 from decimal import Decimal
-
+import numpy as np
 # Establish the connection
 conn = get_db_connection()
 if not conn:
