@@ -580,7 +580,7 @@ if st.button("Approve and Save"):
                             row["Availability"] = float(row["Availability"]) if row["Availability"] else None
                             row["Av Efficiency"] = float(row["Av Efficiency"]) if row["Av Efficiency"] else None
                             row["OEE"] = float(row["OEE"]) if row["OEE"] else None
-
+                        try:  # ✅ Added try block
                             cur.execute("""
                                 INSERT INTO av (date, shift, machine, "shift type", hours, "T.production time", Availability, "Av Efficiency", OEE)
                                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
