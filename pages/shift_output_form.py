@@ -8,6 +8,7 @@ from sqlalchemy.sql import text  # Import SQL text wrapper
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 from db import get_db_connection
+from decimal import Decimal
 
 # Establish the connection
 conn = get_db_connection()
@@ -16,24 +17,24 @@ if not conn:
     st.stop()
 
 def get_standard_rate(product, machine):
-    """Fetch the standard rate for a given product and machine."""
-    conn = get_db_connection()  # ✅ Get DB connection
-
-    if not conn:  # ✅ Check if connection failed
-        st.error("❌ Database connection failed. Please check credentials.")
-        return None
+    conn = get_db_connection()
+    if not conn:
+        st.error("❌ Database connection failed.")
+        return 0  
 
     try:
         cur = conn.cursor()
         cur.execute("SELECT standard_rate FROM rates WHERE product = %s AND machine = %s", (product, machine))
         result = cur.fetchone()
-        return result[0] if result else None
+        st.write(f"🔍 Debug: Retrieved rate: {result}")  # ✅ Check what's being returned
+
+        return float(result[0]) if result and result[0] is not None else 0  
     except Exception as e:
         st.error(f"❌ Error fetching standard rate: {e}")
-        return None
+        return 0
     finally:
         cur.close()
-        conn.close()  # ✅ Ensure connection is properly closed
+        conn.close()
 
 # Function to fetch data from PostgreSQL
 def fetch_data(query):
@@ -355,7 +356,7 @@ missing_rates = False  # Track if any standard rate is missing
 
 for product, batch_list in st.session_state.get("product_batches", {}).items():
     for batch in batch_list:
-        rate = batch["quantity"] / batch["time_consumed"] if batch["time_consumed"] != 0 else 0
+        rate = Decimal(batch["quantity"]) / Decimal(batch["time_consumed"]) if batch["time_consumed"] != 0 else Decimal("0")
         standard_rate = get_standard_rate(product, selected_machine)
 
         if standard_rate is None:
