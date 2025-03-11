@@ -1,71 +1,31 @@
 import streamlit as st
-import psycopg2
-from db import get_db_connection
+from auth import authenticate_user, ROLE_ACCESS
 
-# App Title
+# Authenticate the user
+if not authenticate_user():
+    st.stop()
+
+# Title and sidebar
 st.title("Welcome to the App")
 st.write("Use the sidebar to navigate.")
 
-# Function to get user details from DB
-def get_user(username, password):
-    conn = psycopg2.connect(
-        dbname=st.secrets["database"]["dbname"],
-        user=st.secrets["database"]["user"],
-        password=st.secrets["database"]["password"],
-        host=st.secrets["database"]["host"],
-        options="-c search_path=main"
-    )
-    cur = conn.cursor()
-    cur.execute("SELECT username, role, branch FROM users WHERE username=%s AND password=%s", (username, password))
-    user = cur.fetchone()
-    conn.close()
-    
-    if user:
-        username, role, branch = user
-        return {"username": username, "role": role, "branch": branch}  
-    return None
+# Get user role and branch from session
+role = st.session_state.get("role")
+branch = st.session_state.get("branch")
 
-# Login Form
-if "authenticated" not in st.session_state:
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    login_button = st.button("Login")
+# Define available pages based on role
+allowed_pages = ROLE_ACCESS.get(role, [])
 
-    if login_button:
-        user = get_user(username, password)
-        if user:
-            st.session_state["authenticated"] = True
-            st.session_state["username"] = user["username"]
-            st.session_state["role"] = user["role"]
-            st.session_state["branch"] = user["branch"]
+# Allow branch selection if user has access to "all" branches
+if branch == "all":
+    branch = st.selectbox("Select a branch:", ["branch1", "branch2", "branch3"])
 
-            st.success(f"Welcome {user['username']}!")
+# Navigation links
+if "shift_output_form" in allowed_pages:
+    st.page_link("pages/shift_output_form.py", label="Shift Output Form")
 
-            # If branch is "all", allow user to select a branch
-            if user["branch"] == "all" or user["role"] == "admin":
-                st.session_state["branch"] = st.selectbox(
-                    "Select branch to work on:",
-                    ["main", "Limitless"]  # Fetch dynamically if needed
-                )
+if "reports_dashboard" in allowed_pages:
+    st.page_link("pages/reports_dashboard.py", label="Reports Dashboard")
 
-        else:
-            st.error("Invalid credentials. Please try again.")
-
-# Navigation Links (Show only if authenticated)
-if "authenticated" in st.session_state and st.session_state["authenticated"]:
-    st.title("Welcome to the App")
-    st.write("Use the sidebar to navigate.")
-    role = st.session_state["role"]
-
-    if role in ["admin", "power user", "user"]:
-        st.page_link("pages/shift_output_form.py", label="Shift Output Form")
-
-    if role in ["admin", "power user", "report", "user"]:
-        st.page_link("pages/reports_dashboard.py", label="Reports Dashboard")
-
-    if role in ["admin", "power user"]:
-        st.page_link("pages/master_data.py", label="Master Data Control")
-
-st.title("Welcome to the App")
-st.write("Use the sidebar to navigate.")
-
+if "master_data" in allowed_pages:
+    st.page_link("pages/master_data.py", label="Master Data Control")
