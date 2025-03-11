@@ -190,8 +190,7 @@ if st.session_state.get("proceed_clicked", False):
 if not conn:
     st.error("❌ Database connection failed. Please check credentials and try again.")
     st.stop()
-
-cur = conn.cursor()
+    cur = conn.cursor()
 
 # ✅ Check if a record already exists
 query = """
