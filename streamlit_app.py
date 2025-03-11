@@ -12,24 +12,23 @@ st.write("Use the sidebar to navigate.")
 
 # Get user role and branch from session
 role = st.session_state.get("role")
-branch = st.session_state.get("branch", "main")  # Default to 'main' if not set
+current_branch = st.session_state.get("branch", "main")  # Default to 'main'
 
 # Fetch available branches
 branches = get_branches()
 
 # Allow admin or "all" branch users to select a branch
-if role == "admin" or branch == "all":
-    selected_branch = st.selectbox("Select a branch:", branches, index=0)
+if role == "admin" or current_branch == "all":
+    selected_branch = st.selectbox("Select a branch:", branches, index=branches.index(current_branch) if current_branch in branches else 0)
     
-    # Update session state when selection changes
-    if selected_branch != st.session_state.get("branch"):
+    # ✅ Update session state & force refresh when branch changes
+    if selected_branch != current_branch:
         st.session_state.branch = selected_branch
-        st.rerun()  # ✅ Force update when branch changes
+        st.experimental_rerun()  # ✅ Force app refresh
 
-    st.success(f"Now working on: {selected_branch}")
-else:
-    st.info(f"Current branch: {branch}")  # Show the assigned branch for non-admin users
+st.success(f"Now working on: {st.session_state.get('branch', 'main')}")
 st.write("DEBUG: Selected Branch →", st.session_state.get("branch", "main"))
+
 # Define accessible pages based on role
 allowed_pages = ROLE_ACCESS.get(role, [])
 
