@@ -596,8 +596,8 @@ if st.button("Approve and Save"):
                                     row["OEE"]
                                 ))
 
-                    conn.commit()  # ✅ Commit the changes
-                    st.success("✅ Data saved to database successfully!")
+                        conn.commit()  # ✅ Commit the changes
+                        st.success("✅ Data saved to database successfully!")
 
                 except Exception as e:  # ✅ Fixed indentation
                     conn.rollback()  # ✅ Rollback changes in case of an error
