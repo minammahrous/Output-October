@@ -22,3 +22,13 @@ def get_db_connection():
     except Exception as e:
         st.error(f"Database connection error: {e}")
         return None
+
+def get_branches():
+    """Fetch available branches from the database."""
+    try:
+        with get_db_connection() as conn:
+            result = conn.execute(text("SELECT branch_name FROM branches"))
+            return [row[0] for row in result.fetchall()]
+    except Exception as e:
+        st.error(f"Failed to fetch branches: {e}")
+        return ["main"]
