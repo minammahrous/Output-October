@@ -1,6 +1,6 @@
 import streamlit as st
 from auth import authenticate_user, ROLE_ACCESS
-from db import get_branches
+from db import get_db_connection
 
 # Authenticate the user
 if not authenticate_user():
