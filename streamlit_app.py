@@ -6,7 +6,19 @@ sys.path.append(os.path.dirname(__file__))  # Ensure modules are found
 
 from auth import authenticate_user, ROLE_ACCESS
 from db import get_branches, get_db_connection
+if "role" in st.session_state and st.session_state["role"]:
+    role = st.session_state["role"]
 
+    # Assign correct branch based on role
+    if role == "admin":
+        st.session_state["branch"] = "all"
+    elif role == "limitless":
+        st.session_state["branch"] = "limitless"
+    else:
+        st.session_state["branch"] = "main"
+else:
+    st.warning("User role not found. Please log in again.")
+    st.stop()  # Prevent further execution
 # Authenticate user
 user = authenticate_user()
 if not user:
