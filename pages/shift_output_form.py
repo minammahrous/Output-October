@@ -600,5 +600,5 @@ if st.button("Approve and Save"):
                             st.success("✅ Data saved to database successfully!")
 
                     except Exception as e:
-                            conn.rollback()  # ✅ Rollback changes in case of an error
-                            st.error(f"❌ Error saving data: {e}")
+                        conn.rollback()  # ✅ Rollback changes in case of an error
+                        st.error(f"❌ Error saving data: {e}")
