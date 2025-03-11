@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.sql import text  # Import SQL text wrapper
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
-from db import get_db_connection
+from db import get_sqlalchemy_engine
 from decimal import Decimal
 
 # Establish the connection
@@ -29,42 +29,27 @@ def get_standard_rate(product, machine):
     return Decimal(result[0]) if result else Decimal("0")  # Return 0 if no rate is found
 
 # Function to fetch data from PostgreSQL
-def fetch_data(query):
-    """Fetch data from PostgreSQL and return as a list."""
-    conn = get_db_connection()  # ✅ Use the shared database connection
-
-    if not conn:
-        st.error("❌ Database connection failed.")
-        return []
-
+ddef fetch_data(query):
+    """Fetch data using SQLAlchemy engine."""
+    engine = get_sqlalchemy_engine()
     try:
-        df = pd.read_sql(query, conn)  # ✅ Use the connection correctly
+        df = pd.read_sql(query, engine)  # ✅ Use SQLAlchemy engine
         return df["name"].tolist()
     except Exception as e:
         st.error(f"❌ Database error: {e}")
         return []
-    finally:
-        conn.close()  # ✅ Close the connection after fetching data
 
 # Function to fetch machine data from PostgreSQL
 def fetch_machine_data():
-    """Fetch machine names and their corresponding qty_uom values from the database."""
+    """Fetch machine names and corresponding qty_uom values."""
+    engine = get_sqlalchemy_engine()
     query = "SELECT name, qty_uom FROM machines"
-
-    conn = get_db_connection()  # ✅ Use shared DB connection
-
-    if not conn:
-        st.error("❌ Database connection failed.")
-        return {}
-
     try:
-        df = pd.read_sql(query, conn)  # ✅ Fetch data using the connection
-        return df.set_index("name")["qty_uom"].to_dict()  # ✅ Convert to {machine_name: qty_uom}
+        df = pd.read_sql(query, engine)
+        return df.set_index("name")["qty_uom"].to_dict()
     except Exception as e:
         st.error(f"❌ Database error: {e}")
         return {}
-    finally:
-        conn.close()  # ✅ Close connection after fetching data
 # Fetch machine list from database
 machine_data = fetch_machine_data()
 machine_list = list(machine_data.keys())  # Extract machine names
@@ -362,14 +347,14 @@ for product, batch_list in st.session_state.get("product_batches", {}).items():
                 "Machine": selected_machine,
                 "Day/Night/plan": shift_type,
                 "Activity": "Production",
-                "time": batch["time_consumed"],
+                "time": Decimal(batch["time_consumed"]),  # ✅ Convert to Decimal
                 "Product": product,
                 "batch number": batch["batch"],
                 "quantity": Decimal(batch["quantity"]),  # ✅ Store as Decimal
                 "comments": "",
-                "rate": rate,
-                "standard rate": standard_rate,
-                "efficiency": efficiency,
+                "rate": Decimal(rate),  # ✅ Convert rate to Decimal
+                "standard rate": Decimal(standard_rate),  # ✅ Convert standard rate
+                "efficiency": Decimal(efficiency),  # ✅ Convert efficiency
             })
 
 # 🚨 Prevent Saving if Any Standard Rate is Missing
@@ -427,9 +412,13 @@ st.session_state.submitted_av_df = av_df
 
 # Display submitted data
 st.subheader("Submitted Archive Data")
-st.dataframe(st.session_state.submitted_archive_df)
+for col in ["quantity", "rate", "standard rate", "efficiency"]:
+    if col in st.session_state.submitted_archive_df.columns:
+        st.session_state.submitted_archive_df[col] = st.session_state.submitted_archive_df[col].astype(float)
+   
 st.subheader("Submitted AV Data")
-st.dataframe(st.session_state.submitted_av_df)
+    if col in st.session_state.submitted_av_df.columns:
+        st.session_state.submitted_av_df[col] = st.session_state.submitted_av_df[col].astype(float)
            # Compute total recorded time (downtime + production time)
 total_production_time = sum(
     batch["time_consumed"] for product, batch_list in st.session_state.product_batches.items() for batch in batch_list
