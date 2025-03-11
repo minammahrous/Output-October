@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text  # ✅ Import text
 import streamlit as st
 
 # Database connection URL (Replace with your actual credentials)
