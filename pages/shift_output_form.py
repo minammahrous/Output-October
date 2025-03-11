@@ -17,24 +17,16 @@ if not conn:
     st.stop()
 
 def get_standard_rate(product, machine):
-    conn = get_db_connection()
-    if not conn:
-        st.error("❌ Database connection failed.")
-        return 0  
-
-    try:
-        cur = conn.cursor()
-        cur.execute("SELECT standard_rate FROM rates WHERE product = %s AND machine = %s", (product, machine))
-        result = cur.fetchone()
-        st.write(f"🔍 Debug: Retrieved rate: {result}")  # ✅ Check what's being returned
-
-        return float(result[0]) if result and result[0] is not None else 0  
-    except Exception as e:
-        st.error(f"❌ Error fetching standard rate: {e}")
-        return 0
-    finally:
-        cur.close()
-        conn.close()
+    conn = get_db_connection()  # Make sure to define this function
+    cur = conn.cursor()
+    
+    cur.execute("SELECT rate FROM rates WHERE product = %s AND machine = %s", (product, machine))
+    result = cur.fetchone()
+    
+    cur.close()
+    conn.close()
+    
+    return Decimal(result[0]) if result else Decimal("0")  # Return 0 if no rate is found
 
 # Function to fetch data from PostgreSQL
 def fetch_data(query):
