@@ -29,7 +29,7 @@ def get_standard_rate(product, machine):
     return Decimal(result[0]) if result else Decimal("0")  # Return 0 if no rate is found
 
 # Function to fetch data from PostgreSQL
-ddef fetch_data(query):
+def fetch_data(query):
     """Fetch data using SQLAlchemy engine."""
     engine = get_sqlalchemy_engine()
     try:
