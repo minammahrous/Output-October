@@ -551,54 +551,54 @@ if st.button("Approve and Save"):
                 elif time_below_75:
                     st.error(f"❌ Total recorded time ({total_recorded_time} hrs) is less than 75% of shift standard time ({0.75 * standard_shift_time} hrs). Modify the data.")
                 else:
-try:
-    # ✅ Save to database using SQL INSERT
-    for _, row in archive_df.iterrows():
-        row["time"] = float(row["time"]) if row["time"] else None
-        row["efficiency"] = float(row["efficiency"]) if row["efficiency"] else None
-        row["quantity"] = float(row["quantity"]) if row["quantity"] else None
-        row["rate"] = float(row["rate"]) if row["rate"] else None
-        row["standard rate"] = float(row["standard rate"]) if row["standard rate"] else None
+                    try:
+                        # ✅ Save to database using SQL INSERT
+                        for _, row in archive_df.iterrows():
+                            row["time"] = float(row["time"]) if row["time"] else None
+                            row["efficiency"] = float(row["efficiency"]) if row["efficiency"] else None
+                            row["quantity"] = float(row["quantity"]) if row["quantity"] else None
+                            row["rate"] = float(row["rate"]) if row["rate"] else None
+                            row["standard rate"] = float(row["standard rate"]) if row["standard rate"] else None
 
-        cur.execute("""
-            INSERT INTO archive ("Date", "Machine", "Day/Night/plan", "time", "efficiency", "quantity", "rate", "standard rate")
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            row["Date"], 
-            row["Machine"], 
-            row["Day/Night/plan"], 
-            row["time"],  
-            row["efficiency"],
-            row["quantity"],  
-            row["rate"],  
-            row["standard rate"]
-        ))
+                        cur.execute("""
+                            INSERT INTO archive ("Date", "Machine", "Day/Night/plan", "time", "efficiency", "quantity", "rate", "standard rate")
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        """, (
+                            row["Date"], 
+                            row["Machine"], 
+                            row["Day/Night/plan"], 
+                            row["time"],  
+                            row["efficiency"],
+                            row["quantity"],  
+                            row["rate"],  
+                            row["standard rate"]
+                        ))
 
-    for _, row in av_df.iterrows():
-        row["hours"] = float(row["hours"]) if row["hours"] else None
-        row["T.production time"] = float(row["T.production time"]) if row["T.production time"] else None
-        row["Availability"] = float(row["Availability"]) if row["Availability"] else None
-        row["Av Efficiency"] = float(row["Av Efficiency"]) if row["Av Efficiency"] else None
-        row["OEE"] = float(row["OEE"]) if row["OEE"] else None
+                    for _, row in av_df.iterrows():
+                        row["hours"] = float(row["hours"]) if row["hours"] else None
+                        row["T.production time"] = float(row["T.production time"]) if row["T.production time"] else None
+                        row["Availability"] = float(row["Availability"]) if row["Availability"] else None
+                        row["Av Efficiency"] = float(row["Av Efficiency"]) if row["Av Efficiency"] else None
+                        row["OEE"] = float(row["OEE"]) if row["OEE"] else None
 
-        cur.execute("""
-            INSERT INTO av (date, shift, machine, "shift type", hours, "T.production time", Availability, "Av Efficiency", OEE)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            row["date"],
-            row["shift"],
-            row["machine"],
-            row["shift type"],  
-            row["hours"],
-            row["T.production time"],  
-            row["Availability"],
-            row["Av Efficiency"],  
-            row["OEE"]
-        ))
+                    cur.execute("""
+                        INSERT INTO av (date, shift, machine, "shift type", hours, "T.production time", Availability, "Av Efficiency", OEE)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """, (
+                            row["date"],
+                            row["shift"],
+                            row["machine"],
+                            row["shift type"],  
+                            row["hours"],
+                            row["T.production time"],  
+                            row["Availability"],
+                            row["Av Efficiency"],  
+                            row["OEE"]
+                        ))
 
-    conn.commit()  # ✅ Commit the changes
-    st.success("✅ Data saved to database successfully!")
+                    conn.commit()  # ✅ Commit the changes
+                    st.success("✅ Data saved to database successfully!")
 
-except Exception as e:
-    conn.rollback()  # ✅ Rollback changes in case of an error
-    st.error(f"❌ Error saving data: {e}")
+            except Exception as e:
+                conn.rollback()  # ✅ Rollback changes in case of an error
+                st.error(f"❌ Error saving data: {e}")
