@@ -609,8 +609,13 @@ if st.button("Approve and Save"):
                 elif time_below_75:
                     st.error(f"❌ Total recorded time ({total_recorded_time} hrs) is less than 75% of shift standard time ({0.75 * standard_shift_time} hrs). Modify the data.")
                 else:
-                    conn = get_db_connection()
-                    if not conn:
-                        st.error("❌ Database connection failed. Please check credentials and try again.")
-                        st.stop()
-                    save_to_database(st.session_state.submitted_archive_df, st.session_state.submitted_av_df, conn)
+                    try:
+                        conn = get_db_connection()
+                        if not conn:
+                            st.error("❌ Database connection failed. Please check credentials and try again.")
+                            st.stop()
+
+                        save_to_database(st.session_state.submitted_archive_df, st.session_state.submitted_av_df, conn)
+
+                    except Exception as e:  # ✅ Add an except block
+                        st.error(f"❌ Unexpected error: {e}")
