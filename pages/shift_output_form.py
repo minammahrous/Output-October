@@ -365,7 +365,7 @@ for product, batch_list in st.session_state.get("product_batches", {}).items():
                 "time": batch["time_consumed"],
                 "Product": product,
                 "batch number": batch["batch"],
-                "quantity": batch["quantity"],
+                Decimal(batch["quantity"]),  # ✅ Store as Decimal
                 "comments": "",
                 "rate": rate,
                 "standard rate": standard_rate,
