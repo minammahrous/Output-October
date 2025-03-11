@@ -53,8 +53,8 @@ if "authenticated" not in st.session_state:
 
 # Navigation Links (Show only if authenticated)
 if "authenticated" in st.session_state and st.session_state["authenticated"]:
-  st.title("Welcome to the App")
-  st.write("Use the sidebar to navigate.")
+    st.title("Welcome to the App")
+    st.write("Use the sidebar to navigate.")
     role = st.session_state["role"]
 
     if role in ["admin", "power user", "user"]:
