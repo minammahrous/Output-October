@@ -24,7 +24,7 @@ if role == "admin" or current_branch == "all":
     # ✅ Update session state & force refresh when branch changes
     if selected_branch != current_branch:
         st.session_state.branch = selected_branch
-        st.experimental_rerun()  # ✅ Force app refresh
+        st.rerun()  # ✅ Force app refresh
 
 st.success(f"Now working on: {st.session_state.get('branch', 'main')}")
 st.write("DEBUG: Selected Branch →", st.session_state.get("branch", "main"))
