@@ -29,7 +29,7 @@ if role == "admin" or branch == "all":
     st.success(f"Now working on: {selected_branch}")
 else:
     st.info(f"Current branch: {branch}")  # Show the assigned branch for non-admin users
-
+st.write("DEBUG: Selected Branch →", st.session_state.get("branch", "main"))
 # Define accessible pages based on role
 allowed_pages = ROLE_ACCESS.get(role, [])
 
