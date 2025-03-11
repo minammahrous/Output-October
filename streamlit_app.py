@@ -1,5 +1,6 @@
 import streamlit as st
 from auth import authenticate_user, ROLE_ACCESS
+from db import get_branches
 
 # Authenticate the user
 if not authenticate_user():
@@ -13,9 +14,12 @@ st.write("Use the sidebar to navigate.")
 role = st.session_state.get("role")
 branch = st.session_state.get("branch")
 
+# Fetch available branches from the database
+branches = get_branches()
+
 # Allow admin or 'all' branch users to select a branch
 if branch == "all":
-    branch = st.selectbox("Select a branch:", ["branch1", "branch2", "branch3"])
+    branch = st.selectbox("Select a branch:", branches)
     st.session_state.branch = branch  # Update session with selected branch
     st.success(f"Now working on: {branch}")
 
