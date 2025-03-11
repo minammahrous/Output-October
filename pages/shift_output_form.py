@@ -194,7 +194,7 @@ if st.session_state.get("proceed_clicked", False):
         st.stop()
 
     try:
-        cur = conn.cursor()  # ✅ Now `conn` is always defined
+        cur = conn.cursor()  # ✅ Now `cur` is always assigned
 
         # ✅ Query to check if a record exists in 'av' table
         query = """
@@ -206,78 +206,65 @@ if st.session_state.get("proceed_clicked", False):
         if result and result[0] > 0:  # If a record already exists
             st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
 
+            col1, col2 = st.columns(2)
+
+            if col1.button("🗑️ Delete Existing Data and Proceed"):
+                try:
+                    # ✅ Check for existing records before deleting
+                    check_query_av = """
+                        SELECT * FROM av WHERE date = %s AND shift = %s AND machine = %s
+                    """
+                    cur.execute(check_query_av, (date, shift_type, selected_machine))
+                    result_av = cur.fetchall()
+
+                    check_query_archive = """
+                        SELECT * FROM archive WHERE "Date" = %s AND "Machine" = %s AND "Day/Night/plan" = %s
+                    """
+                    cur.execute(check_query_archive, (date, selected_machine, shift_type))
+                    result_archive = cur.fetchall()
+
+                    # ✅ Show records before deletion
+                    if not result_av and not result_archive:
+                        st.warning("⚠️ No matching records found. Nothing to delete.")
+                    else:
+                        st.write("🔍 Records found in 'av':", result_av)
+                        st.write("🔍 Records found in 'archive':", result_archive)
+
+                        # ✅ Proceed with deletion
+                        delete_query_av = """
+                            DELETE FROM av WHERE date = %s AND shift = %s AND machine = %s
+                        """
+                        cur.execute(delete_query_av, (date, shift_type, selected_machine))
+
+                        delete_query_archive = """
+                            DELETE FROM archive WHERE "Date" = %s AND "Machine" = %s AND "Day/Night/plan" = %s
+                        """
+                        cur.execute(delete_query_archive, (date, selected_machine, shift_type))
+
+                        conn.commit()  # ✅ Commit changes
+
+                        st.success("✅ Existing records deleted. You can proceed with new data entry.")
+                        st.session_state.proceed_clicked = False  # Reset proceed state
+                        st.rerun()  # Refresh app state
+
+                except Exception as e:
+                    conn.rollback()  # ✅ Rollback in case of error
+                    st.error(f"❌ Error deleting records: {e}")
+
+            if col2.button("🔄 Change Selection"):
+                st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
+                st.session_state.proceed_clicked = False  # Reset proceed state
+                st.stop()  # Prevents further execution
+
+        else:
+            st.success("✅ No existing record found. You can proceed with the form.")
+
     except Exception as e:
         st.error(f"❌ Database error while checking records: {e}")
 
     finally:
         cur.close()
-        conn.close()  # ✅ Always close connection
-# ✅ Check if a record already exists
-query = """
-    SELECT COUNT(*) FROM av WHERE date = %s AND shift = %s AND machine = %s
-"""
-cur.execute(query, (date, shift_type, selected_machine))
-result = cur.fetchone()
-
-if result and result[0] > 0:  # If a record already exists
-    st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
-
-col1, col2 = st.columns(2)
-
-if col1.button("🗑️ Delete Existing Data and Proceed"):
-    try:
-        # ✅ Check for existing records before deleting
-        check_query_av = """
-            SELECT * FROM av WHERE date = %s AND shift = %s AND machine = %s
-        """
-        cur.execute(check_query_av, (date, shift_type, selected_machine))
-        result_av = cur.fetchall()
-
-        check_query_archive = """
-            SELECT * FROM archive WHERE "Date" = %s AND "Machine" = %s AND "Day/Night/plan" = %s
-        """
-        cur.execute(check_query_archive, (date, selected_machine, shift_type))
-        result_archive = cur.fetchall()
-
-        # ✅ Show records before deletion
-        if not result_av and not result_archive:
-            st.warning("⚠️ No matching records found. Nothing to delete.")
-        else:
-            st.write("🔍 Records found in 'av':", result_av)
-            st.write("🔍 Records found in 'archive':", result_archive)
-
-            # ✅ Proceed with deletion
-            delete_query_av = """
-                DELETE FROM av WHERE date = %s AND shift = %s AND machine = %s
-            """
-            cur.execute(delete_query_av, (date, shift_type, selected_machine))
-
-            delete_query_archive = """
-                DELETE FROM archive WHERE "Date" = %s AND "Machine" = %s AND "Day/Night/plan" = %s
-            """
-            cur.execute(delete_query_archive, (date, selected_machine, shift_type))
-
-            conn.commit()  # ✅ Commit changes
-
-            st.success("✅ Existing records deleted. You can proceed with new data entry.")
-            st.session_state.proceed_clicked = False  # Reset proceed state
-
-    except Exception as e:
-        conn.rollback()  # ✅ Rollback in case of error
-        st.error(f"❌ Error deleting records: {e}")
-
-if col2.button("🔄 Change Selection"):
-    st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
-    st.session_state.proceed_clicked = False  # Reset proceed state
-    st.stop()  # Prevents further execution
-
-else:
-    st.success("✅ No existing record found. You can proceed with the form.")
-
-cur.close()
-conn.close()  # ✅ Ensure connection is closed
-
-    
+        conn.close()  # ✅ Ensure connection is always closed
 shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
     
     # Downtime inputs with comments
