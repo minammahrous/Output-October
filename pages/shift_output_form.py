@@ -16,26 +16,25 @@ if not conn:
     st.stop()
 
 def get_standard_rate(product, machine):
-    query = text("""
-        SELECT standard_rate FROM rates 
-        WHERE product = :product AND machine = :machine
-        LIMIT 1
-    """)
+    """Fetch the standard rate for a given product and machine."""
+    conn = get_db_connection()  # ✅ Get DB connection
 
-    cur = conn.cursor()
-    cur.execute(query, {"product": product, "machine": machine})
-    result = cur.fetchone()
-    cur.close()
+    if not conn:  # ✅ Check if connection failed
+        st.error("❌ Database connection failed. Please check credentials.")
+        return None
 
-    if result and result[0] is not None:
-        try:
-            return float(result[0])  # Ensure it's a valid float
-        except ValueError:
-            st.error(f"❌ Invalid standard_rate found for {product} - {machine}: {result[0]}. Please update the correct standard rate.")
-            return None  # Prevent saving
-    else:
-        st.error(f"❌ No standard rate found for {product} - {machine}. Update the correct standard rate to be able to save.")
-        return None  # Prevent saving
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT standard_rate FROM rates WHERE product = %s AND machine = %s", (product, machine))
+        result = cur.fetchone()
+        return result[0] if result else None
+    except Exception as e:
+        st.error(f"❌ Error fetching standard rate: {e}")
+        return None
+    finally:
+        cur.close()
+        conn.close()  # ✅ Ensure connection is properly closed
+
 # Function to fetch data from PostgreSQL
 def fetch_data(query):
     """Fetch data from PostgreSQL and return as a list."""
