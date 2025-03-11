@@ -193,20 +193,25 @@ if st.session_state.get("proceed_clicked", False):
         st.error("❌ Database connection failed. Please check credentials and try again.")
         st.stop()
 
-    cur = conn.cursor()  # ✅ Now `conn` is always defined
+    try:
+        cur = conn.cursor()  # ✅ Now `conn` is always defined
 
-    # ✅ Query to check if a record exists in 'av' table
-    query = """
-        SELECT COUNT(*) FROM av WHERE date = %s AND shift = %s AND machine = %s
-    """
-    cur.execute(query, (date, shift_type, selected_machine))
-    result = cur.fetchone()
+        # ✅ Query to check if a record exists in 'av' table
+        query = """
+            SELECT COUNT(*) FROM av WHERE date = %s AND shift = %s AND machine = %s
+        """
+        cur.execute(query, (date, shift_type, selected_machine))
+        result = cur.fetchone()
 
-    if result and result[0] > 0:  # If a record already exists
-        st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
+        if result and result[0] > 0:  # If a record already exists
+            st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
 
-    cur.close()
-    conn.close()  # ✅ Always close connection
+    except Exception as e:
+        st.error(f"❌ Database error while checking records: {e}")
+
+    finally:
+        cur.close()
+        conn.close()  # ✅ Always close connection
 # ✅ Check if a record already exists
 query = """
     SELECT COUNT(*) FROM av WHERE date = %s AND shift = %s AND machine = %s
