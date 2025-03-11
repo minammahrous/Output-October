@@ -1,14 +1,15 @@
 import streamlit as st
 from sqlalchemy import create_engine, text
-# Database connection
+
+# Get base DB URL from Streamlit secrets (Ensure it's correctly set in Streamlit Cloud)
+BASE_DB_URL = st.secrets["database"]["url"]
 
 def get_db_connection():
-    """Return a database connection based on the selected branch."""
-    base_url = postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
-    branch = st.session_state.get("branch", "main")  # Default to 'main' if not set
-    
-    # Modify DB URL to use the correct branch
-    db_url = base_url.replace("neondb", f"neondb_{branch}") if branch else base_url
-    
+    """Returns a database connection based on the selected branch."""
+    branch = st.session_state.get("branch", "main")  # Default to 'main'
+
+    # Modify DB URL dynamically for different branches
+    db_url = BASE_DB_URL.replace("neondb", f"neondb_{branch}") if branch != "main" else BASE_DB_URL
+
     engine = create_engine(db_url, pool_pre_ping=True)
     return engine.connect()
