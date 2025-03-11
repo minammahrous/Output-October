@@ -19,9 +19,14 @@ branches = get_branches()
 
 # Allow admin or 'all' branch users to select a branch
 if branch == "all":
-    branch = st.selectbox("Select a branch:", branches)
-    st.session_state.branch = branch  # Update session with selected branch
-    st.success(f"Now working on: {branch}")
+    selected_branch = st.selectbox("Select a branch:", branches, index=0)
+    
+    # Update session state when selection changes
+    if selected_branch != st.session_state.get("branch"):
+        st.session_state.branch = selected_branch
+        st.rerun()  # ✅ Force update
+
+    st.success(f"Now working on: {selected_branch}")
 
 # Define available pages based on role
 allowed_pages = ROLE_ACCESS.get(role, [])
