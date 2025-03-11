@@ -1,15 +1,12 @@
+from sqlalchemy import create_engine
 import streamlit as st
-import psycopg2
+
+# Database connection URL (Replace with your actual credentials)
+DB_URL = "postgresql://neondb_owner:npg_QyWNO1qFf4do@ep-quiet-wave-a8pgbkwd-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
+
+# Create the engine with connection pooling
+engine = create_engine(DB_URL, pool_pre_ping=True)
 
 def get_db_connection():
-    # Determine the correct branch
-    branch = st.session_state.get("branch", "main")
-
-    conn = psycopg2.connect(
-        dbname=st.secrets["database"]["dbname"],
-        user=st.secrets["database"]["user"],
-        password=st.secrets["database"]["password"],
-        host=st.secrets["database"]["host"],
-        options=f"-c search_path={branch}"
-    )
-    return conn
+    """Returns a new database connection."""
+    return engine.connect()
