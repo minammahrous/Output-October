@@ -12,7 +12,8 @@ from db import get_db_connection
 from decimal import Decimal
 import numpy as np
 # Establish the connection
-conn = get_db_connection()
+engine = get_sqlalchemy_engine()
+conn = engine.connect()
 if not conn:
     st.error("❌ Database connection failed. Please check your credentials.")
     st.stop()
@@ -550,12 +551,22 @@ if st.button("Approve and Save"):
                 elif time_below_75:
                     st.error(f"❌ Total recorded time ({total_recorded_time} hrs) is less than 75% of shift standard time ({0.75 * standard_shift_time} hrs). Modify the data.")
                 else:
-                    # ✅ Save to database using SQL INSERT
+                    # ✅ Save to database using SQL INSERTfrom decimal import Decimal
+
                     for _, row in archive_df.iterrows():
                         cur.execute("""
-                            INSERT INTO archive ("Date", "Machine", "Day/Night/plan", "time", "efficiency")
-                            VALUES (%s, %s, %s, %s, %s)
-                        """, (row["Date"], row["Machine"], row["Day/Night/plan"], row["time"], row["efficiency"]))
+                            INSERT INTO archive ("Date", "Machine", "Day/Night/plan", "time", "efficiency", "quantity", "rate", "standard rate")
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        """, (
+                            row["Date"], 
+                            row["Machine"], 
+                            row["Day/Night/plan"], 
+                            Decimal(row["time"]) if isinstance(row["time"], float) else row["time"],  
+                            Decimal(row["efficiency"]) if isinstance(row["efficiency"], float) else row["efficiency"],
+                            Decimal(row["quantity"]) if isinstance(row["quantity"], float) else row["quantity"],  
+                            Decimal(row["rate"]) if isinstance(row["rate"], float) else row["rate"],  
+                            Decimal(row["standard rate"]) if isinstance(row["standard rate"], float) else row["standard rate"]
+                            ))
 
                     for _, row in av_df.iterrows():
                         cur.execute("""
