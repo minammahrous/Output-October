@@ -43,7 +43,7 @@ def authenticate_user():
                 st.session_state.role = user["role"]
                 st.session_state.branch = user["branch"]  # Can be 'all' for admin-like users
                 st.success(f"Welcome, {user['username']}!")
-                st.experimental_rerun()
+                st.rerun()  # ✅ Fix: Use st.rerun() instead of st.experimental_rerun()
             else:
                 st.error("Invalid username or password")
 
