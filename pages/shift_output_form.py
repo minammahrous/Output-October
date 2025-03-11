@@ -601,4 +601,5 @@ if st.button("Approve and Save"):
 
                         except Exception as e:
                             conn.rollback()  # ✅ Rollback changes in case of an error
-                            st.error(f"❌ Error saving data: {e}")
+                            
+st.error(f"❌ Error saving data: {e}")
