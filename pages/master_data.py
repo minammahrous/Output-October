@@ -108,7 +108,7 @@ with st.expander("Edit Product Definition", expanded=False):
             st.rerun()
 
     with col2:
-        if st.button("Cancel"):
+        if st.button("cancel"):
             st.rerun()
 
 # Expander for Standard Rates
