@@ -517,7 +517,8 @@ else:
     total_production_time = 0  # Default value when no product is selected
 
 total_downtime = sum(downtime_data[dt] for dt in downtime_types)
-total_recorded_time = total_production_time + total_downtime
+total_recorded_time = Decimal(str(archive_df["time"].sum()))  # Ensure correct type
+standard_shift_time = Decimal(str(standard_shift_time))  # Convert if needed
 
 # Special check for "partial" shift
 if shift_duration == "partial":
