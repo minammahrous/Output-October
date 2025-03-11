@@ -15,7 +15,8 @@ if not user:
 # Title and sidebar
 st.title("Welcome to the App")
 st.write("Use the sidebar to navigate.")
-
+st.write("DEBUG: User Role →", st.session_state.get("role"))
+st.write("DEBUG: Assigned Branch →", st.session_state.get("branch"))
 # Get user role and branch from session
 role = user["role"]
 user_branch = user.get("branch", "main")  # Default to "main"
