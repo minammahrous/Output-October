@@ -29,6 +29,64 @@ def get_standard_rate(product, machine):
     conn.close()
     
     return Decimal(result[0]) if result else Decimal("0")  # Return 0 if no rate is found
+    
+def save_to_database(archive_df, av_df, conn):
+    """Saves archive and av dataframes to the PostgreSQL database."""
+    try:
+        cur = conn.cursor()
+
+        # ✅ Save archive data
+        for _, row in archive_df.iterrows():
+            row["time"] = float(row["time"]) if row["time"] else None
+            row["efficiency"] = float(row["efficiency"]) if row["efficiency"] else None
+            row["quantity"] = float(row["quantity"]) if row["quantity"] else None
+            row["rate"] = float(row["rate"]) if row["rate"] else None
+            row["standard rate"] = float(row["standard rate"]) if row["standard rate"] else None
+
+            cur.execute("""
+                INSERT INTO archive ("Date", "Machine", "Day/Night/plan", "time", "efficiency", "quantity", "rate", "standard rate")
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                row["Date"], 
+                row["Machine"], 
+                row["Day/Night/plan"], 
+                row["time"],  
+                row["efficiency"],
+                row["quantity"],  
+                row["rate"],  
+                row["standard rate"]
+            ))
+
+        # ✅ Save av data
+        for _, row in av_df.iterrows():
+            row["hours"] = float(row["hours"]) if row["hours"] else None
+            row["T.production time"] = float(row["T.production time"]) if row["T.production time"] else None
+            row["Availability"] = float(row["Availability"]) if row["Availability"] else None
+            row["Av Efficiency"] = float(row["Av Efficiency"]) if row["Av Efficiency"] else None
+            row["OEE"] = float(row["OEE"]) if row["OEE"] else None
+
+            cur.execute("""
+                INSERT INTO av (date, shift, machine, "shift type", hours, "T.production time", Availability, "Av Efficiency", OEE)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                row["date"],
+                row["shift"],
+                row["machine"],
+                row["shift type"],  
+                row["hours"],
+                row["T.production time"],  
+                row["Availability"],
+                row["Av Efficiency"],  
+                row["OEE"]
+            ))
+
+        conn.commit()  # ✅ Commit changes
+        st.success("✅ Data saved to database successfully!")
+
+    except Exception as e:
+        conn.rollback()  # ✅ Rollback on error
+        st.error(f"❌ Error saving data: {e}")
+
 
 # Function to fetch data from PostgreSQL
 def fetch_data(query):
@@ -551,55 +609,10 @@ if st.button("Approve and Save"):
                 elif time_below_75:
                     st.error(f"❌ Total recorded time ({total_recorded_time} hrs) is less than 75% of shift standard time ({0.75 * standard_shift_time} hrs). Modify the data.")
                 else:
-                    try:
-                        # ✅ Save to database using SQL INSERT
-                        for _, row in archive_df.iterrows():
-                            row["time"] = float(row["time"]) if row["time"] else None
-                            row["efficiency"] = float(row["efficiency"]) if row["efficiency"] else None
-                            row["quantity"] = float(row["quantity"]) if row["quantity"] else None
-                            row["rate"] = float(row["rate"]) if row["rate"] else None
-                            row["standard rate"] = float(row["standard rate"]) if row["standard rate"] else None
+                    conn = get_db_connection()
+                    if not conn:
+                        st.error("❌ Database connection failed. Please check credentials and try again.")
+                        st.stop()
 
-                        cur.execute("""
-                            INSERT INTO archive ("Date", "Machine", "Day/Night/plan", "time", "efficiency", "quantity", "rate", "standard rate")
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        """, (
-                            row["Date"], 
-                            row["Machine"], 
-                            row["Day/Night/plan"], 
-                            row["time"],  
-                            row["efficiency"],
-                            row["quantity"],  
-                            row["rate"],  
-                            row["standard rate"]
-                        ))
-
-                        for _, row in av_df.iterrows():
-                            row["hours"] = float(row["hours"]) if row["hours"] else None
-                            row["T.production time"] = float(row["T.production time"]) if row["T.production time"] else None
-                            row["Availability"] = float(row["Availability"]) if row["Availability"] else None
-                            row["Av Efficiency"] = float(row["Av Efficiency"]) if row["Av Efficiency"] else None
-                            row["OEE"] = float(row["OEE"]) if row["OEE"] else None
-                     
-                            cur.execute("""
-                                INSERT INTO av (date, shift, machine, "shift type", hours, "T.production time", Availability, "Av Efficiency", OEE)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                """, (
-                                    row["date"],
-                                    row["shift"],
-                                    row["machine"],
-                                    row["shift type"],  
-                                    row["hours"],
-                                    row["T.production time"],  
-                                    row["Availability"],
-                                    row["Av Efficiency"],  
-                                    row["OEE"]
-                                ))
-                               
-
-                        conn.commit()  # ✅ Commit the changes
-                        st.success("✅ Data saved to database successfully!")
-                    except Exception as e:
-                        conn.rollback()  # ✅ Rollback changes in case of an error
-                        st.error(f"❌ Error saving data: {e}")
+                    save_to_database(st.session_state.submitted_archive_df, st.session_state.submitted_av_df, conn)
                  
