@@ -184,19 +184,29 @@ shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0, key="shift_
 if st.button("Proceed"):
     st.session_state.proceed_clicked = True
     st.rerun()
+
 if st.session_state.get("proceed_clicked", False):
-    # Query to check if a record exists in 'av' table
-    query = text("""
-        SELECT COUNT(*) FROM av 
-        WHERE date = :date AND shift = :shift AND machine = :machine
-    """)
-
+    # ✅ Ensure `conn` is defined BEFORE using it
     conn = get_db_connection()
-if not conn:
-    st.error("❌ Database connection failed. Please check credentials and try again.")
-    st.stop()
-    cur = conn.cursor()
 
+    if not conn:
+        st.error("❌ Database connection failed. Please check credentials and try again.")
+        st.stop()
+
+    cur = conn.cursor()  # ✅ Now `conn` is always defined
+
+    # ✅ Query to check if a record exists in 'av' table
+    query = """
+        SELECT COUNT(*) FROM av WHERE date = %s AND shift = %s AND machine = %s
+    """
+    cur.execute(query, (date, shift_type, selected_machine))
+    result = cur.fetchone()
+
+    if result and result[0] > 0:  # If a record already exists
+        st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
+
+    cur.close()
+    conn.close()  # ✅ Always close connection
 # ✅ Check if a record already exists
 query = """
     SELECT COUNT(*) FROM av WHERE date = %s AND shift = %s AND machine = %s
