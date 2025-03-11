@@ -20,7 +20,7 @@ def get_standard_rate(product, machine):
     conn = get_db_connection()  # Make sure to define this function
     cur = conn.cursor()
     
-    cur.execute("SELECT rate FROM rates WHERE product = %s AND machine = %s", (product, machine))
+    cur.execute("SELECT standard_rate FROM rates WHERE product = %s AND machine = %s", (product, machine))
     result = cur.fetchone()
     
     cur.close()
