@@ -407,7 +407,7 @@ else:
     else:
         availability = total_production_time / standard_shift_time if standard_shift_time != 0 else 0
 
-OEE = 0.99 * availability * average_efficiency
+OEE = Decimal("0.99") * Decimal(availability) * Decimal(average_efficiency)
 av_row = {
                     "date": date,
                     "machine": selected_machine,
