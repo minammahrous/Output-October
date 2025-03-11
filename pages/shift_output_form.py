@@ -11,27 +11,35 @@ from db import get_sqlalchemy_engine
 from db import get_db_connection
 from decimal import Decimal
 import numpy as np
-# Establish the connection
-engine = get_sqlalchemy_engine()
-conn = engine.connect()
-if not conn:
-    st.error("❌ Database connection failed. Please check your credentials.")
-    st.stop()
 
 def get_standard_rate(product, machine):
-    conn = get_db_connection()  # Make sure to define this function
-    cur = conn.cursor()
+    """Fetch the standard rate from the database using psycopg2."""
+    conn = get_db_connection()
     
-    cur.execute("SELECT standard_rate FROM rates WHERE product = %s AND machine = %s", (product, machine))
-    result = cur.fetchone()
+    if not conn:
+        return Decimal("0")  # Return 0 if connection fails
     
-    cur.close()
-    conn.close()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT standard_rate FROM rates WHERE product = %s AND machine = %s", (product, machine))
+        result = cur.fetchone()
+        return Decimal(result[0]) if result else Decimal("0")  # Return 0 if no rate is found
+    except Exception as e:
+        st.error(f"❌ Database error while fetching standard rate: {e}")
+        return Decimal("0")
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
     
-    return Decimal(result[0]) if result else Decimal("0")  # Return 0 if no rate is found
+def save_to_database(archive_df, av_df):
+    """Saves archive and av dataframes to PostgreSQL."""
+    conn = get_db_connection()
     
-def save_to_database(archive_df, av_df, conn):
-    """Saves archive and av dataframes to the PostgreSQL database."""
+    if not conn:
+        st.error("❌ Database connection failed. Please check credentials.")
+        return
+    
     try:
         cur = conn.cursor()
 
@@ -83,19 +91,16 @@ def save_to_database(archive_df, av_df, conn):
     finally:
         cur.close()
         conn.close()  # ✅ Ensure connection is always closed
-
-
 # Function to fetch data from PostgreSQL
 def fetch_data(query):
-    """Fetch data using SQLAlchemy engine."""
+    """Fetch data using SQLAlchemy (for reading only)."""
     engine = get_sqlalchemy_engine()
     try:
-        df = pd.read_sql(query, engine)  # ✅ Use SQLAlchemy engine
+        df = pd.read_sql(query, engine)  # ✅ Use Pandas-friendly SQLAlchemy
         return df["name"].tolist()
     except Exception as e:
         st.error(f"❌ Database error: {e}")
         return []
-
 # Function to fetch machine data from PostgreSQL
 def fetch_machine_data():
     """Fetch machine names and corresponding qty_uom values."""
@@ -561,36 +566,73 @@ if st.button("Approve and Save"):
     # 🚨 Check if any standard rate is missing
     if missing_rates:
         st.error("❌ Cannot save data. Please update the correct standard rate in the database before proceeding.")
-    else:
-        conn = get_db_connection()  # ✅ Get the database connection
-        if not conn:
-            st.error("❌ Database connection failed. Please check credentials and try again.")
-            st.stop()
+        st.stop()  # Prevent further execution
 
-        cur = conn.cursor()  # ✅ Use cursor for executing queries
+    # ✅ Get a new database connection
+    conn = get_db_connection()
+    if not conn:
+        st.error("❌ Database connection failed. Please check credentials and try again.")
+        st.stop()
 
-        try:
-            # 🚨 Check for duplicate entries in the database
-            query = """
-                SELECT COUNT(*) FROM av 
-                WHERE date = %s AND "shift type" = %s AND machine = %s
-            """
+    try:
+        cur = conn.cursor()
 
-            cur.execute(query, (date, shift_type, selected_machine))
-            result = cur.fetchone()
+        # 🚨 Check if a report already exists for the same date, shift, and machine
+        query = """
+            SELECT COUNT(*) FROM av 
+            WHERE date = %s AND "shift type" = %s AND machine = %s
+        """
+        cur.execute(query, (date, shift_type, selected_machine))
+        result = cur.fetchone()
 
-            if result and result[0] > 0:  # If a record already exists
-                st.warning("⚠️ A report for this date, shift type, and machine already exists. Modify or confirm replacement.")
+        if result and result[0] > 0:  # If a record already exists
+            st.warning("⚠️ A report for this date, shift type, and machine already exists. Choose an action.")
+
+            col1, col2 = st.columns(2)
+
+            if col1.button("🗑️ Delete Existing Data and Proceed"):
+                try:
+                    # ✅ Delete existing records before inserting new data
+                    delete_query_av = """
+                        DELETE FROM av WHERE date = %s AND shift = %s AND machine = %s
+                    """
+                    cur.execute(delete_query_av, (date, shift_type, selected_machine))
+
+                    delete_query_archive = """
+                        DELETE FROM archive WHERE "Date" = %s AND "Machine" = %s AND "Day/Night/plan" = %s
+                    """
+                    cur.execute(delete_query_archive, (date, selected_machine, shift_type))
+
+                    conn.commit()  # ✅ Commit deletion
+                    st.success("✅ Existing records deleted. You can proceed with new data entry.")
+
+                    # ✅ Reset session state to allow a fresh submission
+                    st.session_state.proceed_clicked = False
+                    st.rerun()  # Refresh app state
+
+                except Exception as e:
+                    conn.rollback()  # ✅ Rollback in case of error
+                    st.error(f"❌ Error deleting records: {e}")
+
+            if col2.button("🔄 Change Selection"):
+                st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
+                st.session_state.proceed_clicked = False  # Reset proceed state
+                st.stop()  # Prevents further execution
+
+        else:
+            st.success("✅ No existing record found. Proceeding with approval.")
+
+            # ✅ Ensure shift duration exists in shifts_df before accessing it
+            filtered_shift = shifts_df.loc[shifts_df['code'] == shift_duration, 'working hours']
+
+            if not filtered_shift.empty:
+                standard_shift_time = filtered_shift.iloc[0]  # ✅ Get the first match
             else:
-                st.success("✅ No existing record found. Proceeding with approval.")
+                st.error(f"⚠️ Shift duration '{shift_duration}' not found in shifts.csv.")
+                standard_shift_time = None  # ✅ Set a default safe value
 
-                # Clean DataFrames before saving
-                archive_df = clean_dataframe(st.session_state.submitted_archive_df.copy())
-                av_df = clean_dataframe(st.session_state.submitted_av_df.copy())
-
-                # Get shift standard time
-                standard_shift_time = shifts_df.loc[shifts_df['code'] == shift_duration, 'working hours'].iloc[0]
-
+            # ✅ Proceed only if standard_shift_time is valid
+            if standard_shift_time is not None:
                 # Validation checks
                 total_recorded_time = archive_df["time"].sum()
                 efficiency_invalid = (archive_df["efficiency"] > 1).any()
@@ -600,17 +642,23 @@ if st.button("Approve and Save"):
                 # 🚨 Validation Errors
                 if efficiency_invalid:
                     st.error("❌ Efficiency must not exceed 1. Please review and modify the data.")
+                    st.stop()
                 elif time_exceeds_shift:
                     st.error(f"❌ Total recorded time ({total_recorded_time} hrs) exceeds shift standard time ({standard_shift_time} hrs). Modify the data.")
+                    st.stop()
                 elif time_below_75:
                     st.error(f"❌ Total recorded time ({total_recorded_time} hrs) is less than 75% of shift standard time ({0.75 * standard_shift_time} hrs). Modify the data.")
-                
-        except:
-                conn = get_db_connection()
-                if not conn:
-                    st.error("❌ Database connection failed. Please check credentials and try again.")
                     st.stop()
 
-                save_to_database(st.session_state.submitted_archive_df, st.session_state.submitted_av_df, conn)
+                # ✅ Clean DataFrames before saving
+                archive_df = clean_dataframe(st.session_state.submitted_archive_df.copy())
+                av_df = clean_dataframe(st.session_state.submitted_av_df.copy())
 
-                  
+                # ✅ Save the data
+                save_to_database(archive_df, av_df)
+
+    except Exception as e:
+        st.error(f"❌ Error checking database before saving: {e}")
+    finally:
+        cur.close()
+        conn.close()  # ✅ Ensure connection is always closed
