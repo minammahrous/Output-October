@@ -411,14 +411,16 @@ st.session_state.submitted_archive_df = archive_df
 st.session_state.submitted_av_df = av_df
 
 # Display submitted data
-st.subheader("Submitted Archive Data")
 for col in ["quantity", "rate", "standard rate", "efficiency"]:
     if col in st.session_state.submitted_archive_df.columns:
         st.session_state.submitted_archive_df[col] = st.session_state.submitted_archive_df[col].astype(float)
-   
-st.subheader("Submitted AV Data")
     if col in st.session_state.submitted_av_df.columns:
         st.session_state.submitted_av_df[col] = st.session_state.submitted_av_df[col].astype(float)
+st.subheader("Submitted Archive Data")
+st.dataframe(st.session_state.submitted_archive_df)
+  
+st.subheader("Submitted AV Data")
+st.dataframe(st.session_state.submitted_av_df)   
            # Compute total recorded time (downtime + production time)
 total_production_time = sum(
     batch["time_consumed"] for product, batch_list in st.session_state.product_batches.items() for batch in batch_list
