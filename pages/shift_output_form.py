@@ -352,7 +352,7 @@ if "product_batches" in st.session_state and st.session_state["product_batches"]
 # ✅ Ensure efficiency calculation runs even if no products are added
 if efficiencies:
     average_efficiency = sum(efficiencies) / len(efficiencies)
-production_data.append({
+    production_data.append({
             "Date": date,
             "Machine": selected_machine,
             "Day/Night/plan": shift_type,
