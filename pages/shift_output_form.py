@@ -50,7 +50,7 @@ def save_to_database(archive_df, av_df):
         for col in ["time", "efficiency", "quantity", "rate", "standard rate"]:
             if col in archive_df.columns:
                 archive_df[col] = archive_df[col].apply(lambda x: float(x) if isinstance(x, Decimal) else x)
-        df = df.astype({"quantity": "float64"})  # Convert to float before saving
+    
         for col in ["hours", "T.production time", "Availability", "Av Efficiency", "OEE"]:
             if col in av_df.columns:
                 av_df[col] = av_df[col].apply(lambda x: float(x) if isinstance(x, Decimal) else x)
@@ -383,7 +383,7 @@ for dt_type in downtime_types:
             "time": downtime_data[dt_type],
             "Product": "",
             "batch number": "",
-            "quantity": "",
+            "quantity": Decimal(batch["quantity"]),  # ✅ Store as Decimal
             "comments": downtime_data[dt_type + "_comment"],
             "rate": "",
             "standard rate": "",
