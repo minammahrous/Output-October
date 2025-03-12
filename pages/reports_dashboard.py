@@ -78,7 +78,7 @@ def process_summary(df):
     return summary
 
 summary_df = process_summary(st.session_state.df_archive)
-downtime_summary = st.session_state.df_archive.groupby("Activity")["time", "comments"].agg({"time": "sum", "comments": lambda x: ", ".join(x.dropna().unique())}).reset_index()
+downtime_summary = st.session_state.df_archive.groupby("Activity")[["time", "comments"]].agg({"time": "sum", "comments": lambda x: ", ".join(x.dropna().astype(str).unique())}).reset_index()
 
 def generate_charts(df):
     if df is None or df.empty:
