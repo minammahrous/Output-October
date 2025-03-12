@@ -10,7 +10,11 @@ ROLE_ACCESS = {
     "power user": ["shift_output_form", "reports_dashboard", "master_data"],
     "report": ["reports_dashboard"],
 }
-
+def check_authentication():
+    if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
+        st.warning("You must log in to access this page.")
+        st.stop()  # Stops execution if the user is not authenticated
+        
 def authenticate_user():
     """Handles user authentication and assigns branch based on database records."""
     
