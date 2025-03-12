@@ -538,17 +538,21 @@ else:
     st.subheader("Shift Time Utilization")
     fig, ax = plt.subplots(figsize=(5, 2))
 
-    # Bar Chart - Only add standard shift time if it's not None
+    # Ensure total_recorded_time is a valid float
+    total_recorded_time = float(total_recorded_time) if total_recorded_time is not None else 0.0
+    standard_shift_time = float(standard_shift_time) if standard_shift_time is not None else None
+
+    # Bar Chart - Add recorded time
     ax.barh(["Total Time"], [total_recorded_time], color="blue", label="Recorded Time")
 
+    # Add standard shift time if available
     if standard_shift_time is not None:
         ax.barh(["Total Time"], [standard_shift_time], color="gray", alpha=0.5, label="Shift Standard Time")
 
-    # Ensure limits are set correctly
-    valid_times = [float(total_recorded_time)]  # Corrected list initialization
-
+    # Ensure valid values for x-axis limits
+    valid_times = [total_recorded_time]
     if standard_shift_time is not None:
-        valid_times.append(float(standard_shift_time))  # Ensure all values are floats
+        valid_times.append(standard_shift_time)
 
     # Set x-axis limits only if valid values exist
     if valid_times:
@@ -565,13 +569,15 @@ else:
     if standard_shift_time is not None:
         st.write(f"**Standard Shift Time:** {standard_shift_time:.2f} hrs")
 
-    # Warnings
+    # Warnings - Only if standard_shift_time is valid
     if standard_shift_time is not None:
         if total_recorded_time > standard_shift_time:
             st.warning("⚠️ Total recorded time exceeds the standard shift time!")
         elif total_recorded_time < 0.75 * standard_shift_time:
-            st.warning("⚠️ Recorded time is less than 75% of the standard shift time.")         # xchecks & Approve and Save 
-    
+            st.warning("⚠️ Recorded time is less than 75% of the standard shift time.")
+
+    # xchecks & Approve and Save
+
 if st.button("Approve and Save"):
     # 🚨 Check if any standard rate is missing
     if missing_rates:
