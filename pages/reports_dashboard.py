@@ -84,6 +84,11 @@ def generate_charts(df):
     if df is None or df.empty:
         return
     available_columns = [col for col in ["Availability", "Av Efficiency", "OEE"] if col in df.columns]
+    
+    if "Machine" not in df.columns:
+        st.warning("⚠️ 'Machine' column is missing in the dataset. Please check data source.")
+        return
+    
     if available_columns:
         avg_metrics = df.groupby("Machine")[available_columns].mean().reset_index()
         fig = px.bar(avg_metrics, x="Machine", y=available_columns, barmode="group", title="Machine Performance Metrics")
@@ -91,7 +96,7 @@ def generate_charts(df):
     else:
         st.warning("⚠️ Required columns for metrics visualization are missing.")
     
-st.write("Columns in df_av:", st.session_state.df_av.columns)
+st.write("Columns in df_av:", st.session_state.df_av.columns.tolist())
 st.write(st.session_state.df_av.head())
 generate_charts(st.session_state.df_av)
 
