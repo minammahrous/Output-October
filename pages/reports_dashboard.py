@@ -56,6 +56,7 @@ def create_pdf(df_av, df_archive, df_production, fig):
     c.drawImage(img, 30, 300, width=500, height=200)
 
     # Function to add a table
+    # Function to add a table
     def add_table(c, title, df, y_start):
         c.setFont("Helvetica-Bold", 12)
         c.drawString(30, y_start, title)
@@ -76,6 +77,17 @@ def create_pdf(df_av, df_archive, df_production, fig):
                     x += 100
                 y -= 15
 
+    # Add tables
+    add_table(c, "📋 Machine Activity Summary", df_archive, 250)
+    add_table(c, "🏭 Production Summary", df_production, 150)
+    add_table(c, "📈 AV Data", df_av, 50)
+
+    # Save PDF
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+
     
    
 
@@ -89,19 +101,6 @@ df_production = pd.DataFrame({"Machine": ["A"], "batch number": ["B001"], "Produ
 
 # Generate Graph
 fig = px.bar(df_av, x="machine", y=["Availability", "OEE"], barmode='group', title="Performance Metrics")
-# Add tables
-add_table(c, "📋 Machine Activity Summary", df_archive, 250)
-add_table(c, "🏭 Production Summary", df_production, 150)
-add_table(c, "📈 AV Data", df_av, 50)
-
-# PDF Download Button
-if st.button("📥 Download Full Report as PDF"):
-       # Save PDF
-    c.save()
-    buffer.seek(0)
-return buffer
-
-
 
 # ✅ Streamlit UI
 st.title("📊 Machine Performance Dashboard")
@@ -171,62 +170,13 @@ st.dataframe(df_archive)
 st.subheader("🏭 Production Summary per Machine")
 st.dataframe(df_production)
 
-def create_pdf(df_av, df_archive, df_production, fig):
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
+# Generate Graph
+fig = px.bar(df_av, x="machine", y=["Availability", "OEE"], barmode='group', title="Performance Metrics")
 
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(200, 10, "📊 Machine Performance Report", ln=True, align="C")
-    pdf.ln(10)
-    pdf.add_font("DejaVu", "", "fonts/DejaVuSans.ttf", uni=True)
-    pdf.set_font("DejaVu", "", 16)
-    pdf.cell(200, 10, "📊 Machine Performance Report", ln=True, align="C")
-
-
-    # Add the graph as an image
-    img_buf = io.BytesIO()
-    fig.write_image(img_buf, format="png")
-    img_buf.seek(0)
-    pdf.image(img_buf, x=10, y=pdf.get_y(), w=180)
-
-    pdf.ln(90)  # Move below the graph
-
-    # Function to add a table
-    def add_table(pdf, title, df):
-        pdf.set_font("Arial", "B", 12)
-        pdf.cell(200, 10, title, ln=True)
-        pdf.set_font("Arial", "", 10)
-
-        if df.empty:
-            pdf.cell(200, 10, "No data available", ln=True)
-        else:
-            col_widths = [40] * len(df.columns)  # Adjust column width
-            for col in df.columns:
-                pdf.cell(col_widths[0], 10, col, border=1, align="C")
-            pdf.ln()
-
-            for _, row in df.iterrows():
-                for item in row:
-                    pdf.cell(col_widths[0], 10, str(item), border=1, align="C")
-                pdf.ln()
-        pdf.ln(5)
-
-    # Add tables
-    add_table(pdf, "📋 Machine Activity Summary", df_archive)
-    add_table(pdf, "🏭 Production Summary", df_production)
-    add_table(pdf, "📈 AV Data", df_av)
-
-    # Save the PDF in memory
-    pdf_buffer = io.BytesIO()
-    pdf.output(pdf_buffer)
-    pdf_buffer.seek(0)
-    return pdf_buffer
-
-# Create the PDF button
+# PDF Download Button
 if st.button("📥 Download Full Report as PDF"):
     pdf_report = create_pdf(df_av, df_archive, df_production, fig)
     st.download_button(label="📥 Click here to download",
                        data=pdf_report,
-                       file_name=f"Machine_Performance_Report_{date_selected}.pdf",
+                       file_name="Machine_Performance_Report.pdf",
                        mime="application/pdf")
