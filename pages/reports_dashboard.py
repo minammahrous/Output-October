@@ -58,7 +58,7 @@ date_selected = st.date_input("📅 Select Date")
 shift_selected = st.selectbox("🕒 Select Shift Type", ["Day", "Night", "Plan"])
 if st.button("Run Shift Report"):
     st.session_state.df_av = get_data("SELECT * FROM av WHERE date = :date AND shift = :shift", {"date": date_selected, "shift": shift_selected})
-    st.session_state.df_archive = get_data('SELECT * FROM archive WHERE "Date" = :date AND "Day/Night/Plan" = :shift',
+    st.session_state.df_archive = get_data('SELECT * FROM archive WHERE "Date" = :date AND "Day/Night/plan" = :shift',
     {"date": date_selected, "shift": shift_selected})
     st.session_state.report_type = "shift"
     st.session_state.report_name = f"shift_report_{date_selected}"
