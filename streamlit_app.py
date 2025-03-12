@@ -1,28 +1,22 @@
 import streamlit as st
-import sys
-import os
-
-sys.path.append(os.path.dirname(__file__))  # Ensure modules are found
-
 from auth import authenticate_user, ROLE_ACCESS
 from db import get_branches
 
 # Authenticate user
 user = authenticate_user()
-if not user:
+
+if not user:  # Prevent undefined variable errors
     st.warning("Authentication failed. Please log in again.")
     st.stop()
 
-# Set session state for authentication
+# Retrieve role and branch safely
 st.session_state["authenticated"] = True
-st.session_state["role"] = user.get("role", "user")
-st.session_state["branch"] = user.get("branch", "main")
-# Store role and branch in session state
-st.session_state["role"] = role
-st.session_state["branch"] = user_branch
+st.session_state["username"] = user["username"]
+st.session_state["role"] = user.get("role", "user")  # Default to "user"
+st.session_state["branch"] = user.get("branch", "main")  # Default branch is "main"
 
 # Admins can select a branch
-if role == "admin":
+if st.session_state["role"] == "admin":
     branches = get_branches()
     selected_branch = st.selectbox(
         "Select a branch:", branches, 
@@ -36,11 +30,11 @@ if role == "admin":
 # Display UI
 st.title("Welcome to the App")
 st.write("Use the sidebar to navigate.")
-st.write(f"DEBUG: User Role → {role}")
+st.write(f"DEBUG: User Role → {st.session_state['role']}")
 st.write(f"DEBUG: Assigned Branch → {st.session_state['branch']}")
 
 # Define accessible pages based on role
-allowed_pages = ROLE_ACCESS.get(role, [])
+allowed_pages = ROLE_ACCESS.get(st.session_state["role"], [])
 
 # Navigation links
 if "shift_output_form" in allowed_pages:
