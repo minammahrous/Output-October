@@ -33,8 +33,8 @@ def get_data(query, params=None):
         
         df = df.replace({None: np.nan})  # Ensure NULLs stay as NaN
         
-        # Standardize column names (lowercase and remove spaces)
-        df.columns = df.columns.str.strip().str.lower()
+        # Standardize column names (lowercase and replace spaces with underscores)
+        df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
 
         return df
     except Exception as e:
@@ -122,7 +122,7 @@ def generate_charts(df):
     else:
         st.warning("⚠️ Required columns for metrics visualization are missing.")
 
-st.write("📌 Archive Data Columns:", st.session_state.df_archive.columns.tolist())
+
 st.write(st.session_state.df_archive.head())
 
 generate_charts(st.session_state.df_av)
