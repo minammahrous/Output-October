@@ -5,7 +5,7 @@ from db import get_db_connection
 
 # Role-based access control
 ROLE_ACCESS = {
-    "admin": ["shift_output_form", "reports_dashboard", "master_data"],
+    "admin": ["shift_output_form", "reports_dashboard", "master_data", "user_management"],
     "user": ["shift_output_form", "reports_dashboard"],
     "power user": ["shift_output_form", "reports_dashboard", "master_data"],
     "report": ["reports_dashboard"],
