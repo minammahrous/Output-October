@@ -4,6 +4,10 @@ import plotly.express as px
 from sqlalchemy.sql import text
 from db import get_sqlalchemy_engine
 from auth import check_authentication, check_access
+from fpdf import FPDF
+import matplotlib.pyplot as plt
+import io
+
 # Hide Streamlit's menu and "Manage app" button
 st.markdown("""
     <style>
@@ -99,3 +103,59 @@ st.dataframe(df_archive)
 # ✅ Display Production Summary
 st.subheader("🏭 Production Summary per Machine")
 st.dataframe(df_production)
+
+def create_pdf(df_av, df_archive, df_production, fig):
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(200, 10, "📊 Machine Performance Report", ln=True, align="C")
+    pdf.ln(10)
+
+    # Add the graph as an image
+    img_buf = io.BytesIO()
+    fig.write_image(img_buf, format="png")
+    img_buf.seek(0)
+    pdf.image(img_buf, x=10, y=pdf.get_y(), w=180)
+
+    pdf.ln(90)  # Move below the graph
+
+    # Function to add a table
+    def add_table(pdf, title, df):
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(200, 10, title, ln=True)
+        pdf.set_font("Arial", "", 10)
+
+        if df.empty:
+            pdf.cell(200, 10, "No data available", ln=True)
+        else:
+            col_widths = [40] * len(df.columns)  # Adjust column width
+            for col in df.columns:
+                pdf.cell(col_widths[0], 10, col, border=1, align="C")
+            pdf.ln()
+
+            for _, row in df.iterrows():
+                for item in row:
+                    pdf.cell(col_widths[0], 10, str(item), border=1, align="C")
+                pdf.ln()
+        pdf.ln(5)
+
+    # Add tables
+    add_table(pdf, "📋 Machine Activity Summary", df_archive)
+    add_table(pdf, "🏭 Production Summary", df_production)
+    add_table(pdf, "📈 AV Data", df_av)
+
+    # Save the PDF in memory
+    pdf_buffer = io.BytesIO()
+    pdf.output(pdf_buffer)
+    pdf_buffer.seek(0)
+    return pdf_buffer
+
+# Create the PDF button
+if st.button("📥 Download Full Report as PDF"):
+    pdf_report = create_pdf(df_av, df_archive, df_production, fig)
+    st.download_button(label="📥 Click here to download",
+                       data=pdf_report,
+                       file_name=f"Machine_Performance_Report_{date_selected}.pdf",
+                       mime="application/pdf")
