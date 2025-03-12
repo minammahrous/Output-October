@@ -44,11 +44,11 @@ def get_data(query, params=None):
 # Function to generate PDF with Unicode support
 def create_pdf(df_av, df_archive, df_production, fig):
     buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=letter)  # ✅ Changed to portrait (letter)
+    c = canvas.Canvas(buffer, pagesize=letter)  # ✅ Set PDF to portrait mode
 
-    # ✅ Set margins and page dimensions
-    margin_x = 40
-    margin_y = 40
+    # ✅ Add proper margins
+    margin_x = 50
+    margin_y = 50
     width, height = letter
 
     # ✅ Set PDF Title
@@ -58,25 +58,28 @@ def create_pdf(df_av, df_archive, df_production, fig):
     c.setFont("Helvetica-Bold", 16)
     c.drawString(margin_x, height - margin_y, "📊 Machine Performance Report")
 
-    # ✅ Force Plotly to use colored export
+    # ✅ Force Plotly to keep colors in the exported image
+    custom_colors = ["#1f77b4", "#ff7f0e", "#2ca02c"]  # Blue, Orange, Green
+
     fig.update_layout(
         template="plotly_white",
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        font=dict(color="black"),
+        plot_bgcolor="white",  # White background
+        paper_bgcolor="white",  # White background
+        font=dict(color="black"),  # Black text
+        colorway=custom_colors,  # ✅ Force colors in graph
     )
 
-    # ✅ Force SVG to preserve colors
-    pio.kaleido.scope.default_format = "svg"
+    # ✅ Fix Kaleido issue in cloud environments (ensures proper color rendering)
+    pio.kaleido.scope.chromium_args += ("--single-process",)
 
     # ✅ Save the figure as PNG with high resolution
     img_buf = io.BytesIO()
-    pio.write_image(fig, img_buf, format="png", scale=3)
+    pio.write_image(fig, img_buf, format="png", scale=3)  # High-quality export
     img_buf.seek(0)
 
-    # ✅ Embed image in PDF (adjusted for portrait)
+    # ✅ Embed the colored graph in the PDF
     img = ImageReader(img_buf)
-    c.drawImage(img, margin_x, height - 300, width=500, height=200)
+    c.drawImage(img, margin_x, height - 300, width=500, height=200)  # Adjusted for portrait mode
 
     # ✅ Function to add tables with proper spacing & text wrapping
     def add_table(c, title, df, y_start):
@@ -84,20 +87,21 @@ def create_pdf(df_av, df_archive, df_production, fig):
         c.drawString(margin_x, y_start, title)
         c.setFont("Helvetica", 10)
 
-        df = df.fillna("N/A").round(2)  # Replace NaN with "N/A"
+        # ✅ Ensure all numerical values are rounded to 2 decimal places
+        df = df.fillna("N/A").applymap(lambda x: round(x, 2) if isinstance(x, (int, float)) else x)
 
         if df.empty:
             c.drawString(margin_x, y_start - 20, "No data available")
         else:
             y = y_start - 20
-            col_width = 110  # ✅ Wider column width for portrait mode
+            col_width = 110  # ✅ Adjust column width for portrait mode
 
             # ✅ Add headers with spacing
             for col in df.columns:
                 c.drawString(margin_x + df.columns.get_loc(col) * col_width, y, col)
             y -= 15
 
-            # ✅ Add row data with better alignment & text wrapping
+            # ✅ Add row data with proper alignment & text wrapping
             for _, row in df.iterrows():
                 x = margin_x
                 for item in row:
@@ -114,7 +118,7 @@ def create_pdf(df_av, df_archive, df_production, fig):
     # ✅ Save PDF
     c.save()
     buffer.seek(0)
-    return buffer# Streamlit UI
+    return buffer
 st.title("📊 Machine Performance Dashboard")
 
 # Sample Data (Replace with actual database data)
