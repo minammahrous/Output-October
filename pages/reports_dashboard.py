@@ -104,17 +104,17 @@ def create_pdf(df_av, df_archive, df_production, fig):
 
     # ✅ Function to Add Tables
     def add_table(c, title, df, y_start):
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y_start, title)
-    c.setFont("Helvetica", 10)
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(50, y_start, title)
+        c.setFont("Helvetica", 10)
 
     # ✅ Ensure numerical values are rounded
-    df = df.fillna("N/A").applymap(lambda x: round(x, 2) if isinstance(x, (int, float)) else x)
+        df = df.fillna("N/A").applymap(lambda x: round(x, 2) if isinstance(x, (int, float)) else x)
 
-    if df.empty:
-        c.drawString(50, y_start - 20, "No data available")
-    else:
-        y = y_start - 20
+        if df.empty:
+            c.drawString(50, y_start - 20, "No data available")
+        else:
+            y = y_start - 20
         col_width = 110  # ✅ Adjust column width
 
         # ✅ Add headers
