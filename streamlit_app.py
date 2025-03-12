@@ -9,14 +9,15 @@ from db import get_branches
 
 # Authenticate user
 user = authenticate_user()
+user = authenticate_user()
 if not user:
     st.warning("Authentication failed. Please log in again.")
     st.stop()
 
-# Retrieve role and branch from user data
-role = user.get("role", "user")  # Default role is "user" if missing
-user_branch = user.get("branch", "main")  # Default branch is "main"
-
+# Set session state for authentication
+st.session_state["authenticated"] = True
+st.session_state["role"] = user.get("role", "user")
+st.session_state["branch"] = user.get("branch", "main")
 # Store role and branch in session state
 st.session_state["role"] = role
 st.session_state["branch"] = user_branch
