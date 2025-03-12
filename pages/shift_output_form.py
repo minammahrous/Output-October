@@ -352,11 +352,6 @@ if "product_batches" in st.session_state and st.session_state["product_batches"]
 # ✅ Ensure efficiency calculation runs even if no products are added
 if efficiencies:
     average_efficiency = sum(efficiencies) / len(efficiencies)
-
-# ✅ Now, this line will not cause an error
-OEE = 0.99 * availability * average_efficiency
-
-
 production_data.append({
             "Date": date,
             "Machine": selected_machine,
