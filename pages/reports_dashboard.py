@@ -58,8 +58,7 @@ date_selected = st.date_input("📅 Select Date")
 shift_selected = st.selectbox("🕒 Select Shift Type", ["Day", "Night", "Plan"])
 if st.button("Run Shift Report"):
     st.session_state.df_av = get_data("SELECT * FROM av WHERE date = :date AND shift = :shift", {"date": date_selected, "shift": shift_selected})
-    st.session_state.df_archive = get_data('SELECT * FROM archive WHERE "Date" = :date AND "Day/Night/plan" = :shift',
-    {"date": date_selected, "shift": shift_selected})
+    st.session_state.df_archive = get_data("SELECT * FROM archive WHERE \"Date\" = :date AND \"Day/Night/plan\" = :shift", {"date": date_selected, "shift": shift_selected})
     st.session_state.report_type = "shift"
     st.session_state.report_name = f"shift_report_{date_selected}"
 
@@ -69,12 +68,11 @@ start_date = st.date_input("Start Date")
 end_date = st.date_input("End Date")
 if st.button("Run Custom Report"):
     st.session_state.df_av = get_data("SELECT * FROM av WHERE date BETWEEN :start_date AND :end_date", {"start_date": start_date, "end_date": end_date})
-    st.session_state.df_archive = get_data('SELECT * FROM archive WHERE "Date" BETWEEN :start_date AND :end_date',
-    {"start_date": start_date, "end_date": end_date})
+    st.session_state.df_archive = get_data("SELECT * FROM archive WHERE \"Date\" BETWEEN :start_date AND :end_date", {"start_date": start_date, "end_date": end_date})
     st.session_state.report_type = "custom"
     st.session_state.report_name = f"custom_report_{start_date}_to_{end_date}"
 
-# Data Processing: Summarize by Machine
+# Data Processing: Pivot Summary by Machine
 def process_summary(df):
     if df is None or df.empty:
         return pd.DataFrame()
@@ -85,14 +83,9 @@ def process_summary(df):
     if missing_columns:
         st.error(f"❌ Required columns are missing: {', '.join(missing_columns)}")
         return pd.DataFrame()
-
-    summary = df.groupby(["machine", "activity", "batch_number"]).agg(
-        Quantity=("quantity", "sum"),
-        Time=("time", "sum"),
-        Total_Quantity=("quantity", "sum")
-    ).reset_index()
-
-    return summary.replace({None: np.nan})
+    
+    summary = df.pivot_table(index=["machine", "activity"], columns="batch_number", values=["quantity", "time"], aggfunc="sum").fillna(0)
+    return summary.reset_index()
 
 summary_df = process_summary(st.session_state.df_archive)
 if "activity" in st.session_state.df_archive.columns:
@@ -103,31 +96,11 @@ else:
     downtime_summary = pd.DataFrame()
     st.warning("⚠️ 'activity' column is missing in the archive data. Please check the source.")
 
-# Data Visualization
-def generate_charts(df):
-    if df is None or df.empty:
-        st.warning("⚠️ No data available for visualization.")
-        return
+# Display Summary Table
+if not summary_df.empty:
+    st.subheader("📊 Summary Report (Pivot View)")
+    st.dataframe(summary_df)
 
-    available_columns = [col for col in ["availability", "av_efficiency", "oee"] if col in df.columns]
-    
-    if "machine" not in df.columns:
-        st.warning("⚠️ 'machine' column is missing in the dataset. Please check data source.")
-        return
-    
-    if available_columns:
-        avg_metrics = df.groupby("machine")[available_columns].mean().reset_index()
-        fig = px.bar(avg_metrics, x="machine", y=available_columns, barmode="group", title="Machine Performance Metrics")
-        st.plotly_chart(fig)
-    else:
-        st.warning("⚠️ Required columns for metrics visualization are missing.")
-
-
-st.write(st.session_state.df_archive.head())
-
-generate_charts(st.session_state.df_av)
-
-# Export to PDF
 def generate_pdf(summary_df, downtime_summary):
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -135,6 +108,22 @@ def generate_pdf(summary_df, downtime_summary):
     pdf.set_font("Arial", "B", 16)
     pdf.cell(200, 10, "Machine Performance Report", ln=True, align='C')
     pdf.ln(10)
+    
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, "Summary Table", ln=True)
+    pdf.set_font("Arial", "", 10)
+    
+    for i, row in summary_df.iterrows():
+        pdf.cell(0, 10, str(row.tolist()), ln=True)
+    pdf.ln(5)
+    
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, "Downtime Summary", ln=True)
+    pdf.set_font("Arial", "", 10)
+    
+    for i, row in downtime_summary.iterrows():
+        pdf.cell(0, 10, str(row.tolist()), ln=True)
+    pdf.ln(5)
     
     pdf_output = BytesIO()
     pdf.output(pdf_output, dest='S')
