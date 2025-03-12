@@ -1,25 +1,25 @@
- import streamlit as st
- import pandas as pd
- import plotly.express as px
- from sqlalchemy.sql import text
- from db import get_sqlalchemy_engine
- from auth import check_authentication, check_access
- import io
- import plotly.io as pio
- from reportlab.pdfgen import canvas
- from reportlab.lib.pagesizes import letter
- from reportlab.lib.utils import ImageReader
- from textwrap import wrap
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+from sqlalchemy.sql import text
+from db import get_sqlalchemy_engine
+from auth import check_authentication, check_access
+import io
+import plotly.io as pio
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.utils import ImageReader
+from textwrap import wrap
  
  # ✅ Hide Streamlit's menu and sidebar
- st.markdown("""
+st.markdown("""
      <style>
          [data-testid="stToolbar"] {visibility: hidden !important;}
          [data-testid="manage-app-button"] {display: none !important;}
          header {visibility: hidden !important;}
          footer {visibility: hidden !important;}
      </style>
- """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
  
  # ✅ Authenticate and enforce role-based access
  check_authentication()
