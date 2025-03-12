@@ -101,7 +101,10 @@ def generate_pdf(df_av, df_archive):
         pdf.set_font("Arial", "", 8)
         for _, row in df.iterrows():
             for col in columns:
-                pdf.cell(column_width, 10, str(row[col])[:15], border=1, align='C')
+                value = row[col]
+                if isinstance(value, (int, float)):
+                    value = f"{value:.2f}"  # Limit to 2 decimal places
+                pdf.cell(column_width, 10, str(value)[:15], border=1, align='C')
             pdf.ln()
         pdf.ln(5)
     
