@@ -91,7 +91,14 @@ def process_summary(df):
 
 
 summary_df = process_summary(st.session_state.df_archive)
-downtime_summary = st.session_state.df_archive.groupby("Activity")[["time", "comments"]].agg({"time": "sum", "comments": lambda x: ", ".join(x.dropna().astype(str).unique())}).reset_index()
+if "activity" in st.session_state.df_archive.columns:
+    downtime_summary = st.session_state.df_archive.groupby("activity")[["time", "comments"]].agg(
+        {"time": "sum", "comments": lambda x: ", ".join(x.dropna().astype(str).unique())}
+    ).reset_index()
+else:
+    downtime_summary = pd.DataFrame()  # Empty DataFrame if 'activity' is missing
+    st.warning("⚠️ 'activity' column is missing in the archive data. Please check the source.")
+
 
 def generate_charts(df):
    def generate_charts(df):
