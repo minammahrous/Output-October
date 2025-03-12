@@ -528,6 +528,8 @@ total_recorded_time = Decimal(str(total_recorded_time))  # Convert to Decimal sa
 standard_shift_time = Decimal(str(standard_shift_time))  # Convert if needed
 
 
+from decimal import Decimal
+
 # Special check for "partial" shift
 if shift_duration == "partial":
     if total_recorded_time > 7:
@@ -538,9 +540,12 @@ else:
     st.subheader("Shift Time Utilization")
     fig, ax = plt.subplots(figsize=(5, 2))
 
-    # Ensure total_recorded_time is a valid float
-    total_recorded_time = float(total_recorded_time) if total_recorded_time is not None else 0.0
-    standard_shift_time = float(standard_shift_time) if standard_shift_time is not None else None
+    # Ensure total_recorded_time and standard_shift_time are floats
+    if isinstance(total_recorded_time, Decimal):
+        total_recorded_time = float(total_recorded_time)
+
+    if isinstance(standard_shift_time, Decimal):
+        standard_shift_time = float(standard_shift_time) if standard_shift_time is not None else None
 
     # Bar Chart - Add recorded time
     ax.barh(["Total Time"], [total_recorded_time], color="blue", label="Recorded Time")
@@ -577,6 +582,7 @@ else:
             st.warning("⚠️ Recorded time is less than 75% of the standard shift time.")
 
     # xchecks & Approve and Save
+
 
 if st.button("Approve and Save"):
     # 🚨 Check if any standard rate is missing
