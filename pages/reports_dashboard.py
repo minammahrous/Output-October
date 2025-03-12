@@ -48,9 +48,16 @@ if date_option == "Single Date":
     start_date = st.date_input("📅 Select Date")
     end_date = start_date
 else:
-    start_date, end_date = st.date_input("📅 Select Date Range", [])
+    date_range = st.date_input("📅 Select Date Range", [pd.to_datetime("today"), pd.to_datetime("today")])
 
-shift_selected = st.selectbox("🕒 Select Shift Type", ["Day", "Night", "Plan", "All"])
+# Ensure two dates are selected
+if len(date_range) == 2:
+    start_date, end_date = date_range
+else:
+    st.warning("Please select both start and end dates.")
+    st.stop()
+
+shift_selected = st.selectbox("🕒 Select Shift Type", ["Day", "Night"])
 
 # ✅ SQL Query to Fetch Production Data with Total Batch Output and Date Range Support
 query_production = """
