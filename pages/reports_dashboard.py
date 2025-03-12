@@ -109,7 +109,8 @@ def generate_pdf(df_av, df_archive):
     add_table(pdf, df_archive, "Archive Data")
     
     pdf_output = BytesIO()
-    pdf.output(pdf_output, dest='F')
+    pdf_bytes = pdf.output(dest='S').encode('latin1')
+    pdf_output.write(pdf_bytes)
     pdf_output.seek(0)
     return pdf_output
 
