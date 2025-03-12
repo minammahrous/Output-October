@@ -14,7 +14,10 @@ def check_authentication():
     if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
         st.warning("You must log in to access this page.")
         st.stop()  # Stops execution if the user is not authenticated
-        
+def check_access(required_roles):
+    if "role" not in st.session_state or st.session_state["role"] not in required_roles:
+        st.error("Access Denied: You do not have permission to view this page.")
+        st.stop()        
 def authenticate_user():
     """Handles user authentication and assigns branch based on database records."""
     
