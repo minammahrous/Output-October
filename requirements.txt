@@ -13,4 +13,4 @@ plotly
 Pillow
 matplotlib
 reportlab
-kaleido
+Kaleido
