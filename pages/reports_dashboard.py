@@ -151,9 +151,9 @@ pdf_output = BytesIO()
 img_bytes = to_image(fig, format="png")
 pdf.image(img_bytes, x=10, y=pdf.get_y(), w=250)
 pdf.ln(10)
-    pdf_output.write(pdf.output(dest='S').encode('latin1'))
-    pdf_output.seek(0)
-    return pdf_output
+pdf_output.write(pdf.output(dest='S').encode('latin1'))
+pdf_output.seek(0)
+return pdf_output
 
 if st.button("Download PDF Report"):
     if not summary_df.empty:
