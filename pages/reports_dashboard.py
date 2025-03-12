@@ -90,9 +90,9 @@ df_production = pd.DataFrame({"Machine": ["A"], "batch number": ["B001"], "Produ
 # Generate Graph
 fig = px.bar(df_av, x="machine", y=["Availability", "OEE"], barmode='group', title="Performance Metrics")
 # Add tables
-    add_table(c, "📋 Machine Activity Summary", df_archive, 250)
-    add_table(c, "🏭 Production Summary", df_production, 150)
-    add_table(c, "📈 AV Data", df_av, 50)
+add_table(c, "📋 Machine Activity Summary", df_archive, 250)
+add_table(c, "🏭 Production Summary", df_production, 150)
+add_table(c, "📈 AV Data", df_av, 50)
 
 # PDF Download Button
 if st.button("📥 Download Full Report as PDF"):
