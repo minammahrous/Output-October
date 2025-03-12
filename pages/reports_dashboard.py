@@ -81,13 +81,12 @@ def create_pdf(df_av, df_archive, df_production, fig):
 
     return buffer.getvalue()  # ✅ Convert buffer to binary format
 
-# ✅ Function to Add Tables with Borders and Wrapped Text
+# ✅ Function to Add Tables with Corrected Borders & Wrapped Text
 def add_table(c, title, df, y_start):
     c.setFont("Helvetica-Bold", 12)
     c.drawString(50, y_start, title)
     c.setFont("Helvetica", 10)
 
-    # ✅ Ensure numerical values are rounded
     df = df.fillna("N/A").applymap(lambda x: round(x, 2) if isinstance(x, (int, float)) else x)
 
     if df.empty:
@@ -102,34 +101,36 @@ def add_table(c, title, df, y_start):
         for width in col_widths[:-1]:
             x_positions.append(x_positions[-1] + width)
 
-        # ✅ Draw header row with borders
+        # ✅ Draw table borders **before** adding text
         c.setStrokeColorRGB(0, 0, 0)  # Black border color
         c.line(50, y + 5, x_positions[-1] + 100, y + 5)  # Top border
+        for i in range(len(headers) + 1):  
+            c.line(x_positions[i] if i < len(headers) else x_positions[-1] + 100, y + 5,
+                   x_positions[i] if i < len(headers) else x_positions[-1] + 100, y - (len(df) * 15) - 15)
+
+        # ✅ Add headers
         for i, col in enumerate(headers):
-            c.drawString(x_positions[i] + 5, y, col)  # Add header text
-            c.line(x_positions[i], y + 5, x_positions[i], y - 15)  # Vertical line
+            c.drawString(x_positions[i] + 5, y, col)
 
         y -= 15
 
-        # ✅ Draw row data with text wrapping and borders
+        # ✅ Draw row data with wrapped text
         for _, row in df.iterrows():
-            c.line(50, y + 5, x_positions[-1] + 100, y + 5)  # Row top border
             for i, (col_name, item) in enumerate(zip(headers, row)):
                 wrapped_text = str(item)
 
                 if col_name == "Product":  # ✅ Wrap Product names properly
-                    wrapped_lines = wrap(str(item), width=20)  # Wrap at 20 characters
+                    wrapped_lines = wrap(str(item), width=20)  
                     for line in wrapped_lines:
                         c.drawString(x_positions[i] + 5, y, line)
                         y -= 10
-                    continue  # Skip normal row movement
+                    continue  
 
-                c.drawString(x_positions[i] + 5, y, wrapped_text[:20])  # Truncate long text
-                c.line(x_positions[i], y + 5, x_positions[i], y - 15)  # Column vertical border
+                c.drawString(x_positions[i] + 5, y, wrapped_text[:20])  
 
             y -= 15
 
-        # ✅ Draw bottom border for the table
+        # ✅ Draw bottom border **after** all rows
         c.line(50, y + 5, x_positions[-1] + 100, y + 5)
 
 # ✅ Streamlit UI
@@ -159,12 +160,9 @@ df_production = get_data(query_production, {"date": date_selected, "shift": shif
 # ✅ Visualize AV Data
 if not df_av.empty:
     st.subheader("📈 Machine Efficiency, Availability & OEE")
-
-    # ✅ Define the Plotly figure before using it
     fig = px.bar(df_av, x="machine", y=["Availability", "Av Efficiency", "OEE"], 
                  barmode="group", title="Performance Metrics per Machine",
                  color_discrete_map={"Availability": "#1f77b4", "Av Efficiency": "#ff7f0e", "OEE": "#2ca02c"})
-
     st.plotly_chart(fig)
 else:
     st.warning("⚠️ No AV data available for the selected filters.")
@@ -174,7 +172,7 @@ st.subheader("📋 Machine Activity Summary")
 st.dataframe(df_archive)
 
 st.subheader("🏭 Production Summary per Machine")
-st.dataframe(df_production)  # ✅ Includes Product
+st.dataframe(df_production)
 
 # ✅ PDF Download Button
 if st.button("📥 Download Full Report as PDF"):
