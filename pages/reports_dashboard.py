@@ -84,7 +84,10 @@ def process_summary(df):
         st.error(f"❌ Required columns are missing: {', '.join(missing_columns)}")
         return pd.DataFrame()
     
-    summary = df.pivot_table(index=["machine", "activity"], columns="batch_number", values=["quantity", "time"], aggfunc="sum").fillna(0)
+    # Calculate total quantity for the same batch on the same machine
+    df["total_batch_quantity"] = df.groupby(["machine", "batch_number"])["quantity"].transform("sum")
+    
+    summary = df.pivot_table(index=["machine", "activity"], columns="batch_number", values=["quantity", "time", "total_batch_quantity"], aggfunc="sum").fillna(0)
     return summary.reset_index()
 
 summary_df = process_summary(st.session_state.df_archive)
