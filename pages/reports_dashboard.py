@@ -148,11 +148,11 @@ from plotly.io import to_image
 pdf_output = BytesIO()
 
   # Save the graph as an image and add it to the PDF
-  img_bytes = to_image(fig, format="png")
-  pdf.image(img_bytes, x=10, y=pdf.get_y(), w=250)
-  pdf.ln(10)
-  pdf_output.write(pdf.output(dest='S').encode('latin1'))
-  pdf_output.seek(0)
+img_bytes = to_image(fig, format="png")
+pdf.image(img_bytes, x=10, y=pdf.get_y(), w=250)
+pdf.ln(10)
+pdf_output.write(pdf.output(dest='S').encode('latin1'))
+pdf_output.seek(0)
 return pdf_output
 
 if st.button("Download PDF Report"):
