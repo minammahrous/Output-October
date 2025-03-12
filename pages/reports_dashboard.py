@@ -70,6 +70,32 @@ if st.button("Run Custom Report"):
     st.dataframe(st.session_state.df_archive)
 
 # Export to PDF
+def generate_pdf(df_av, df_archive):
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(200, 10, "Machine Performance Report", ln=True, align='C')
+    pdf.ln(10)
+    
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, "AV Data", ln=True)
+    pdf.set_font("Arial", "", 10)
+    for index, row in df_av.iterrows():
+        pdf.multi_cell(0, 10, str(row.to_dict()))
+    
+    pdf.ln(10)
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, "Archive Data", ln=True)
+    pdf.set_font("Arial", "", 10)
+    for index, row in df_archive.iterrows():
+        pdf.multi_cell(0, 10, str(row.to_dict()))
+    
+    pdf_output = BytesIO()
+    pdf.output(pdf_output, dest='S')
+    pdf_output.seek(0)
+    return pdf_output
+
 if st.button("Download PDF Report"):
     if st.session_state.df_av is not None and st.session_state.df_archive is not None:
         pdf_file = generate_pdf(st.session_state.df_av, st.session_state.df_archive)
@@ -78,6 +104,14 @@ if st.button("Download PDF Report"):
         st.error("❌ Please run a report before downloading the PDF.")
 
 # Export to Excel
+def generate_excel(df_av, df_archive):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df_av.to_excel(writer, sheet_name='AV Data', index=False)
+        df_archive.to_excel(writer, sheet_name='Archive Data', index=False)
+    output.seek(0)
+    return output
+
 if st.button("Download Excel Report"):
     if st.session_state.df_av is not None and st.session_state.df_archive is not None:
         excel_file = generate_excel(st.session_state.df_av, st.session_state.df_archive)
