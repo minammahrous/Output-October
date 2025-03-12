@@ -8,7 +8,7 @@ from fpdf import FPDF
 import matplotlib.pyplot as plt
 import io
 import plotly.io as pio  # ✅ Fix for write_image function
-from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 # Hide Streamlit's menu and "Manage app" button
@@ -42,12 +42,12 @@ def get_data(query, params=None):
 # Function to generate PDF with Unicode support
 def create_pdf(df_av, df_archive, df_production, fig):
     buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=landscape(letter))
-    
-    # ✅ Add proper margins
-    margin_x = 50
-    margin_y = 50
-    width, height = landscape(letter)
+    c = canvas.Canvas(buffer, pagesize=letter)  # ✅ Changed to portrait (letter)
+
+    # ✅ Set margins and page dimensions
+    margin_x = 40
+    margin_y = 40
+    width, height = letter
 
     # ✅ Set PDF Title
     c.setTitle("Machine Performance Report")
@@ -58,7 +58,7 @@ def create_pdf(df_av, df_archive, df_production, fig):
 
     # ✅ Force Plotly to use colored export
     fig.update_layout(
-        template="seaborn",
+        template="plotly_white",
         plot_bgcolor="white",
         paper_bgcolor="white",
         font=dict(color="black"),
@@ -72,11 +72,11 @@ def create_pdf(df_av, df_archive, df_production, fig):
     pio.write_image(fig, img_buf, format="png", scale=3)
     img_buf.seek(0)
 
-    # ✅ Embed image in PDF with margin
+    # ✅ Embed image in PDF (adjusted for portrait)
     img = ImageReader(img_buf)
-    c.drawImage(img, margin_x, height - 350, width=500, height=250)
+    c.drawImage(img, margin_x, height - 300, width=500, height=200)
 
-    # ✅ Function to add tables with spacing
+    # ✅ Function to add tables with proper spacing & text wrapping
     def add_table(c, title, df, y_start):
         c.setFont("Helvetica-Bold", 12)
         c.drawString(margin_x, y_start, title)
@@ -88,31 +88,31 @@ def create_pdf(df_av, df_archive, df_production, fig):
             c.drawString(margin_x, y_start - 20, "No data available")
         else:
             y = y_start - 20
-            col_width = 120  # ✅ Wider column width
+            col_width = 110  # ✅ Wider column width for portrait mode
 
-            # ✅ Add headers
+            # ✅ Add headers with spacing
             for col in df.columns:
                 c.drawString(margin_x + df.columns.get_loc(col) * col_width, y, col)
             y -= 15
 
-            # ✅ Add row data with better alignment
+            # ✅ Add row data with better alignment & text wrapping
             for _, row in df.iterrows():
                 x = margin_x
                 for item in row:
-                    c.drawString(x, y, str(item)[:15])  # ✅ Truncate long text
+                    wrapped_text = "\n".join(wrap(str(item), width=12))  # ✅ Wrap long text
+                    c.drawString(x, y, wrapped_text)
                     x += col_width
                 y -= 15
 
-    # ✅ Add tables with proper spacing
-    add_table(c, "📋 Machine Activity Summary", df_archive, height - 400)
-    add_table(c, "🏭 Production Summary", df_production, height - 500)
+    # ✅ Add tables with proper spacing (adjusted for portrait mode)
+    add_table(c, "📋 Machine Activity Summary", df_archive, height - 350)
+    add_table(c, "🏭 Production Summary", df_production, height - 480)
     add_table(c, "📈 AV Data", df_av, height - 600)
 
     # ✅ Save PDF
     c.save()
     buffer.seek(0)
-    return buffer
-# Streamlit UI
+    return buffer# Streamlit UI
 st.title("📊 Machine Performance Dashboard")
 
 # Sample Data (Replace with actual database data)
