@@ -11,6 +11,8 @@ import plotly.io as pio  # ✅ Fix for write_image function
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
+from textwrap import wrap
+
 # Hide Streamlit's menu and "Manage app" button
 st.markdown("""
     <style>
