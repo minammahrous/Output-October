@@ -145,7 +145,7 @@ def generate_pdf(summary_df, downtime_summary, fig):
     import matplotlib.pyplot as plt
 from plotly.io import to_image
 
-  pdf_output = BytesIO()
+pdf_output = BytesIO()
 
   # Save the graph as an image and add it to the PDF
   img_bytes = to_image(fig, format="png")
