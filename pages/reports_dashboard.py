@@ -44,64 +44,69 @@ def create_pdf(df_av, df_archive, df_production, fig):
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=landscape(letter))
     
-    # Set PDF title
+    # ✅ Add proper margins
+    margin_x = 50
+    margin_y = 50
+    width, height = landscape(letter)
+
+    # ✅ Set PDF Title
     c.setTitle("Machine Performance Report")
 
-    # Title
+    # ✅ Add a title with margins
     c.setFont("Helvetica-Bold", 16)
-    c.drawString(30, 550, "📊 Machine Performance Report")
-    # Define custom colors for better contrast
-    custom_colors = ["#1f77b4", "#ff7f0e", "#2ca02c"]  # Blue, Orange, Green
+    c.drawString(margin_x, height - margin_y, "📊 Machine Performance Report")
 
-# Update the figure with colors and white background
+    # ✅ Force Plotly to use colored export
     fig.update_layout(
-        template="plotly_white",  # Ensures white background (Fixes black issue)
-        plot_bgcolor="white",  # White background
-        paper_bgcolor="white",  # White export background
-        font=dict(color="black")  # Ensures text is visible
+        template="plotly_white",
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        font=dict(color="black"),
     )
 
-    # Save the figure as a PNG with colors
+    # ✅ Force SVG to preserve colors
+    pio.kaleido.scope.default_format = "svg"
+
+    # ✅ Save the figure as PNG with high resolution
     img_buf = io.BytesIO()
-    pio.write_image(fig, img_buf, format="png", scale=2)  # Ensures high resolution
+    pio.write_image(fig, img_buf, format="png", scale=3)
     img_buf.seek(0)
 
-    # Embed the image into the PDF
+    # ✅ Embed image in PDF with margin
     img = ImageReader(img_buf)
-    c.drawImage(img, 30, 300, width=500, height=250)  # Adjusted size
+    c.drawImage(img, margin_x, height - 350, width=500, height=250)
 
-    
-    # ✅ Function to add tables with improved spacing
+    # ✅ Function to add tables with spacing
     def add_table(c, title, df, y_start):
         c.setFont("Helvetica-Bold", 12)
-        c.drawString(30, y_start, title)
+        c.drawString(margin_x, y_start, title)
         c.setFont("Helvetica", 10)
 
-        df = df.fillna("N/A").round(2)  # ✅ Replace NaN with "N/A" and round numbers
+        df = df.fillna("N/A").round(2)  # Replace NaN with "N/A"
 
         if df.empty:
-            c.drawString(30, y_start - 20, "No data available")
+            c.drawString(margin_x, y_start - 20, "No data available")
         else:
             y = y_start - 20
-            col_width = 100  # Adjust column width
+            col_width = 120  # ✅ Wider column width
 
             # ✅ Add headers
             for col in df.columns:
-                c.drawString(30 + df.columns.get_loc(col) * col_width, y, col)
+                c.drawString(margin_x + df.columns.get_loc(col) * col_width, y, col)
             y -= 15
 
-            # ✅ Add row data with spacing
+            # ✅ Add row data with better alignment
             for _, row in df.iterrows():
-                x = 30
+                x = margin_x
                 for item in row:
-                    c.drawString(x, y, str(item))
+                    c.drawString(x, y, str(item)[:15])  # ✅ Truncate long text
                     x += col_width
                 y -= 15
 
-    # ✅ Add tables
-    add_table(c, "📋 Machine Activity Summary", df_archive, 250)
-    add_table(c, "🏭 Production Summary", df_production, 150)
-    add_table(c, "📈 AV Data", df_av, 50)
+    # ✅ Add tables with proper spacing
+    add_table(c, "📋 Machine Activity Summary", df_archive, height - 400)
+    add_table(c, "🏭 Production Summary", df_production, height - 500)
+    add_table(c, "📈 AV Data", df_av, height - 600)
 
     # ✅ Save PDF
     c.save()
