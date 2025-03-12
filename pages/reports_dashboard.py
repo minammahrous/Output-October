@@ -36,24 +36,30 @@ def get_data(query, params=None):
 
 st.title("📊 Machine Performance Dashboard")
 
+# Initialize session state for reports
+if "df_av" not in st.session_state:
+    st.session_state.df_av = None
+if "df_archive" not in st.session_state:
+    st.session_state.df_archive = None
+
 # Select Shift Report
 date_selected = st.date_input("📅 Select Date")
 shift_selected = st.selectbox("🕒 Select Shift Type", ["Day", "Night", "Plan"])
 if st.button("Run Shift Report"):
-    df_av = get_data("SELECT * FROM av WHERE date = :date AND shift = :shift", {"date": date_selected, "shift": shift_selected})
-    df_archive = get_data('SELECT * FROM archive WHERE "Date" = :date AND "Day/Night/plan" = :shift', {"date": date_selected, "shift": shift_selected})
-    st.dataframe(df_av)
-    st.dataframe(df_archive)
+    st.session_state.df_av = get_data("SELECT * FROM av WHERE date = :date AND shift = :shift", {"date": date_selected, "shift": shift_selected})
+    st.session_state.df_archive = get_data('SELECT * FROM archive WHERE "Date" = :date AND "Day/Night/plan" = :shift', {"date": date_selected, "shift": shift_selected})
+    st.dataframe(st.session_state.df_av)
+    st.dataframe(st.session_state.df_archive)
 
 # Custom Date Range Report
 st.subheader("📅 Select Date Range for Custom Report")
 start_date = st.date_input("Start Date")
 end_date = st.date_input("End Date")
 if st.button("Run Custom Report"):
-    df_av = get_data("SELECT * FROM av WHERE date BETWEEN :start_date AND :end_date", {"start_date": start_date, "end_date": end_date})
-    df_archive = get_data('SELECT * FROM archive WHERE "Date" BETWEEN :start_date AND :end_date', {"start_date": start_date, "end_date": end_date})
-    st.dataframe(df_av)
-    st.dataframe(df_archive)
+    st.session_state.df_av = get_data("SELECT * FROM av WHERE date BETWEEN :start_date AND :end_date", {"start_date": start_date, "end_date": end_date})
+    st.session_state.df_archive = get_data('SELECT * FROM archive WHERE "Date" BETWEEN :start_date AND :end_date', {"start_date": start_date, "end_date": end_date})
+    st.dataframe(st.session_state.df_av)
+    st.dataframe(st.session_state.df_archive)
 
 # Export to PDF
 def generate_pdf(df_av, df_archive):
@@ -83,8 +89,11 @@ def generate_pdf(df_av, df_archive):
     return pdf_output
 
 if st.button("Download PDF Report"):
-    pdf_file = generate_pdf(df_av, df_archive)
-    st.download_button("Download PDF", pdf_file, "report.pdf", "application/pdf")
+    if st.session_state.df_av is not None and st.session_state.df_archive is not None:
+        pdf_file = generate_pdf(st.session_state.df_av, st.session_state.df_archive)
+        st.download_button("Download PDF", pdf_file, "report.pdf", "application/pdf")
+    else:
+        st.error("❌ Please run a report before downloading the PDF.")
 
 # Export to Excel
 def generate_excel(df_av, df_archive):
@@ -96,5 +105,8 @@ def generate_excel(df_av, df_archive):
     return output
 
 if st.button("Download Excel Report"):
-    excel_file = generate_excel(df_av, df_archive)
-    st.download_button("Download Excel", excel_file, "report.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    if st.session_state.df_av is not None and st.session_state.df_archive is not None:
+        excel_file = generate_excel(st.session_state.df_av, st.session_state.df_archive)
+        st.download_button("Download Excel", excel_file, "report.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    else:
+        st.error("❌ Please run a report before downloading the Excel file.")
