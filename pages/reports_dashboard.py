@@ -99,7 +99,7 @@ if st.button("📥 Download Full Report as PDF"):
        # Save PDF
     c.save()
     buffer.seek(0)
-    return buffer
+return buffer
 
 
 
