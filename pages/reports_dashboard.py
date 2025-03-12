@@ -76,31 +76,41 @@ if st.button("Run Custom Report"):
 def process_summary(df):
     if df is None or df.empty:
         return pd.DataFrame()
-    summary = df.groupby(["Machine", "Activity", "batch number"]).agg(
+
+    if "machine" not in df.columns or "activity" not in df.columns or "batch_number" not in df.columns:
+        st.error("❌ Required columns are missing in the dataset.")
+        return pd.DataFrame()
+
+    summary = df.groupby(["machine", "activity", "batch_number"]).agg(
         Quantity=("quantity", "sum"),
         Time=("time", "sum"),
         Total_Quantity=("quantity", "sum")
     ).reset_index()
+
     return summary.replace({None: np.nan})
+
 
 summary_df = process_summary(st.session_state.df_archive)
 downtime_summary = st.session_state.df_archive.groupby("Activity")[["time", "comments"]].agg({"time": "sum", "comments": lambda x: ", ".join(x.dropna().astype(str).unique())}).reset_index()
 
 def generate_charts(df):
+   def generate_charts(df):
     if df is None or df.empty:
         return
-    available_columns = [col for col in ["Availability", "Av Efficiency", "OEE"] if col in df.columns]
+
+    available_columns = [col for col in ["availability", "av_efficiency", "oee"] if col in df.columns]
     
-    if "Machine" not in df.columns:
-        st.warning("⚠️ 'Machine' column is missing in the dataset. Please check data source.")
+    if "machine" not in df.columns:
+        st.warning("⚠️ 'machine' column is missing in the dataset. Please check data source.")
         return
     
     if available_columns:
-        avg_metrics = df.groupby("Machine")[available_columns].mean().reset_index()
-        fig = px.bar(avg_metrics, x="Machine", y=available_columns, barmode="group", title="Machine Performance Metrics")
+        avg_metrics = df.groupby("machine")[available_columns].mean().reset_index()
+        fig = px.bar(avg_metrics, x="machine", y=available_columns, barmode="group", title="Machine Performance Metrics")
         st.plotly_chart(fig)
     else:
         st.warning("⚠️ Required columns for metrics visualization are missing.")
+
     
 st.write("Columns in df_av:", st.session_state.df_av.columns.tolist())
 st.write(st.session_state.df_av.head())
