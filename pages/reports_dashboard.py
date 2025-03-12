@@ -115,7 +115,7 @@ if not st.session_state.df_av.empty:
     fig = px.bar(st.session_state.df_av, x="machine", y=["availability", "av_efficiency", "oee"],
                  barmode="group", title="Machine Performance", text_auto=True)
     for trace in fig.data:
-        trace.text = [f"{y:.2%}" for y in trace.y]
+    trace.text = [f"{y:.2%}" for y in trace.y]
 st.plotly_chart(fig)
 
 def generate_pdf(summary_df, downtime_summary, fig):
@@ -145,14 +145,14 @@ def generate_pdf(summary_df, downtime_summary, fig):
     import matplotlib.pyplot as plt
 from plotly.io import to_image
 
-pdf_output = BytesIO()
+  pdf_output = BytesIO()
 
-# Save the graph as an image and add it to the PDF
-img_bytes = to_image(fig, format="png")
-pdf.image(img_bytes, x=10, y=pdf.get_y(), w=250)
-pdf.ln(10)
-pdf_output.write(pdf.output(dest='S').encode('latin1'))
-pdf_output.seek(0)
+  # Save the graph as an image and add it to the PDF
+  img_bytes = to_image(fig, format="png")
+  pdf.image(img_bytes, x=10, y=pdf.get_y(), w=250)
+  pdf.ln(10)
+  pdf_output.write(pdf.output(dest='S').encode('latin1'))
+  pdf_output.seek(0)
 return pdf_output
 
 if st.button("Download PDF Report"):
