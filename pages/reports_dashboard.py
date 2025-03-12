@@ -58,7 +58,7 @@ def create_pdf(df_av, df_archive, df_production, fig):
 
     # ✅ Force Plotly to use colored export
     fig.update_layout(
-        template="plotly_white",
+        template="seaborn",
         plot_bgcolor="white",
         paper_bgcolor="white",
         font=dict(color="black"),
@@ -169,10 +169,6 @@ df_av = get_data(query_av, {"date": date_selected, "shift": shift_selected})
 df_archive = get_data(query_archive, {"date": date_selected, "shift": shift_selected})
 df_production = get_data(query_production, {"date": date_selected, "shift": shift_selected})
 
-# Debugging: Check if DataFrames have data
-st.write(f"📊 **AV Table Size:** {df_av.shape}")
-st.write(f"📊 **Archive Table Size:** {df_archive.shape}")
-st.write(f"📊 **Production Table Size:** {df_production.shape}")
 
 # ✅ Visualize AV Data
 if not df_av.empty:
