@@ -160,7 +160,7 @@ def add_table(c, title, df, y_start):
     add_table(c, "📈 AV Data", df_av, height - 600)
 
     # ✅ Save PDF
-   c.save()
+    c.save()
     buffer.seek(0)  # ✅ Ensure buffer is at the start
 
     return buffer.getvalue()  # ✅ Convert buffer to binary format
