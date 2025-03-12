@@ -26,11 +26,11 @@ check_access(["user", "power user", "admin", "report"])
 engine = get_sqlalchemy_engine()
 
 def get_data(query, params=None):
-    """Fetch data from Neon PostgreSQL."""
+    """Fetch data from Neon PostgreSQL while preserving NULL values."""
     try:
         with engine.connect() as conn:
             df = pd.read_sql(text(query), conn, params=params)
-        return df
+        return df.replace({None: np.nan})  # Ensure NULLs stay as NaN
     except Exception as e:
         st.error(f"❌ Database connection failed: {e}")
         return pd.DataFrame()
@@ -75,7 +75,7 @@ def process_summary(df):
         Time=("time", "sum"),
         Total_Quantity=("quantity", "sum")
     ).reset_index()
-    return summary
+    return summary.replace({None: np.nan})
 
 summary_df = process_summary(st.session_state.df_archive)
 downtime_summary = st.session_state.df_archive.groupby("Activity")[["time", "comments"]].agg({"time": "sum", "comments": lambda x: ", ".join(x.dropna().astype(str).unique())}).reset_index()
@@ -83,10 +83,16 @@ downtime_summary = st.session_state.df_archive.groupby("Activity")[["time", "com
 def generate_charts(df):
     if df is None or df.empty:
         return
-    avg_metrics = df.groupby("Machine")["Availability", "Av Efficiency", "OEE"].mean().reset_index()
-    fig = px.bar(avg_metrics, x="Machine", y=["Availability", "Av Efficiency", "OEE"], barmode="group", title="Machine Performance Metrics")
-    st.plotly_chart(fig)
-
+    available_columns = [col for col in ["Availability", "Av Efficiency", "OEE"] if col in df.columns]
+    if available_columns:
+        avg_metrics = df.groupby("Machine")[available_columns].mean().reset_index()
+        fig = px.bar(avg_metrics, x="Machine", y=available_columns, barmode="group", title="Machine Performance Metrics")
+        st.plotly_chart(fig)
+    else:
+        st.warning("⚠️ Required columns for metrics visualization are missing.")
+    
+st.write("Columns in df_av:", st.session_state.df_av.columns)
+st.write(st.session_state.df_av.head())
 generate_charts(st.session_state.df_av)
 
 # Export to PDF
@@ -108,7 +114,7 @@ def generate_pdf(summary_df, downtime_summary):
             pdf.ln(5)
             return
         
-        df = df.fillna("N/A")  # Replace NaN values
+        df = df.fillna("")  # Keep NaN values as empty
         columns = df.columns.tolist()
         column_width = max(190 // len(columns), 20)
         
