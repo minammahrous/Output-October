@@ -104,36 +104,45 @@ def create_pdf(df_av, df_archive, df_production, fig):
 
     # ✅ Function to Add Tables
     def add_table(c, title, df, y_start):
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(50, y_start, title)
-        c.setFont("Helvetica", 10)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y_start, title)
+    c.setFont("Helvetica", 10)
 
     # ✅ Ensure numerical values are rounded
-        df = df.fillna("N/A").applymap(lambda x: round(x, 2) if isinstance(x, (int, float)) else x)
+    df = df.fillna("N/A").applymap(lambda x: round(x, 2) if isinstance(x, (int, float)) else x)
 
-        if df.empty:
-            c.drawString(50, y_start - 20, "No data available")
-        else:
-            y = y_start - 20
-        col_width = 110  # ✅ Adjust column width
+    if df.empty:
+        c.drawString(50, y_start - 20, "No data available")
+    else:
+        y = y_start - 20
+        col_widths = [80, 100, 150, 100, 100]  # ✅ Adjust widths (Product column is wider)
+        headers = list(df.columns)
 
-        # ✅ Add headers
-        for col in df.columns:
-            c.drawString(50 + df.columns.get_loc(col) * col_width, y, col)
+        # ✅ Add headers with spacing
+        x_positions = [50]
+        for width in col_widths[:-1]:  # Compute column start positions
+            x_positions.append(x_positions[-1] + width)
+
+        for i, col in enumerate(headers):
+            c.drawString(x_positions[i], y, col)
         y -= 15
 
-        # ✅ Add row data with text wrapping
+        # ✅ Add row data with proper alignment & text wrapping
         for _, row in df.iterrows():
             x = 50
-            for col_name, item in zip(df.columns, row):
-                if col_name == "Product":  # ✅ Wrap product names if column is "Product"
-                    wrapped_text = "\n".join(wrap(str(item), width=15))  # ✅ Wrap text
-                else:
-                    wrapped_text = str(item)
+            for i, (col_name, item) in enumerate(zip(headers, row)):
+                wrapped_text = str(item)
 
-                c.drawString(x, y, wrapped_text)
-                x += col_width
+                if col_name == "Product":  # ✅ Wrap Product names properly
+                    wrapped_lines = wrap(str(item), width=20)  # Wrap at 20 characters
+                    for line in wrapped_lines:
+                        c.drawString(x_positions[i], y, line)
+                        y -= 10  # Move down for the next line
+                    continue  # Skip the normal row movement
+
+                c.drawString(x_positions[i], y, wrapped_text[:20])  # Truncate long text
             y -= 15
+
 
     # ✅ Add tables with proper spacing
     add_table(c, "📋 Machine Activity Summary", df_archive, height - 350)
