@@ -114,7 +114,9 @@ if not st.session_state.df_av.empty:
     st.subheader("📈 Machine Performance Metrics")
     fig = px.bar(st.session_state.df_av, x="machine", y=["availability", "av_efficiency", "oee"],
                  barmode="group", title="Machine Performance", text_auto=True)
-    fig.for_each_trace(lambda trace: trace.update(texttemplate="%{y:.2%}") if trace.name == "oee" else None)
+    for trace in fig.data:
+        if trace.name == "oee":
+            trace.update(texttemplate="%{y:.2%}")
     st.plotly_chart(fig)
 
 def generate_pdf(summary_df, downtime_summary):
@@ -142,7 +144,7 @@ def generate_pdf(summary_df, downtime_summary):
     pdf.ln(5)
     
     pdf_output = BytesIO()
-    pdf.output(pdf_output, 'F')
+    pdf.output(pdf_output, dest='S')
     pdf_output.seek(0)
     return pdf_output
 
