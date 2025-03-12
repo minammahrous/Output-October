@@ -3,128 +3,81 @@ import datetime
 import pandas as pd
 import csv
 import os
-from sqlalchemy import create_engine
+from db import get_sqlalchemy_engine
 from sqlalchemy.sql import text  # Import SQL text wrapper
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
-from db import get_sqlalchemy_engine
 from db import get_db_connection
-from decimal import Decimal
-import numpy as np
-from auth import check_authentication, check_access
+import psycopg2
+import bcrypt
 
-check_authentication()  # Ensure the user is logged in
-check_access(["admin", "power user", "user"])  # Restrict access to only admins and power users
 
-def get_standard_rate(product, machine):
-    """Fetch the standard rate from the database using psycopg2."""
-    conn = get_db_connection()
-    if not conn:
-        return Decimal("0")  # Return 0 if connection fails
-    
-    try:
-        cur = conn.cursor()
-        cur.execute("SELECT standard_rate FROM rates WHERE product = %s AND machine = %s", (product, machine))
-        result = cur.fetchone()
-        return Decimal(result[0]) if result else Decimal("0")  # Return 0 if no rate is found
-    except Exception as e:
-        st.error(f"❌ Database error while fetching standard rate: {e}")
-        return Decimal("0")
-    finally:
-        if conn:
-            cur.close()
-            conn.close()
-    
 def save_to_database(archive_df, av_df):
-    """Saves archive and av dataframes to PostgreSQL."""
-    conn = get_db_connection()
-    
-    if not conn:
+    """Saves archive and av dataframes to PostgreSQL using SQLAlchemy."""
+    engine = get_sqlalchemy_engine()
+
+    if engine is None:
         st.error("❌ Database connection failed. Please check credentials.")
         return
-    
-    try:
-        cur = conn.cursor()
 
-        # ✅ Convert all numeric columns to float before inserting into DB
+    try:
+        # ✅ Convert all numeric columns before inserting into DB
         numeric_cols_archive = ["time", "efficiency", "quantity", "rate", "standard rate"]
         numeric_cols_av = ["hours", "T.production time", "Availability", "Av Efficiency", "OEE"]
 
         for col in numeric_cols_archive:
             if col in archive_df.columns:
-                archive_df[col] = pd.to_numeric(archive_df[col], errors="coerce")  # Convert strings to float, replace errors with NaN
+                archive_df[col] = pd.to_numeric(archive_df[col], errors="coerce")
 
         for col in numeric_cols_av:
             if col in av_df.columns:
-                av_df[col] = pd.to_numeric(av_df[col], errors="coerce")  # Convert strings to float, replace errors with NaN
+                av_df[col] = pd.to_numeric(av_df[col], errors="coerce")
 
-        # ✅ Debug: Print Data Types Before Saving
-        st.write("DEBUG: Archive Data Types Before Saving")
-        st.write(archive_df.dtypes)
+        # ✅ Debugging: Print Data Types Before Saving
+        st.write("DEBUG: Archive Data Types Before Saving", archive_df.dtypes)
+        st.write("DEBUG: AV Data Types Before Saving", av_df.dtypes)
 
-        st.write("DEBUG: AV Data Types Before Saving")
-        st.write(av_df.dtypes)
+        # ✅ Save data using SQLAlchemy (handles data types automatically)
+        archive_df.to_sql("archive", engine, if_exists="append", index=False)
+        av_df.to_sql("av", engine, if_exists="append", index=False)
 
-        # ✅ Save archive data
-        for _, row in archive_df.iterrows():
-            try:
-                cur.execute("""
-                    INSERT INTO archive ("Date", "Machine", "Day/Night/plan", "time", "efficiency", "quantity", "rate", "standard rate")
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """, tuple(row))
-
-            except Exception as e:
-                st.error(f"❌ Error saving archive data: {e}")
-                conn.rollback()
-                return
-
-        # ✅ Save av data
-        for _, row in av_df.iterrows():
-            try:
-                cur.execute("""
-                    INSERT INTO av (date, shift, machine, "shift type", hours, "T.production time", Availability, "Av Efficiency", OEE)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, tuple(row))
-
-            except Exception as e:
-                st.error(f"❌ Error saving av data: {e}")
-                conn.rollback()
-                return
-
-        conn.commit()  # ✅ Commit only if all inserts succeed
         st.success("✅ Data saved to database successfully!")
 
     except Exception as e:
-        conn.rollback()  # ✅ Ensure rollback on any error
-        st.error(f"❌ Critical error: {e}")
+        st.error(f"❌ Critical error while saving: {e}")
+def get_standard_rate(product, machine):
+    query = text("""
+        SELECT standard_rate FROM rates 
+        WHERE product = :product AND machine = :machine
+        LIMIT 1
+    """)
 
-    finally:
-        cur.close()
-        conn.close()  # ✅ Ensure connection is always closed
+    with engine.connect() as conn:
+        result = conn.execute(query, {"product": product, "machine": machine}).fetchone()
+
+    if result and result[0] is not None:
+        try:
+            return float(result[0])  # Ensure it's a valid float
+        except ValueError:
+            st.error(f"⚠️ Invalid standard_rate found for {product} - {machine}: {result[0]}")
+            return 1  # Default to 1 to avoid division by zero
+    else:
+        st.warning(f"⚠️ No standard rate found for {product} - {machine}. Using 1 as default.")
+        return 1  # Default to 1 to prevent division errors
 # Function to fetch data from PostgreSQL
 def fetch_data(query):
-    """Fetch data using SQLAlchemy (for reading only)."""
-    engine = get_sqlalchemy_engine()
+    """Fetch data from PostgreSQL and return as a list."""
     try:
-        df = pd.read_sql(query, engine)  # ✅ Use Pandas-friendly SQLAlchemy
+        with engine.connect() as conn:
+            df = pd.read_sql(query, conn)
         return df["name"].tolist()
     except Exception as e:
         st.error(f"❌ Database error: {e}")
         return []
-# Function to fetch machine data from PostgreSQL
-def fetch_machine_data():
-    """Fetch machine names and corresponding qty_uom values."""
-    engine = get_sqlalchemy_engine()
-    query = "SELECT name, qty_uom FROM machines"
-    try:
-        df = pd.read_sql(query, engine)
-        return df.set_index("name")["qty_uom"].to_dict()
-    except Exception as e:
-        st.error(f"❌ Database error: {e}")
-        return {}
+
 # Fetch machine list from database
-machine_data = fetch_machine_data()
-machine_list = list(machine_data.keys())  # Extract machine names
+machine_list = fetch_data("SELECT name FROM machines")
+
 # Fetch product list from database
 product_list = fetch_data("SELECT name FROM products")
 
@@ -186,95 +139,70 @@ st.subheader("Step 1: Select Shift Details")
 shift_types = ["Day", "Night", "Plan"]
 date = st.date_input("Date", None, key="date")  
 selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
-if selected_machine:
-    qty_uom = machine_data.get(selected_machine, "Unknown UOM")
-    st.info(f"ℹ️ **{selected_machine}**: Production quantity is entered as **{qty_uom}**")
-
 shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0, key="shift_type")
 if st.button("Proceed"):
     st.session_state.proceed_clicked = True
     st.rerun()
-
 if st.session_state.get("proceed_clicked", False):
-    # ✅ Ensure `conn` is defined BEFORE using it
-    conn = get_db_connection()
+    # Query to check if a record exists in 'av' table
+    query = text("""
+        SELECT COUNT(*) FROM av 
+        WHERE date = :date AND shift = :shift AND machine = :machine
+    """)
 
-    if not conn:
-        st.error("❌ Database connection failed. Please check credentials and try again.")
-        st.stop()
+    with engine.connect() as conn:
+        result = conn.execute(query, {"date": date, "shift": shift_type, "machine": selected_machine}).fetchone()
 
-    try:
-        cur = conn.cursor()  # ✅ Now `cur` is always assigned
+    if result and result[0] > 0:  # If a record already exists
+        st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
 
-        # ✅ Query to check if a record exists in 'av' table
-        query = """
-            SELECT COUNT(*) FROM av WHERE date = %s AND shift = %s AND machine = %s
-        """
-        cur.execute(query, (date, shift_type, selected_machine))
-        result = cur.fetchone()
+    col1, col2 = st.columns(2)
+    if col1.button("🗑️ Delete Existing Data and Proceed"):
+        try:
+            with engine.begin() as conn:  # Use engine.begin() to keep connection open
+            # Check if records exist before deleting
+                check_query_av = text("""
+                    SELECT * FROM av WHERE date = :date AND shift = :shift AND machine = :machine
+                """)
+                result_av = conn.execute(check_query_av, {"date": date, "shift": shift_type, "machine": selected_machine}).fetchall()
 
-        if result and result[0] > 0:  # If a record already exists
-            st.warning("⚠️ A report for this Date, Shift Type, and Machine already exists. Choose an action.")
+                check_query_archive = text("""
+                    SELECT * FROM archive WHERE "Date" = :date AND "Machine" = :machine AND "Day/Night/plan" = :shift
+                """)
+                result_archive = conn.execute(check_query_archive, {"date": date, "shift": shift_type, "machine": selected_machine}).fetchall()
 
-            col1, col2 = st.columns(2)
+                # Show records before deletion
+                if not result_av and not result_archive:
+                    st.warning("⚠️ No matching records found. Nothing to delete.")
+                else:
+                    st.write("🔍 Records found in 'av':", result_av)
+                    st.write("🔍 Records found in 'archive':", result_archive)
 
-            if col1.button("🗑️ Delete Existing Data and Proceed"):
-                try:
-                    # ✅ Check for existing records before deleting
-                    check_query_av = """
-                        SELECT * FROM av WHERE date = %s AND shift = %s AND machine = %s
-                    """
-                    cur.execute(check_query_av, (date, shift_type, selected_machine))
-                    result_av = cur.fetchall()
+                    # Proceed with deletion if records exist
+                    delete_query_av = text("""
+                        DELETE FROM av WHERE date = :date AND shift = :shift AND machine = :machine
+                    """)
+                    conn.execute(delete_query_av, {"date": date, "shift": shift_type, "machine": selected_machine})
 
-                    check_query_archive = """
-                        SELECT * FROM archive WHERE "Date" = %s AND "Machine" = %s AND "Day/Night/plan" = %s
-                    """
-                    cur.execute(check_query_archive, (date, selected_machine, shift_type))
-                    result_archive = cur.fetchall()
+                    delete_query_archive = text("""
+                        DELETE FROM archive WHERE "Date" = :date AND "Machine" = :machine AND "Day/Night/plan" = :shift
+                    """)
+                    conn.execute(delete_query_archive, {"date": date, "shift": shift_type, "machine": selected_machine})
 
-                    # ✅ Show records before deletion
-                    if not result_av and not result_archive:
-                        st.warning("⚠️ No matching records found. Nothing to delete.")
-                    else:
-                        st.write("🔍 Records found in 'av':", result_av)
-                        st.write("🔍 Records found in 'archive':", result_archive)
+                    st.success("✅ Existing records deleted. You can proceed with new data entry.")
+                    st.session_state.proceed_clicked = False  # Reset proceed state
 
-                        # ✅ Proceed with deletion
-                        delete_query_av = """
-                            DELETE FROM av WHERE date = %s AND shift = %s AND machine = %s
-                        """
-                        cur.execute(delete_query_av, (date, shift_type, selected_machine))
+        except Exception as e:
+            st.error(f"❌ Error deleting records: {e}")
 
-                        delete_query_archive = """
-                            DELETE FROM archive WHERE "Date" = %s AND "Machine" = %s AND "Day/Night/plan" = %s
-                        """
-                        cur.execute(delete_query_archive, (date, selected_machine, shift_type))
+    if col2.button("🔄 Change Selection"):
+            st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
+            st.session_state.proceed_clicked = False  # Reset proceed state
+            st.stop()  # Prevents further execution
 
-                        conn.commit()  # ✅ Commit changes
-
-                        st.success("✅ Existing records deleted. You can proceed with new data entry.")
-                        st.session_state.proceed_clicked = False  # Reset proceed state
-                        st.rerun()  # Refresh app state
-
-                except Exception as e:
-                    conn.rollback()  # ✅ Rollback in case of error
-                    st.error(f"❌ Error deleting records: {e}")
-
-            if col2.button("🔄 Change Selection"):
-                st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
-                st.session_state.proceed_clicked = False  # Reset proceed state
-                st.stop()  # Prevents further execution
-
-        else:
-            st.success("✅ No existing record found. You can proceed with the form.")
-
-    except Exception as e:
-        st.error(f"❌ Database error while checking records: {e}")
-
-    finally:
-        cur.close()
-        conn.close()  # ✅ Ensure connection is always closed
+    else:
+        st.success("✅ No existing record found. You can proceed with the form.")
+    
 shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
     
     # Downtime inputs with comments
@@ -380,11 +308,11 @@ else:
           
 
  
-   # Construct downtime records first
-downtime_records = []
-for dt_type in downtime_types:
-    if downtime_data[dt_type] > 0:
-        downtime_records.append({
+    # Construct archive_df (Downtime records)
+    archive_data = []
+    for dt_type in downtime_types:
+        if downtime_data[dt_type] > 0:
+            archive_row = {
             "Date": date,
             "Machine": selected_machine,
             "Day/Night/plan": shift_type,
@@ -392,54 +320,56 @@ for dt_type in downtime_types:
             "time": downtime_data[dt_type],
             "Product": "",
             "batch number": "",
-            "quantity": Decimal(batch["quantity"]),  # ✅ Store as Decimal
-            "comments": downtime_data[dt_type + "_comment"],
+            "quantity": "",
+            "commnets": downtime_data[dt_type + "_comment"],
             "rate": "",
             "standard rate": "",
             "efficiency": "",
-        })
+             }
+            archive_data.append(archive_row)
+            archive_df = pd.DataFrame(archive_data)
 
-# Compute efficiency for production records
-efficiencies = []
-production_records = []
-missing_rates = False  # Track if any standard rate is missing
+            # Construct archive_df (Production batch records)
+efficiencies = []  # Declare only once
 
 for product, batch_list in st.session_state.get("product_batches", {}).items():
     for batch in batch_list:
-        rate = Decimal(batch["quantity"]) / Decimal(batch["time_consumed"]) if batch["time_consumed"] != 0 else Decimal("0")
-        standard_rate = get_standard_rate(product, selected_machine)
-
-        if standard_rate is None:
-            missing_rates = True  # Mark that there's an issue
-        else:
-            efficiency = rate / standard_rate if standard_rate != 0 else 0
-            efficiencies.append(efficiency)
-
-            production_records.append({
-                "Date": date,
-                "Machine": selected_machine,
-                "Day/Night/plan": shift_type,
-                "Activity": "Production",
-                "time": Decimal(batch["time_consumed"]),  # ✅ Convert to Decimal
-                "Product": product,
-                "batch number": batch["batch"],
-                "quantity": Decimal(batch["quantity"]),  # ✅ Store as Decimal
-                "comments": "",
-                "rate": Decimal(rate),  # ✅ Convert rate to Decimal
-                "standard rate": Decimal(standard_rate),  # ✅ Convert standard rate
-                "efficiency": Decimal(efficiency),  # ✅ Convert efficiency
-            })
-
-# 🚨 Prevent Saving if Any Standard Rate is Missing
-if missing_rates:
-    st.error("❌ Cannot save data. Please update the correct standard rate in the database for all products before proceeding.")
-    st.stop()  # Stop execution to prevent saving invalid data
+        rate = batch["quantity"] / batch["time_consumed"] if batch["time_consumed"] != 0 else 0
+        standard_rate = get_standard_rate(product, selected_machine) or 1  # Avoid division by zero
+        efficiency = rate / standard_rate
+        efficiencies.append(efficiency)
 
 # Calculate average efficiency once at the end
 average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
 
-# Combine downtime and production records into one DataFrame
-archive_df = pd.DataFrame(downtime_records + production_records)
+
+archive_data = []
+for product, batch_list in st.session_state.product_batches.items():
+    for batch in batch_list:
+        rate = batch["quantity"] / batch["time_consumed"] if batch["time_consumed"] != 0 else 0
+        standard_rate = get_standard_rate(product, selected_machine)
+
+        if standard_rate == 0:
+            st.warning(f"No rate found for Product: {product}, Machine: {selected_machine}. Using 0 as default.")
+
+        efficiency = rate / standard_rate if standard_rate != 0 else 0
+
+        archive_data.append({
+            "Date": date,
+            "Machine": selected_machine,
+            "Day/Night/plan": shift_type,
+            "Activity": "Production",
+            "time": batch["time_consumed"],
+            "Product": product,
+            "batch number": batch["batch"],
+            "quantity": batch["quantity"],
+            "commnets": "",
+            "rate": rate,
+            "standard rate": standard_rate,
+            "efficiency": efficiency,
+        })
+
+archive_df = pd.DataFrame(archive_data)
 
             # Construct av_df
 total_production_time = sum(
@@ -459,13 +389,9 @@ if shift_duration == "partial":
     total_downtime = sum(downtime_data.values()) - sum(1 for key in downtime_data if "_comment" in key)
     availability = total_production_time / (total_production_time + total_downtime) if (total_production_time + total_downtime) != 0 else 0
 else:
-    # Ensure total_production_time and standard_shift_time have valid values
-    if total_production_time is None or standard_shift_time is None:
-        availability = 0  # Default value when form is empty
-    else:
-        availability = total_production_time / standard_shift_time if standard_shift_time != 0 else 0
+    availability = total_production_time / standard_shift_time if standard_shift_time != 0 else 0
 
-OEE = Decimal("0.99") * Decimal(availability) * Decimal(average_efficiency)
+OEE = 0.99 * availability * average_efficiency
 av_row = {
                     "date": date,
                     "machine": selected_machine,
@@ -484,25 +410,10 @@ st.session_state.submitted_archive_df = archive_df
 st.session_state.submitted_av_df = av_df
 
 # Display submitted data
-# ✅ Convert Decimal columns to float before displaying in Streamlit
-for col in ["time", "efficiency", "quantity", "rate", "standard rate"]:
-    if col in st.session_state.submitted_archive_df.columns:
-        st.session_state.submitted_archive_df[col] = st.session_state.submitted_archive_df[col].apply(
-            lambda x: float(x) if isinstance(x, Decimal) else x
-        )
-
-for col in ["hours", "T.production time", "Availability", "Av Efficiency", "OEE"]:
-    if col in st.session_state.submitted_av_df.columns:
-        st.session_state.submitted_av_df[col] = st.session_state.submitted_av_df[col].apply(
-            lambda x: float(x) if isinstance(x, Decimal) else x
-        )
-
 st.subheader("Submitted Archive Data")
 st.dataframe(st.session_state.submitted_archive_df)
-
 st.subheader("Submitted AV Data")
 st.dataframe(st.session_state.submitted_av_df)
-
            # Compute total recorded time (downtime + production time)
 total_production_time = sum(
     batch["time_consumed"] for product, batch_list in st.session_state.product_batches.items() for batch in batch_list
@@ -521,22 +432,9 @@ except IndexError:
     standard_shift_time = 0  # Default to 0 to avoid None issues
 
 # Compute total recorded time (downtime + production time)
-# Ensure selected_product is valid before accessing product_batches
-if selected_product and selected_product in st.session_state.product_batches:
-    total_production_time = sum(batch["time_consumed"] for batch in st.session_state.product_batches[selected_product])
-else:
-    total_production_time = 0  # Default value when no product is selected
-
-from decimal import Decimal
-
-# ✅ Ensure 'time' column has no NaN values and is numeric
-total_recorded_time = archive_df["time"].fillna(0).astype(float).sum()  # Convert to float first
-total_recorded_time = Decimal(str(total_recorded_time))  # Convert to Decimal safely
-
-standard_shift_time = Decimal(str(standard_shift_time))  # Convert if needed
-
-
-from decimal import Decimal
+total_production_time = sum(batch["time_consumed"] for batch in st.session_state.product_batches[selected_product])
+total_downtime = sum(downtime_data[dt] for dt in downtime_types)
+total_recorded_time = total_production_time + total_downtime
 
 # Special check for "partial" shift
 if shift_duration == "partial":
@@ -548,21 +446,13 @@ else:
     st.subheader("Shift Time Utilization")
     fig, ax = plt.subplots(figsize=(5, 2))
 
-    # Ensure total_recorded_time and standard_shift_time are floats
-    if isinstance(total_recorded_time, Decimal):
-        total_recorded_time = float(total_recorded_time)
-
-    if isinstance(standard_shift_time, Decimal):
-        standard_shift_time = float(standard_shift_time) if standard_shift_time is not None else None
-
-    # Bar Chart - Add recorded time
+    # Bar Chart - Only add standard shift time if it's not None
     ax.barh(["Total Time"], [total_recorded_time], color="blue", label="Recorded Time")
 
-    # Add standard shift time if available
     if standard_shift_time is not None:
         ax.barh(["Total Time"], [standard_shift_time], color="gray", alpha=0.5, label="Shift Standard Time")
 
-    # Ensure valid values for x-axis limits
+    # Ensure limits are set correctly
     valid_times = [total_recorded_time]
     if standard_shift_time is not None:
         valid_times.append(standard_shift_time)
@@ -582,113 +472,55 @@ else:
     if standard_shift_time is not None:
         st.write(f"**Standard Shift Time:** {standard_shift_time:.2f} hrs")
 
-    # Warnings - Only if standard_shift_time is valid
+    # Warnings
     if standard_shift_time is not None:
         if total_recorded_time > standard_shift_time:
             st.warning("⚠️ Total recorded time exceeds the standard shift time!")
         elif total_recorded_time < 0.75 * standard_shift_time:
             st.warning("⚠️ Recorded time is less than 75% of the standard shift time.")
 
-    # xchecks & Approve and Save
-
-
+         # xchecks & Approve and Save 
+    
 if st.button("Approve and Save"):
-    # 🚨 Check if any standard rate is missing
-    if missing_rates:
-        st.error("❌ Cannot save data. Please update the correct standard rate in the database before proceeding.")
-        st.stop()  # Prevent further execution
-
-    # ✅ Get a new database connection
-    conn = get_db_connection()
-    if not conn:
-        st.error("❌ Database connection failed. Please check credentials and try again.")
-        st.stop()
-
     try:
-        cur = conn.cursor()
+        # Check for duplicate entries in the database
+        query = text("""
+        SELECT COUNT(*) FROM av 
+        WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
+        """)
 
-        # 🚨 Check if a report already exists for the same date, shift, and machine
-        query = """
-            SELECT COUNT(*) FROM av 
-            WHERE date = %s AND "shift type" = %s AND machine = %s
-        """
-        cur.execute(query, (date, shift_type, selected_machine))
-        result = cur.fetchone()
+        with engine.connect() as conn:
+            result = conn.execute(query, {"date": date, "shift_type": shift_type, "machine": selected_machine}).fetchone()
 
         if result and result[0] > 0:  # If a record already exists
-            st.warning("⚠️ A report for this date, shift type, and machine already exists. Choose an action.")
-
-            col1, col2 = st.columns(2)
-
-            if col1.button("🗑️ Delete Existing Data and Proceed"):
-                try:
-                    # ✅ Delete existing records before inserting new data
-                    delete_query_av = """
-                        DELETE FROM av WHERE date = %s AND shift = %s AND machine = %s
-                    """
-                    cur.execute(delete_query_av, (date, shift_type, selected_machine))
-
-                    delete_query_archive = """
-                        DELETE FROM archive WHERE "Date" = %s AND "Machine" = %s AND "Day/Night/plan" = %s
-                    """
-                    cur.execute(delete_query_archive, (date, selected_machine, shift_type))
-
-                    conn.commit()  # ✅ Commit deletion
-                    st.success("✅ Existing records deleted. You can proceed with new data entry.")
-
-                    # ✅ Reset session state to allow a fresh submission
-                    st.session_state.proceed_clicked = False
-                    st.rerun()  # Refresh app state
-
-                except Exception as e:
-                    conn.rollback()  # ✅ Rollback in case of error
-                    st.error(f"❌ Error deleting records: {e}")
-
-            if col2.button("🔄 Change Selection"):
-                st.warning("🔄 Please modify the Date, Shift Type, or Machine to proceed.")
-                st.session_state.proceed_clicked = False  # Reset proceed state
-                st.stop()  # Prevents further execution
-
+            st.warning("A report for this date, shift type, and machine already exists. Modify or confirm replacement.")
         else:
-            st.success("✅ No existing record found. Proceeding with approval.")
+            st.success("No existing record found. Proceeding with approval.")
 
-            # ✅ Ensure shift duration exists in shifts_df before accessing it
-            filtered_shift = shifts_df.loc[shifts_df['code'] == shift_duration, 'working hours']
+            # Clean DataFrames before using them
+            archive_df = clean_dataframe(st.session_state.submitted_archive_df.copy())
+            av_df = clean_dataframe(st.session_state.submitted_av_df.copy())
 
-            if not filtered_shift.empty:
-                standard_shift_time = filtered_shift.iloc[0]  # ✅ Get the first match
+            # Get shift standard time
+            standard_shift_time = shifts_df.loc[shifts_df['code'] == shift_duration, 'working hours'].iloc[0]
+
+            # Validation checks
+            total_recorded_time = archive_df["time"].sum()
+            efficiency_invalid = (archive_df["efficiency"] > 1).any()
+            time_exceeds_shift = total_recorded_time > standard_shift_time
+            time_below_75 = total_recorded_time < (0.75 * standard_shift_time)
+
+            if efficiency_invalid:
+                st.error("Efficiency must not exceed 1. Please review and modify the data.")
+            elif time_exceeds_shift:
+                st.error(f"Total recorded time ({total_recorded_time} hrs) exceeds shift standard time ({standard_shift_time} hrs). Modify the data.")
+            elif time_below_75:
+                st.error(f"Total recorded time ({total_recorded_time} hrs) is less than 75% of shift standard time ({0.75 * standard_shift_time} hrs). Modify the data.")
             else:
-                st.error(f"⚠️ Shift duration '{shift_duration}' not found in shifts.csv.")
-                standard_shift_time = None  # ✅ Set a default safe value
-
-            # ✅ Proceed only if standard_shift_time is valid
-            if standard_shift_time is not None:
-                # Validation checks
-                total_recorded_time = archive_df["time"].sum()
-                efficiency_invalid = (archive_df["efficiency"] > 1).any()
-                time_exceeds_shift = total_recorded_time > standard_shift_time
-                time_below_75 = total_recorded_time < (0.75 * standard_shift_time)
-
-                # 🚨 Validation Errors
-                if efficiency_invalid:
-                    st.error("❌ Efficiency must not exceed 1. Please review and modify the data.")
-                    st.stop()
-                elif time_exceeds_shift:
-                    st.error(f"❌ Total recorded time ({total_recorded_time} hrs) exceeds shift standard time ({standard_shift_time} hrs). Modify the data.")
-                    st.stop()
-                elif time_below_75:
-                    st.error(f"❌ Total recorded time ({total_recorded_time} hrs) is less than 75% of shift standard time ({0.75 * standard_shift_time} hrs). Modify the data.")
-                    st.stop()
-
-                # ✅ Clean DataFrames before saving
-                archive_df = clean_dataframe(st.session_state.submitted_archive_df.copy())
-                av_df = clean_dataframe(st.session_state.submitted_av_df.copy())
-
-                # ✅ Save the data
-                save_to_database(archive_df, av_df)
+                # Save cleaned data to PostgreSQL
+                archive_df.to_sql("archive", engine, if_exists="append", index=False)
+                av_df.to_sql("av", engine, if_exists="append", index=False)
+                st.success("Data saved to database successfully!")
 
     except Exception as e:
-        st.error(f"❌ Error checking database before saving: {e}")
-    finally:
-        cur.close()
-        conn.close()  # ✅ Ensure connection is always closed
+        st.error(f"Error saving data: {e}")
