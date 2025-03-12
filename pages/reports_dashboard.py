@@ -114,7 +114,7 @@ if not st.session_state.df_av.empty:
     st.subheader("📈 Machine Performance Metrics")
     fig = px.bar(st.session_state.df_av, x="machine", y=["availability", "av_efficiency", "oee"],
                  barmode="group", title="Machine Performance", text_auto=True)
-    
+
     for trace in fig.data:
         trace.text = [f"{y:.2%}" for y in trace.y]
 
@@ -143,7 +143,7 @@ def generate_pdf(summary_df, downtime_summary, fig):
     for _, row in downtime_summary.iterrows():
         pdf.multi_cell(270, 10, " | ".join(str(row[col]) for col in downtime_summary.columns), border=1)
     pdf.ln(5)
-
+    
     # Save the graph as an image and add it to the PDF
     import matplotlib.pyplot as plt
     from plotly.io import to_image
@@ -156,7 +156,7 @@ def generate_pdf(summary_df, downtime_summary, fig):
 
     pdf.image("temp_chart.png", x=10, y=pdf.get_y(), w=250)
     pdf.ln(10)
-    
+
     pdf_output.write(pdf.output(dest='S').encode('latin1'))
     pdf_output.seek(0)
     
@@ -164,7 +164,7 @@ def generate_pdf(summary_df, downtime_summary, fig):
 
 if st.button("Download PDF Report"):
     if not summary_df.empty:
-        pdf_file = generate_pdf(summary_df, downtime_summary, fig)  # Pass fig as an argument
+        pdf_file = generate_pdf(summary_df, downtime_summary, fig)  # Now passing fig
         st.download_button("Download PDF", pdf_file, f"{st.session_state.report_name}.pdf", "application/pdf")
     else:
         st.error("❌ No data available for the PDF report.")
