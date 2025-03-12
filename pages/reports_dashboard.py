@@ -38,12 +38,12 @@ def get_data(query, params=None):
         st.error(f"❌ Database connection failed: {e}")
         return pd.DataFrame()
 
-# ✅ Updated Query: Fetch Production Data with `product`
+# ✅ Updated Query: Fetch Production Data with `Product`
 query_production = """
     SELECT 
         "Machine", 
         "batch number",  
-        "product",  -- ✅ Added product column
+        a."Product" AS "Product",  -- ✅ Corrected column name (case-sensitive)
         SUM("quantity") AS "Produced Quantity",
         (SELECT SUM("quantity") 
          FROM archive 
@@ -52,7 +52,7 @@ query_production = """
          AND archive."Activity" = 'Production') AS "Total Batch Quantity"
     FROM archive a
     WHERE "Activity" = 'Production' AND "Date" = :date AND "Day/Night/plan" = :shift
-    GROUP BY "Machine", "batch number", "product"
+    GROUP BY "Machine", "batch number", a."Product"
     ORDER BY "Machine", "batch number";
 """
 
@@ -133,7 +133,7 @@ def create_pdf(df_av, df_archive, df_production, fig):
 
     # ✅ Add tables with proper spacing
     add_table(c, "📋 Machine Activity Summary", df_archive, height - 350)
-    add_table(c, "🏭 Production Summary", df_production, height - 480)  # ✅ Includes `product`
+    add_table(c, "🏭 Production Summary", df_production, height - 480)  # ✅ Includes `Product`
     add_table(c, "📈 AV Data", df_av, height - 600)
 
     # ✅ Save PDF
@@ -163,7 +163,7 @@ query_archive = """
 
 df_av = get_data(query_av, {"date": date_selected, "shift": shift_selected})
 df_archive = get_data(query_archive, {"date": date_selected, "shift": shift_selected})
-df_production = get_data(query_production, {"date": date_selected, "shift": shift_selected})  # ✅ Includes product
+df_production = get_data(query_production, {"date": date_selected, "shift": shift_selected})  # ✅ Includes Product
 
 # ✅ Visualize AV Data
 if not df_av.empty:
@@ -177,7 +177,7 @@ st.subheader("📋 Machine Activity Summary")
 st.dataframe(df_archive)
 
 st.subheader("🏭 Production Summary per Machine")
-st.dataframe(df_production)  # ✅ Includes product
+st.dataframe(df_production)  # ✅ Includes Product
 
 # ✅ Generate Graph
 fig = px.bar(df_av, x="machine", y=["Availability", "OEE"], barmode='group', title="Performance Metrics")
