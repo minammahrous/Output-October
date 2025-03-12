@@ -7,6 +7,11 @@ from auth import check_authentication, check_access
 from io import BytesIO
 from fpdf import FPDF
 import numpy as np
+import pandas as pd
+import plotly.io as pio
+from PIL import Image
+import io
+
 
 # Hide Streamlit's menu and "Manage app" button
 st.markdown("""
@@ -118,11 +123,7 @@ if not st.session_state.df_av.empty:
     for trace in fig.data:
         trace.text = [f"{y:.2%}" for y in trace.y]
 
-    st.plotly_chart(fig)import matplotlib.pyplot as plt
-import pandas as pd
-import plotly.io as pio
-from PIL import Image
-import io
+    
 
 def save_summary_graph(summary_df, fig):
     """Combine summary table and graph into a single image."""
