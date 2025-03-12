@@ -357,7 +357,7 @@ if efficiencies:
 OEE = 0.99 * availability * average_efficiency
 
 
-        production_data.append({
+production_data.append({
             "Date": date,
             "Machine": selected_machine,
             "Day/Night/plan": shift_type,
