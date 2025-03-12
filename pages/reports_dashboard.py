@@ -1,16 +1,9 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.io as pio
-import matplotlib.pyplot as plt
-from PIL import Image
-import numpy as np
-import io
 from sqlalchemy.sql import text
 from db import get_sqlalchemy_engine
 from auth import check_authentication, check_access
-from fpdf import FPDF
-
 # Hide Streamlit's menu and "Manage app" button
 st.markdown("""
     <style>
@@ -20,74 +13,89 @@ st.markdown("""
         footer {visibility: hidden !important;}
     </style>
 """, unsafe_allow_html=True)
-
-# Authenticate user
+# ✅ Authenticate the user
 check_authentication()
+
+# ✅ Enforce role-based access (Allow "user", "power user", "admin", and "report")
 check_access(["user", "power user", "admin", "report"])
 
-# Get database engine
+# ✅ Get database engine for the user's assigned branch
 engine = get_sqlalchemy_engine()
 
-# Ensure session state variables are initialized
-if "df_av" not in st.session_state:
-    st.session_state.df_av = pd.DataFrame()
+def get_data(query, params=None):
+    """Fetch data from Neon PostgreSQL using SQLAlchemy."""
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(text(query), conn, params=params)
+        return df
+    except Exception as e:
+        st.error(f"❌ Database connection failed: {e}")
+        return pd.DataFrame()
 
-if "df_archive" not in st.session_state:
-    st.session_state.df_archive = pd.DataFrame()
+# ✅ Streamlit UI
+st.title("📊 Machine Performance Dashboard")
 
-# Restore Graph for Machine Performance
-if not st.session_state.df_av.empty:
-    st.subheader("📈 Machine Performance Metrics")
-    fig = px.bar(st.session_state.df_av, x="machine", y=["availability", "av_efficiency", "oee"],
-                 barmode="group", title="Machine Performance", text_auto=True)
+# ✅ User inputs
+date_selected = st.date_input("📅 Select Date")
+shift_selected = st.selectbox("🕒 Select Shift Type", ["Day", "Night", "Plan"])
 
-    for trace in fig.data:
-        trace.text = [f"{y:.2%}" for y in trace.y]
+# Debugging
+st.write(f"📝 **Selected Date:** {date_selected}")
+st.write(f"📝 **Selected Shift:** {shift_selected}")
 
+# ✅ Queries (Ensure safe parameter usage)
+query_av = """
+    SELECT "machine", "Availability", "Av Efficiency", "OEE"
+    FROM av
+    WHERE "date" = :date AND "shift" = :shift
+"""
+
+query_archive = """
+    SELECT "Machine", "Activity", SUM("time") as "Total_Time", AVG("efficiency") as "Avg_Efficiency"
+    FROM archive
+    WHERE "Date" = :date AND "Day/Night/plan" = :shift
+    GROUP BY "Machine", "Activity"
+"""
+
+query_production = """
+    SELECT 
+        "Machine", 
+        "batch number",  
+        SUM("quantity") AS "Produced Quantity",
+        (SELECT SUM("quantity") 
+         FROM archive 
+         WHERE archive."Machine" = a."Machine" 
+         AND archive."batch number" = a."batch number" 
+         AND archive."Activity" = 'Production') AS "Total Batch Quantity"
+    FROM archive a
+    WHERE "Activity" = 'Production' AND "Date" = :date AND "Day/Night/plan" = :shift
+    GROUP BY "Machine", "batch number"
+    ORDER BY "Machine", "batch number";
+"""
+
+# ✅ Fetch data securely
+df_av = get_data(query_av, {"date": date_selected, "shift": shift_selected})
+df_archive = get_data(query_archive, {"date": date_selected, "shift": shift_selected})
+df_production = get_data(query_production, {"date": date_selected, "shift": shift_selected})
+
+# Debugging: Check if DataFrames have data
+st.write(f"📊 **AV Table Size:** {df_av.shape}")
+st.write(f"📊 **Archive Table Size:** {df_archive.shape}")
+st.write(f"📊 **Production Table Size:** {df_production.shape}")
+
+# ✅ Visualize AV Data
+if not df_av.empty:
+    st.subheader("📈 Machine Efficiency, Availability & OEE")
+    fig = px.bar(df_av, x="machine", y=["Availability", "Av Efficiency", "OEE"], 
+                 barmode='group', title="Performance Metrics per Machine")
     st.plotly_chart(fig)
+else:
+    st.warning("⚠️ No AV data available for the selected filters.")
 
-def save_summary_graph(summary_df, fig):
-    """Combine summary table and graph into a single image."""
-    fig_img = io.BytesIO(fig.to_image(format="png"))  # Convert Plotly graph to image
-    
-    # Convert summary table to an image using Matplotlib
-    fig_table, ax = plt.subplots(figsize=(10, len(summary_df) * 0.5 + 1))
-    ax.axis('tight')
-    ax.axis('off')
-    table_data = [summary_df.columns.tolist()] + summary_df.values.tolist()
-    table = ax.table(cellText=table_data, colLabels=None, cellLoc='center', loc='center')
+# ✅ Display Archive Data
+st.subheader("📋 Machine Activity Summary")
+st.dataframe(df_archive)
 
-    table.auto_set_font_size(False)
-    table.set_fontsize(8)
-    table.auto_set_column_width([i for i in range(len(summary_df.columns))])  # Adjust column width
-
-    table_img = io.BytesIO()
-    plt.savefig(table_img, format="png", bbox_inches="tight", dpi=300)
-    plt.close(fig_table)
-
-    # Open both images and combine them vertically
-    summary_image = Image.open(table_img)
-    graph_image = Image.open(fig_img)
-
-    total_width = max(summary_image.width, graph_image.width)
-    total_height = summary_image.height + graph_image.height
-
-    combined_image = Image.new("RGB", (total_width, total_height), (255, 255, 255))
-    combined_image.paste(summary_image, (0, 0))
-    combined_image.paste(graph_image, (0, summary_image.height))
-
-    final_img = io.BytesIO()
-    combined_image.save(final_img, format="PNG")
-    final_img.seek(0)
-
-    return final_img
-
-# Add download button for the combined image
-if not st.session_state.df_archive.empty:
-    summary_graph_img = save_summary_graph(st.session_state.df_archive, fig)
-    st.download_button(
-        label="📥 Download Summary & Graph as PNG",
-        data=summary_graph_img,
-        file_name="summary_and_graph.png",
-        mime="image/png"
-    )
+# ✅ Display Production Summary
+st.subheader("🏭 Production Summary per Machine")
+st.dataframe(df_production)
