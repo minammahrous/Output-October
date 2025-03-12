@@ -112,6 +112,10 @@ def create_pdf(df_av, df_archive, df_production, fig):
     pdf.set_font("Arial", "B", 16)
     pdf.cell(200, 10, "📊 Machine Performance Report", ln=True, align="C")
     pdf.ln(10)
+    pdf.add_font("DejaVu", "", "fonts/DejaVuSans.ttf", uni=True)
+    pdf.set_font("DejaVu", "", 16)
+    pdf.cell(200, 10, "📊 Machine Performance Report", ln=True, align="C")
+
 
     # Add the graph as an image
     img_buf = io.BytesIO()
