@@ -43,7 +43,7 @@ query_production = """
     SELECT 
         "Machine", 
         "batch number",  
-        a."Product" AS "Product",  -- ✅ Corrected column name (case-sensitive)
+        a."Product" AS "Product",  
         SUM("quantity") AS "Produced Quantity"
     FROM archive a
     WHERE "Activity" = 'Production' AND "Date" = :date AND "Day/Night/plan" = :shift
@@ -51,7 +51,7 @@ query_production = """
     ORDER BY "Machine", "batch number";
 """
 
-# ✅ Function to Create PDF Report
+# ✅ Function to Create PDF Report (No Borders)
 def create_pdf(df_av, df_archive, df_production, fig):
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)  # ✅ Portrait mode
@@ -81,7 +81,7 @@ def create_pdf(df_av, df_archive, df_production, fig):
 
     return buffer.getvalue()  # ✅ Convert buffer to binary format
 
-# ✅ Function to Add Tables with Proper Alignment and Readability
+# ✅ Function to Add Tables (Without Borders)
 def add_table(c, title, df, y_start):
     c.setFont("Helvetica-Bold", 12)
     c.drawString(50, y_start, title)
@@ -97,22 +97,9 @@ def add_table(c, title, df, y_start):
         row_height = 25  # ✅ Increased row height for spacing
         headers = list(df.columns)
 
-        # ✅ Compute column start positions
-        x_positions = [50]
-        for width in col_widths[:-1]:
-            x_positions.append(x_positions[-1] + width)
-
-        # ✅ Draw table borders **before** adding text
-        c.setStrokeColorRGB(0, 0, 0)  # Black border color
-        c.line(50, y + 5, x_positions[-1] + 100, y + 5)  # Top border
-
-        for i in range(len(headers) + 1):  
-            c.line(x_positions[i] if i < len(headers) else x_positions[-1] + 100, y + 5,
-                   x_positions[i] if i < len(headers) else x_positions[-1] + 100, y - (len(df) * row_height) - 15)
-
-        # ✅ Add headers with proper spacing
+        # ✅ Add headers
         for i, col in enumerate(headers):
-            c.drawString(x_positions[i] + 5, y, col)
+            c.drawString(50 + i * 120, y, col)
 
         y -= row_height
 
@@ -124,16 +111,13 @@ def add_table(c, title, df, y_start):
                 if col_name == "Product":  # ✅ Wrap Product names correctly
                     wrapped_lines = wrap(str(item), width=25)  
                     for line in wrapped_lines:
-                        c.drawString(x_positions[i] + 5, y, line)
-                        y -= 12  # ✅ More space between wrapped lines
+                        c.drawString(50 + i * 120, y, line)
+                        y -= 12  
                     continue  
 
-                c.drawString(x_positions[i] + 5, y, wrapped_text)  
+                c.drawString(50 + i * 120, y, wrapped_text)  
 
             y -= row_height
-
-        # ✅ Draw bottom border **after** all rows
-        c.line(50, y + 5, x_positions[-1] + 100, y + 5)
 
 # ✅ Streamlit UI
 st.title("📊 Machine Performance Dashboard")
@@ -176,7 +160,7 @@ st.dataframe(df_archive)
 st.subheader("🏭 Production Summary per Machine")
 st.dataframe(df_production)
 
-# ✅ PDF Download Button
+# ✅ PDF Download Button (Uses Shift Type + Date for File Name)
 if st.button("📥 Download Full Report as PDF"):
     pdf_report = create_pdf(df_av, df_archive, df_production, fig)
 
