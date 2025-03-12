@@ -4,12 +4,10 @@ import plotly.express as px
 from sqlalchemy.sql import text
 from db import get_sqlalchemy_engine
 from auth import check_authentication, check_access
-from fpdf import FPDF
-import matplotlib.pyplot as plt
 import io
-import plotly.io as pio  # ✅ Fix for write_image function
-from reportlab.lib.pagesizes import letter
+import plotly.io as pio
 from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
 from textwrap import wrap
 
@@ -22,17 +20,16 @@ st.markdown("""
         footer {visibility: hidden !important;}
     </style>
 """, unsafe_allow_html=True)
+
 # ✅ Authenticate the user
 check_authentication()
+check_access(["user", "power user", "admin", "report"])  # ✅ Enforce role-based access
 
-# ✅ Enforce role-based access (Allow "user", "power user", "admin", and "report")
-check_access(["user", "power user", "admin", "report"])
-
-# ✅ Get database engine for the user's assigned branch
+# ✅ Get database engine
 engine = get_sqlalchemy_engine()
 
+# ✅ Function to Fetch Data from PostgreSQL
 def get_data(query, params=None):
-    """Fetch data from Neon PostgreSQL using SQLAlchemy."""
     try:
         with engine.connect() as conn:
             df = pd.read_sql(text(query), conn, params=params)
@@ -41,131 +38,12 @@ def get_data(query, params=None):
         st.error(f"❌ Database connection failed: {e}")
         return pd.DataFrame()
 
-# Function to generate PDF with Unicode support
-import io
-import plotly.io as pio
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.utils import ImageReader
-from textwrap import wrap
-
-def create_pdf(df_av, df_archive, df_production, fig):
-    buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=letter)  # ✅ Set PDF to portrait mode
-
-    # ✅ Add proper margins
-    margin_x = 50
-    margin_y = 50
-    width, height = letter
-
-    # ✅ Set PDF Title
-    c.setTitle("Machine Performance Report")
-
-    # ✅ Add a title with margins
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(margin_x, height - margin_y, "📊 Machine Performance Report")
-
-    # ✅ Define custom colors for the graph
-    custom_colors = ["#1f77b4", "#ff7f0e", "#2ca02c"]  # Blue, Orange, Green
-
-    # ✅ Force Plotly to use colors and export in high quality
-    fig.update_layout(
-        template="plotly_white",
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        font=dict(color="black"),
-        colorway=custom_colors,  # ✅ Force colors in graph
-    )
-
-    # ✅ Convert Plotly graph to SVG first to preserve colors
-    img_svg = pio.to_image(fig, format="svg")  
-    img_buf = io.BytesIO(img_svg)
-
-    # ✅ Convert SVG to PNG with high resolution
-    pio.write_image(fig, img_buf, format="png", scale=3)
-    img_buf.seek(0)
-
-    # ✅ Embed the colored graph in the PDF
-    img = ImageReader(img_buf)
-    c.drawImage(img, margin_x, height - 300, width=500, height=200)
-
-    # ✅ Function to add tables with proper spacing & text wrapping
-    def add_table(c, title, df, y_start):
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(margin_x, y_start, title)
-        c.setFont("Helvetica", 10)
-
-        # ✅ Ensure all numerical values are rounded to 2 decimal places
-        df = df.fillna("N/A").applymap(lambda x: round(x, 2) if isinstance(x, (int, float)) else x)
-
-        if df.empty:
-            c.drawString(margin_x, y_start - 20, "No data available")
-        else:
-            y = y_start - 20
-            col_width = 110  # ✅ Adjust column width for portrait mode
-
-            # ✅ Add headers with spacing
-            for col in df.columns:
-                c.drawString(margin_x + df.columns.get_loc(col) * col_width, y, col)
-            y -= 15
-
-            # ✅ Add row data with proper alignment & text wrapping
-            for _, row in df.iterrows():
-                x = margin_x
-                for item in row:
-                    wrapped_text = "\n".join(wrap(str(item), width=12))  # ✅ Wrap long text
-                    c.drawString(x, y, wrapped_text)
-                    x += col_width
-                y -= 15
-
-    # ✅ Add tables with proper spacing (adjusted for portrait mode)
-    add_table(c, "📋 Machine Activity Summary", df_archive, height - 350)
-    add_table(c, "🏭 Production Summary", df_production, height - 480)
-    add_table(c, "📈 AV Data", df_av, height - 600)
-
-    # ✅ Save PDF
-    c.save()
-    buffer.seek(0)
-    return buffer
-st.title("📊 Machine Performance Dashboard")
-
-# Sample Data (Replace with actual database data)
-df_av = pd.DataFrame({"machine": ["A", "B"], "Availability": [90, 85], "OEE": [80, 75]})
-df_archive = pd.DataFrame({"Machine": ["A", "B"], "Activity": ["Run", "Stop"], "Total_Time": [120, 45]})
-df_production = pd.DataFrame({"Machine": ["A"], "batch number": ["B001"], "Produced Quantity": [1000]})
-
-# Generate Graph
-fig = px.bar(df_av, x="machine", y=["Availability", "OEE"], barmode='group', title="Performance Metrics")
-
-# ✅ Streamlit UI
-st.title("📊 Machine Performance Dashboard")
-
-# ✅ User inputs
-date_selected = st.date_input("📅 Select Date")
-shift_selected = st.selectbox("🕒 Select Shift Type", ["Day", "Night", "Plan"])
-
-# Debugging
-st.write(f"📝 **Selected Date:** {date_selected}")
-st.write(f"📝 **Selected Shift:** {shift_selected}")
-
-# ✅ Queries (Ensure safe parameter usage)
-query_av = """
-    SELECT "machine", "Availability", "Av Efficiency", "OEE"
-    FROM av
-    WHERE "date" = :date AND "shift" = :shift
-"""
-
-query_archive = """
-    SELECT "Machine", "Activity", SUM("time") as "Total_Time", AVG("efficiency") as "Avg_Efficiency"
-    FROM archive
-    WHERE "Date" = :date AND "Day/Night/plan" = :shift
-    GROUP BY "Machine", "Activity"
-"""
-
+# ✅ Updated Query: Fetch Production Data with `product`
 query_production = """
     SELECT 
         "Machine", 
         "batch number",  
+        "product",  -- ✅ Added product column
         SUM("quantity") AS "Produced Quantity",
         (SELECT SUM("quantity") 
          FROM archive 
@@ -174,37 +52,137 @@ query_production = """
          AND archive."Activity" = 'Production') AS "Total Batch Quantity"
     FROM archive a
     WHERE "Activity" = 'Production' AND "Date" = :date AND "Day/Night/plan" = :shift
-    GROUP BY "Machine", "batch number"
+    GROUP BY "Machine", "batch number", "product"
     ORDER BY "Machine", "batch number";
 """
 
-# ✅ Fetch data securely
+# ✅ Function to Create PDF Report
+def create_pdf(df_av, df_archive, df_production, fig):
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)  # ✅ Portrait mode
+
+    # ✅ Add proper margins
+    margin_x = 50
+    margin_y = 50
+    width, height = letter
+
+    # ✅ Set PDF Title
+    c.setTitle("Machine Performance Report")
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(margin_x, height - margin_y, "📊 Machine Performance Report")
+
+    # ✅ Define custom colors explicitly to fix black & white issue
+    fig = px.bar(
+        df_av, 
+        x="machine", 
+        y=["Availability", "Av Efficiency", "OEE"], 
+        barmode="group", 
+        title="Performance Metrics per Machine",
+        color_discrete_map={
+            "Availability": "#1f77b4",  # Blue
+            "Av Efficiency": "#ff7f0e",  # Orange
+            "OEE": "#2ca02c",  # Green
+        }
+    )
+
+    # ✅ Apply layout fixes
+    fig.update_layout(
+        template="plotly_white",
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        font=dict(color="black"),
+    )
+
+    # ✅ Convert Plotly graph to high-quality PNG
+    img_buf = io.BytesIO()
+    pio.write_image(fig, img_buf, format="png", scale=3)
+    img_buf.seek(0)
+
+    # ✅ Embed the colored graph in the PDF
+    img = ImageReader(img_buf)
+    c.drawImage(img, margin_x, height - 300, width=500, height=200)
+
+    # ✅ Function to Add Tables
+    def add_table(c, title, df, y_start):
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(margin_x, y_start, title)
+        c.setFont("Helvetica", 10)
+
+        # ✅ Ensure numerical values are rounded
+        df = df.fillna("N/A").applymap(lambda x: round(x, 2) if isinstance(x, (int, float)) else x)
+
+        if df.empty:
+            c.drawString(margin_x, y_start - 20, "No data available")
+        else:
+            y = y_start - 20
+            col_width = 110  # ✅ Adjust column width
+
+            # ✅ Add headers
+            for col in df.columns:
+                c.drawString(margin_x + df.columns.get_loc(col) * col_width, y, col)
+            y -= 15
+
+            # ✅ Add row data with text wrapping
+            for _, row in df.iterrows():
+                x = margin_x
+                for item in row:
+                    wrapped_text = "\n".join(wrap(str(item), width=15))  # ✅ Wrap text if too long
+                    c.drawString(x, y, wrapped_text)
+                    x += col_width
+                y -= 15
+
+    # ✅ Add tables with proper spacing
+    add_table(c, "📋 Machine Activity Summary", df_archive, height - 350)
+    add_table(c, "🏭 Production Summary", df_production, height - 480)  # ✅ Includes `product`
+    add_table(c, "📈 AV Data", df_av, height - 600)
+
+    # ✅ Save PDF
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+# ✅ Streamlit UI
+st.title("📊 Machine Performance Dashboard")
+
+# ✅ User Inputs
+date_selected = st.date_input("📅 Select Date")
+shift_selected = st.selectbox("🕒 Select Shift Type", ["Day", "Night", "Plan"])
+
+# ✅ Fetch Data
+query_av = """
+    SELECT "machine", "Availability", "Av Efficiency", "OEE"
+    FROM av
+    WHERE "date" = :date AND "shift" = :shift
+"""
+query_archive = """
+    SELECT "Machine", "Activity", SUM("time") as "Total_Time", AVG("efficiency") as "Avg_Efficiency"
+    FROM archive
+    WHERE "Date" = :date AND "Day/Night/plan" = :shift
+    GROUP BY "Machine", "Activity"
+"""
+
 df_av = get_data(query_av, {"date": date_selected, "shift": shift_selected})
 df_archive = get_data(query_archive, {"date": date_selected, "shift": shift_selected})
-df_production = get_data(query_production, {"date": date_selected, "shift": shift_selected})
-
+df_production = get_data(query_production, {"date": date_selected, "shift": shift_selected})  # ✅ Includes product
 
 # ✅ Visualize AV Data
 if not df_av.empty:
     st.subheader("📈 Machine Efficiency, Availability & OEE")
-    fig = px.bar(df_av, x="machine", y=["Availability", "Av Efficiency", "OEE"], 
-                 barmode='group', title="Performance Metrics per Machine")
     st.plotly_chart(fig)
 else:
     st.warning("⚠️ No AV data available for the selected filters.")
 
-# ✅ Display Archive Data
+# ✅ Display Tables
 st.subheader("📋 Machine Activity Summary")
 st.dataframe(df_archive)
 
-# ✅ Display Production Summary
 st.subheader("🏭 Production Summary per Machine")
-st.dataframe(df_production)
+st.dataframe(df_production)  # ✅ Includes product
 
-# Generate Graph
+# ✅ Generate Graph
 fig = px.bar(df_av, x="machine", y=["Availability", "OEE"], barmode='group', title="Performance Metrics")
 
-# PDF Download Button
+# ✅ PDF Download Button
 if st.button("📥 Download Full Report as PDF"):
     pdf_report = create_pdf(df_av, df_archive, df_production, fig)
     st.download_button(label="📥 Click here to download",
