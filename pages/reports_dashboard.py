@@ -91,17 +91,17 @@ def generate_pdf(df_av, df_archive):
         
         df = df.fillna("N/A")  # Replace NaN values
         columns = df.columns.tolist()
-        column_width = 190 // len(columns)
+        column_width = max(190 // len(columns), 20)
         
         pdf.set_font("Arial", "B", 10)
         for col in columns:
-            pdf.cell(column_width, 10, col, border=1, align='C')
+            pdf.cell(column_width, 10, col[:15], border=1, align='C')
         pdf.ln()
         
         pdf.set_font("Arial", "", 8)
         for _, row in df.iterrows():
             for col in columns:
-                pdf.cell(column_width, 10, str(row[col]), border=1, align='C')
+                pdf.cell(column_width, 10, str(row[col])[:15], border=1, align='C')
             pdf.ln()
         pdf.ln(5)
     
@@ -109,7 +109,7 @@ def generate_pdf(df_av, df_archive):
     add_table(pdf, df_archive, "Archive Data")
     
     pdf_output = BytesIO()
-    pdf.output(pdf_output, dest='S').encode('latin1')
+    pdf.output(pdf_output, dest='F')
     pdf_output.seek(0)
     return pdf_output
 
