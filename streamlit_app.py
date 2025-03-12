@@ -9,7 +9,6 @@ from db import get_branches
 
 # Authenticate user
 user = authenticate_user()
-user = authenticate_user()
 if not user:
     st.warning("Authentication failed. Please log in again.")
     st.stop()
