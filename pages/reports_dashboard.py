@@ -4,6 +4,9 @@ import plotly.express as px
 from sqlalchemy.sql import text
 from db import get_sqlalchemy_engine
 from auth import check_authentication, check_access
+from io import BytesIO
+from fpdf import FPDF
+
 # Hide Streamlit's menu and "Manage app" button
 st.markdown("""
     <style>
@@ -13,17 +16,16 @@ st.markdown("""
         footer {visibility: hidden !important;}
     </style>
 """, unsafe_allow_html=True)
-# ✅ Authenticate the user
-check_authentication()
 
-# ✅ Enforce role-based access (Allow "user", "power user", "admin", and "report")
+# Authenticate user
+check_authentication()
 check_access(["user", "power user", "admin", "report"])
 
-# ✅ Get database engine for the user's assigned branch
+# Get database engine
 engine = get_sqlalchemy_engine()
 
 def get_data(query, params=None):
-    """Fetch data from Neon PostgreSQL using SQLAlchemy."""
+    """Fetch data from Neon PostgreSQL."""
     try:
         with engine.connect() as conn:
             df = pd.read_sql(text(query), conn, params=params)
@@ -32,70 +34,67 @@ def get_data(query, params=None):
         st.error(f"❌ Database connection failed: {e}")
         return pd.DataFrame()
 
-# ✅ Streamlit UI
 st.title("📊 Machine Performance Dashboard")
 
-# ✅ User inputs
+# Select Shift Report
 date_selected = st.date_input("📅 Select Date")
 shift_selected = st.selectbox("🕒 Select Shift Type", ["Day", "Night", "Plan"])
+if st.button("Run Shift Report"):
+    df_av = get_data("SELECT * FROM av WHERE date = :date AND shift = :shift", {"date": date_selected, "shift": shift_selected})
+    df_archive = get_data("SELECT * FROM archive WHERE date = :date AND "Day/Night/plan" = :shift", {"date": date_selected, "shift": shift_selected})
+    st.dataframe(df_av)
+    st.dataframe(df_archive)
 
-# Debugging
-st.write(f"📝 **Selected Date:** {date_selected}")
-st.write(f"📝 **Selected Shift:** {shift_selected}")
+# Custom Date Range Report
+st.subheader("📅 Select Date Range for Custom Report")
+start_date = st.date_input("Start Date")
+end_date = st.date_input("End Date")
+if st.button("Run Custom Report"):
+    df_av = get_data("SELECT * FROM av WHERE date BETWEEN :start_date AND :end_date", {"start_date": start_date, "end_date": end_date})
+    df_archive = get_data("SELECT * FROM archive WHERE date BETWEEN :start_date AND :end_date", {"start_date": start_date, "end_date": end_date})
+    st.dataframe(df_av)
+    st.dataframe(df_archive)
 
-# ✅ Queries (Ensure safe parameter usage)
-query_av = """
-    SELECT "machine", "Availability", "Av Efficiency", "OEE"
-    FROM av
-    WHERE "date" = :date AND "shift" = :shift
-"""
+# Export to PDF
+def generate_pdf(df_av, df_archive):
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(200, 10, "Machine Performance Report", ln=True, align='C')
+    pdf.ln(10)
+    
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, "AV Data", ln=True)
+    pdf.set_font("Arial", "", 10)
+    for index, row in df_av.iterrows():
+        pdf.cell(0, 10, str(row.to_dict()), ln=True)
+    
+    pdf.ln(10)
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, "Archive Data", ln=True)
+    pdf.set_font("Arial", "", 10)
+    for index, row in df_archive.iterrows():
+        pdf.cell(0, 10, str(row.to_dict()), ln=True)
+    
+    pdf_output = BytesIO()
+    pdf.output(pdf_output, 'F')
+    pdf_output.seek(0)
+    return pdf_output
 
-query_archive = """
-    SELECT "Machine", "Activity", SUM("time") as "Total_Time", AVG("efficiency") as "Avg_Efficiency"
-    FROM archive
-    WHERE "Date" = :date AND "Day/Night/plan" = :shift
-    GROUP BY "Machine", "Activity"
-"""
+if st.button("Download PDF Report"):
+    pdf_file = generate_pdf(df_av, df_archive)
+    st.download_button("Download PDF", pdf_file, "report.pdf", "application/pdf")
 
-query_production = """
-    SELECT 
-        "Machine", 
-        "batch number",  
-        SUM("quantity") AS "Produced Quantity",
-        (SELECT SUM("quantity") 
-         FROM archive 
-         WHERE archive."Machine" = a."Machine" 
-         AND archive."batch number" = a."batch number" 
-         AND archive."Activity" = 'Production') AS "Total Batch Quantity"
-    FROM archive a
-    WHERE "Activity" = 'Production' AND "Date" = :date AND "Day/Night/plan" = :shift
-    GROUP BY "Machine", "batch number"
-    ORDER BY "Machine", "batch number";
-"""
+# Export to Excel
+def generate_excel(df_av, df_archive):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df_av.to_excel(writer, sheet_name='AV Data', index=False)
+        df_archive.to_excel(writer, sheet_name='Archive Data', index=False)
+    output.seek(0)
+    return output
 
-# ✅ Fetch data securely
-df_av = get_data(query_av, {"date": date_selected, "shift": shift_selected})
-df_archive = get_data(query_archive, {"date": date_selected, "shift": shift_selected})
-df_production = get_data(query_production, {"date": date_selected, "shift": shift_selected})
-
-# Debugging: Check if DataFrames have data
-st.write(f"📊 **AV Table Size:** {df_av.shape}")
-st.write(f"📊 **Archive Table Size:** {df_archive.shape}")
-st.write(f"📊 **Production Table Size:** {df_production.shape}")
-
-# ✅ Visualize AV Data
-if not df_av.empty:
-    st.subheader("📈 Machine Efficiency, Availability & OEE")
-    fig = px.bar(df_av, x="machine", y=["Availability", "Av Efficiency", "OEE"], 
-                 barmode='group', title="Performance Metrics per Machine")
-    st.plotly_chart(fig)
-else:
-    st.warning("⚠️ No AV data available for the selected filters.")
-
-# ✅ Display Archive Data
-st.subheader("📋 Machine Activity Summary")
-st.dataframe(df_archive)
-
-# ✅ Display Production Summary
-st.subheader("🏭 Production Summary per Machine")
-st.dataframe(df_production)
+if st.button("Download Excel Report"):
+    excel_file = generate_excel(df_av, df_archive)
+    st.download_button("Download Excel", excel_file, "report.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
