@@ -19,7 +19,6 @@ check_access(["admin", "power user", "user"])  # Restrict access to only admins 
 def get_standard_rate(product, machine):
     """Fetch the standard rate from the database using psycopg2."""
     conn = get_db_connection()
-    
     if not conn:
         return Decimal("0")  # Return 0 if connection fails
     
