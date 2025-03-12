@@ -81,7 +81,7 @@ def create_pdf(df_av, df_archive, df_production, fig):
 
     return buffer.getvalue()  # ✅ Convert buffer to binary format
 
-# ✅ Function to Add Tables with Corrected Borders & Wrapped Text
+# ✅ Function to Add Tables with Proper Alignment and Readability
 def add_table(c, title, df, y_start):
     c.setFont("Helvetica-Bold", 12)
     c.drawString(50, y_start, title)
@@ -93,7 +93,8 @@ def add_table(c, title, df, y_start):
         c.drawString(50, y_start - 20, "No data available")
     else:
         y = y_start - 20
-        col_widths = [80, 100, 150, 100]  # ✅ Adjust column widths
+        col_widths = [100, 120, 150, 120, 100]  # ✅ Increased column widths for better readability
+        row_height = 25  # ✅ Increased row height for spacing
         headers = list(df.columns)
 
         # ✅ Compute column start positions
@@ -104,31 +105,32 @@ def add_table(c, title, df, y_start):
         # ✅ Draw table borders **before** adding text
         c.setStrokeColorRGB(0, 0, 0)  # Black border color
         c.line(50, y + 5, x_positions[-1] + 100, y + 5)  # Top border
+
         for i in range(len(headers) + 1):  
             c.line(x_positions[i] if i < len(headers) else x_positions[-1] + 100, y + 5,
-                   x_positions[i] if i < len(headers) else x_positions[-1] + 100, y - (len(df) * 15) - 15)
+                   x_positions[i] if i < len(headers) else x_positions[-1] + 100, y - (len(df) * row_height) - 15)
 
-        # ✅ Add headers
+        # ✅ Add headers with proper spacing
         for i, col in enumerate(headers):
             c.drawString(x_positions[i] + 5, y, col)
 
-        y -= 15
+        y -= row_height
 
-        # ✅ Draw row data with wrapped text
+        # ✅ Draw row data with proper alignment
         for _, row in df.iterrows():
             for i, (col_name, item) in enumerate(zip(headers, row)):
                 wrapped_text = str(item)
 
-                if col_name == "Product":  # ✅ Wrap Product names properly
-                    wrapped_lines = wrap(str(item), width=20)  
+                if col_name == "Product":  # ✅ Wrap Product names correctly
+                    wrapped_lines = wrap(str(item), width=25)  
                     for line in wrapped_lines:
                         c.drawString(x_positions[i] + 5, y, line)
-                        y -= 10
+                        y -= 12  # ✅ More space between wrapped lines
                     continue  
 
-                c.drawString(x_positions[i] + 5, y, wrapped_text[:20])  
+                c.drawString(x_positions[i] + 5, y, wrapped_text)  
 
-            y -= 15
+            y -= row_height
 
         # ✅ Draw bottom border **after** all rows
         c.line(50, y + 5, x_positions[-1] + 100, y + 5)
@@ -177,4 +179,11 @@ st.dataframe(df_production)
 # ✅ PDF Download Button
 if st.button("📥 Download Full Report as PDF"):
     pdf_report = create_pdf(df_av, df_archive, df_production, fig)
-    st.download_button(label="📥 Click here to download", data=pdf_report, file_name="Machine_Performance_Report.pdf", mime="application/pdf")
+
+    # ✅ Generate dynamic filename (format: ShiftType_YYYY-MM-DD.pdf)
+    file_name = f"{shift_selected}_{date_selected}.pdf"
+
+    st.download_button(label="📥 Click here to download", 
+                       data=pdf_report, 
+                       file_name=file_name,  # ✅ Uses dynamic filename
+                       mime="application/pdf")
