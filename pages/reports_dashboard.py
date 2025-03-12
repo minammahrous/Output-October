@@ -127,16 +127,20 @@ def generate_pdf(summary_df, downtime_summary):
     pdf.cell(0, 10, "Summary Table", ln=True)
     pdf.set_font("Arial", "", 10)
     
-    for i, row in summary_df.iterrows():
-        pdf.cell(0, 10, " | ".join(map(str, row.tolist())), ln=True)
+    for _, row in summary_df.iterrows():
+        for col in summary_df.columns:
+            pdf.cell(40, 10, str(row[col]), border=1)
+        pdf.ln()
     pdf.ln(5)
     
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 10, "Downtime Summary", ln=True)
     pdf.set_font("Arial", "", 10)
     
-    for i, row in downtime_summary.iterrows():
-        pdf.cell(0, 10, " | ".join(map(str, row.tolist())), ln=True)
+    for _, row in downtime_summary.iterrows():
+        for col in downtime_summary.columns:
+            pdf.cell(40, 10, str(row[col]), border=1)
+        pdf.ln()
     pdf.ln(5)
     
     pdf_output = BytesIO()
