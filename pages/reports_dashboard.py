@@ -44,12 +44,7 @@ query_production = """
         "Machine", 
         "batch number",  
         a."Product" AS "Product",  -- ✅ Corrected column name (case-sensitive)
-        SUM("quantity") AS "Produced Quantity",
-        (SELECT SUM("quantity") 
-         FROM archive 
-         WHERE archive."Machine" = a."Machine" 
-         AND archive."batch number" = a."batch number" 
-         AND archive."Activity" = 'Production') AS "Total Batch Quantity"
+        SUM("quantity") AS "Produced Quantity"
     FROM archive a
     WHERE "Activity" = 'Production' AND "Date" = :date AND "Day/Night/plan" = :shift
     GROUP BY "Machine", "batch number", a."Product"
@@ -61,37 +56,10 @@ def create_pdf(df_av, df_archive, df_production, fig):
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)  # ✅ Portrait mode
 
-    # ✅ Add proper margins
-    margin_x = 50
-    margin_y = 50
-    width, height = letter
-
     # ✅ Set PDF Title
     c.setTitle("Machine Performance Report")
     c.setFont("Helvetica-Bold", 16)
-    c.drawString(margin_x, height - margin_y, "📊 Machine Performance Report")
-
-    # ✅ Define custom colors explicitly to fix black & white issue
-    fig = px.bar(
-        df_av, 
-        x="machine", 
-        y=["Availability", "Av Efficiency", "OEE"], 
-        barmode="group", 
-        title="Performance Metrics per Machine",
-        color_discrete_map={
-            "Availability": "#1f77b4",  # Blue
-            "Av Efficiency": "#ff7f0e",  # Orange
-            "OEE": "#2ca02c",  # Green
-        }
-    )
-
-    # ✅ Apply layout fixes
-    fig.update_layout(
-        template="plotly_white",
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        font=dict(color="black"),
-    )
+    c.drawString(50, 750, "📊 Machine Performance Report")
 
     # ✅ Convert Plotly graph to high-quality PNG
     img_buf = io.BytesIO()
@@ -100,8 +68,20 @@ def create_pdf(df_av, df_archive, df_production, fig):
 
     # ✅ Embed the colored graph in the PDF
     img = ImageReader(img_buf)
-    c.drawImage(img, margin_x, height - 300, width=500, height=200)
+    c.drawImage(img, 50, 500, width=500, height=200)  # Adjusted for portrait mode
 
+    # ✅ Add tables
+    add_table(c, "📋 Machine Activity Summary", df_archive, 450)
+    add_table(c, "🏭 Production Summary", df_production, 300)  # ✅ Includes `Product`
+    add_table(c, "📈 AV Data", df_av, 150)
+
+    # ✅ Save PDF
+    c.save()
+    buffer.seek(0)  # ✅ Ensure buffer is at the start
+
+    return buffer.getvalue()  # ✅ Convert buffer to binary format
+
+# ✅ Function to Add Tables with Borders and Wrapped Text
 def add_table(c, title, df, y_start):
     c.setFont("Helvetica-Bold", 12)
     c.drawString(50, y_start, title)
@@ -114,7 +94,7 @@ def add_table(c, title, df, y_start):
         c.drawString(50, y_start - 20, "No data available")
     else:
         y = y_start - 20
-        col_widths = [80, 100, 150, 100, 100]  # ✅ Column widths (Product column is wider)
+        col_widths = [80, 100, 150, 100]  # ✅ Adjust column widths
         headers = list(df.columns)
 
         # ✅ Compute column start positions
@@ -134,7 +114,6 @@ def add_table(c, title, df, y_start):
         # ✅ Draw row data with text wrapping and borders
         for _, row in df.iterrows():
             c.line(50, y + 5, x_positions[-1] + 100, y + 5)  # Row top border
-            x = 50
             for i, (col_name, item) in enumerate(zip(headers, row)):
                 wrapped_text = str(item)
 
@@ -152,18 +131,6 @@ def add_table(c, title, df, y_start):
 
         # ✅ Draw bottom border for the table
         c.line(50, y + 5, x_positions[-1] + 100, y + 5)
-
-
-    # ✅ Add tables with proper spacing
-    add_table(c, "📋 Machine Activity Summary", df_archive, height - 350)
-    add_table(c, "🏭 Production Summary", df_production, height - 480)  # ✅ Includes `Product`
-    add_table(c, "📈 AV Data", df_av, height - 600)
-
-    # ✅ Save PDF
-    c.save()
-    buffer.seek(0)  # ✅ Ensure buffer is at the start
-
-    return buffer.getvalue()  # ✅ Convert buffer to binary format
 
 # ✅ Streamlit UI
 st.title("📊 Machine Performance Dashboard")
@@ -192,25 +159,15 @@ df_production = get_data(query_production, {"date": date_selected, "shift": shif
 # ✅ Visualize AV Data
 if not df_av.empty:
     st.subheader("📈 Machine Efficiency, Availability & OEE")
-   
+
     # ✅ Define the Plotly figure before using it
-    fig = px.bar(
-        df_av, 
-        x="machine", 
-        y=["Availability", "Av Efficiency", "OEE"], 
-        barmode="group", 
-        title="Performance Metrics per Machine",
-        color_discrete_map={
-            "Availability": "#1f77b4",  # Blue
-            "Av Efficiency": "#ff7f0e",  # Orange
-            "OEE": "#2ca02c",  # Green
-        }
-    )
+    fig = px.bar(df_av, x="machine", y=["Availability", "Av Efficiency", "OEE"], 
+                 barmode="group", title="Performance Metrics per Machine",
+                 color_discrete_map={"Availability": "#1f77b4", "Av Efficiency": "#ff7f0e", "OEE": "#2ca02c"})
 
     st.plotly_chart(fig)
 else:
     st.warning("⚠️ No AV data available for the selected filters.")
-
 
 # ✅ Display Tables
 st.subheader("📋 Machine Activity Summary")
@@ -219,13 +176,7 @@ st.dataframe(df_archive)
 st.subheader("🏭 Production Summary per Machine")
 st.dataframe(df_production)  # ✅ Includes Product
 
-# ✅ Generate Graph
-fig = px.bar(df_av, x="machine", y=["Availability", "OEE"], barmode='group', title="Performance Metrics")
-
 # ✅ PDF Download Button
 if st.button("📥 Download Full Report as PDF"):
     pdf_report = create_pdf(df_av, df_archive, df_production, fig)
-    st.download_button(label="📥 Click here to download",
-                       data=pdf_report,
-                       file_name="Machine_Performance_Report.pdf",
-                       mime="application/pdf")
+    st.download_button(label="📥 Click here to download", data=pdf_report, file_name="Machine_Performance_Report.pdf", mime="application/pdf")
