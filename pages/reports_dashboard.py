@@ -26,11 +26,17 @@ check_access(["user", "power user", "admin", "report"])
 engine = get_sqlalchemy_engine()
 
 def get_data(query, params=None):
-    """Fetch data from Neon PostgreSQL while preserving NULL values."""
+    """Fetch data from Neon PostgreSQL while preserving NULL values and standardizing column names."""
     try:
         with engine.connect() as conn:
             df = pd.read_sql(text(query), conn, params=params)
-        return df.replace({None: np.nan})  # Ensure NULLs stay as NaN
+        
+        df = df.replace({None: np.nan})  # Ensure NULLs stay as NaN
+        
+        # Standardize column names (lowercase and remove spaces)
+        df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
+
+        return df
     except Exception as e:
         st.error(f"❌ Database connection failed: {e}")
         return pd.DataFrame()
