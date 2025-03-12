@@ -10,7 +10,15 @@ import matplotlib.pyplot as plt
 from db import get_db_connection
 import psycopg2
 import bcrypt
+from auth import check_authentication, check_access
+# Authenticate user before anything else
+check_authentication()
 
+# Enforce access control: Only "user", "power user", and "admin" can access this form
+check_access(["user", "power user", "admin"])
+
+# Get the correct database engine for the assigned branch
+engine = get_sqlalchemy_engine()
 
 def save_to_database(archive_df, av_df):
     """Saves archive and av dataframes to PostgreSQL using SQLAlchemy."""
