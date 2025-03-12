@@ -173,24 +173,24 @@ if st.button("📥 Download Full Report as PDF"):
                        mime="application/pdf")
 
 
-# ✅ Function to Get Page Content as HTML
+# ✅ Function to Create Page Content as HTML
 def get_page_html():
-    return f"""
+    html_content = """
     <html>
     <head>
         <title>Streamlit Page Export</title>
         <style>
-            [data-testid="stSidebar"] {{ display: none; }}  /* Hide Sidebar */
+            [data-testid="stSidebar"] { display: none; }  /* Hide Sidebar */
+            body { font-family: Arial, sans-serif; padding: 20px; }
         </style>
     </head>
     <body>
-        {st.session_state["html_content"]}
+        <h1>📊 Machine Performance Report</h1>
+        <p>This is a generated HTML export of the Streamlit page.</p>
     </body>
     </html>
     """
-
-# ✅ Capture the Current Page Content
-st.session_state["html_content"] = st.markdown("### Your Page Content Goes Here")._repr_html_()
+    return html_content
 
 # ✅ Generate the HTML file content
 html_content = get_page_html()
