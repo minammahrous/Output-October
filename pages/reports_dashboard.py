@@ -51,7 +51,7 @@ start_date = st.date_input("Start Date")
 end_date = st.date_input("End Date")
 if st.button("Run Custom Report"):
     df_av = get_data("SELECT * FROM av WHERE date BETWEEN :start_date AND :end_date", {"start_date": start_date, "end_date": end_date})
-    df_archive = get_data("SELECT * FROM archive WHERE "Date" BETWEEN :start_date AND :end_date", {"start_date": start_date, "end_date": end_date})
+    df_archive = get_data('SELECT * FROM archive WHERE "Date" BETWEEN :start_date AND :end_date', {"start_date": start_date, "end_date": end_date})
     st.dataframe(df_av)
     st.dataframe(df_archive)
 
