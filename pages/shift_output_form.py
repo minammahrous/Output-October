@@ -376,7 +376,7 @@ for product, batch_list in st.session_state.product_batches.items():
             "standard rate": standard_rate,
             "efficiency": efficiency,
         })
-
+archive_data.extend(production_data)
 archive_df = pd.DataFrame(archive_data)
 
             # Construct av_df
