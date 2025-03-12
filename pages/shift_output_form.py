@@ -337,6 +337,8 @@ for dt_type in downtime_types:
         archive_data.append(archive_row)  # Append to the list
 
 # Construct archive_df (Production batch records)
+# ✅ Initialize average_efficiency with a default value
+average_efficiency = 0  # Default to 0 if no efficiency data is available
 efficiencies = []  # Declare only once
 production_data = []  # Separate list for production data
 
