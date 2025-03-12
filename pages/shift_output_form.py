@@ -46,20 +46,23 @@ def save_to_database(archive_df, av_df):
     try:
         cur = conn.cursor()
 
+        # ✅ Convert Decimal columns to float before inserting into DB
+        for col in ["time", "efficiency", "quantity", "rate", "standard rate"]:
+            if col in archive_df.columns:
+                archive_df[col] = archive_df[col].apply(lambda x: float(x) if isinstance(x, Decimal) else x)
+
+        for col in ["hours", "T.production time", "Availability", "Av Efficiency", "OEE"]:
+            if col in av_df.columns:
+                av_df[col] = av_df[col].apply(lambda x: float(x) if isinstance(x, Decimal) else x)
+
         # ✅ Save archive data
         for _, row in archive_df.iterrows():
             try:
                 cur.execute("""
                     INSERT INTO archive ("Date", "Machine", "Day/Night/plan", "time", "efficiency", "quantity", "rate", "standard rate")
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    row["Date"], row["Machine"], row["Day/Night/plan"], 
-                    float(row["time"]) if row["time"] else None,  
-                    float(row["efficiency"]) if row["efficiency"] else None,
-                    float(row["quantity"]) if row["quantity"] else None,  
-                    float(row["rate"]) if row["rate"] else None,  
-                    float(row["standard rate"]) if row["standard rate"] else None
-                ))
+                """, tuple(row))
+
             except Exception as e:
                 st.error(f"❌ Error saving archive data: {e}")
                 conn.rollback()
@@ -71,14 +74,8 @@ def save_to_database(archive_df, av_df):
                 cur.execute("""
                     INSERT INTO av (date, shift, machine, "shift type", hours, "T.production time", Availability, "Av Efficiency", OEE)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    row["date"], row["shift"], row["machine"], row["shift type"],  
-                    float(row["hours"]) if row["hours"] else None,  
-                    float(row["T.production time"]) if row["T.production time"] else None,  
-                    float(row["Availability"]) if row["Availability"] else None,  
-                    float(row["Av Efficiency"]) if row["Av Efficiency"] else None,  
-                    float(row["OEE"]) if row["OEE"] else None
-                ))
+                """, tuple(row))
+
             except Exception as e:
                 st.error(f"❌ Error saving av data: {e}")
                 conn.rollback()
@@ -94,6 +91,7 @@ def save_to_database(archive_df, av_df):
     finally:
         cur.close()
         conn.close()  # ✅ Ensure connection is always closed
+
 # Function to fetch data from PostgreSQL
 def fetch_data(query):
     """Fetch data using SQLAlchemy (for reading only)."""
@@ -477,24 +475,25 @@ st.session_state.submitted_archive_df = archive_df
 st.session_state.submitted_av_df = av_df
 
 # Display submitted data
-for col in ["quantity", "rate", "standard rate", "efficiency"]:
-    # ✅ Ensure column exists before converting
+# ✅ Convert Decimal columns to float before displaying in Streamlit
+for col in ["time", "efficiency", "quantity", "rate", "standard rate"]:
     if col in st.session_state.submitted_archive_df.columns:
-        # ✅ Convert column to numeric safely, replacing errors with NaN
-        st.session_state.submitted_archive_df[col] = pd.to_numeric(
-            st.session_state.submitted_archive_df[col], errors="coerce"
-        ).fillna(0.0)  # Replace NaN values with 0.0
+        st.session_state.submitted_archive_df[col] = st.session_state.submitted_archive_df[col].apply(
+            lambda x: float(x) if isinstance(x, Decimal) else x
+        )
 
-    # ✅ Ensure column exists before converting in `submitted_av_df`
+for col in ["hours", "T.production time", "Availability", "Av Efficiency", "OEE"]:
     if col in st.session_state.submitted_av_df.columns:
-        st.session_state.submitted_av_df[col] = pd.to_numeric(
-            st.session_state.submitted_av_df[col], errors="coerce"
-        ).fillna(0.0)
+        st.session_state.submitted_av_df[col] = st.session_state.submitted_av_df[col].apply(
+            lambda x: float(x) if isinstance(x, Decimal) else x
+        )
+
 st.subheader("Submitted Archive Data")
 st.dataframe(st.session_state.submitted_archive_df)
-  
+
 st.subheader("Submitted AV Data")
-st.dataframe(st.session_state.submitted_av_df)   
+st.dataframe(st.session_state.submitted_av_df)
+
            # Compute total recorded time (downtime + production time)
 total_production_time = sum(
     batch["time_consumed"] for product, batch_list in st.session_state.product_batches.items() for batch in batch_list
