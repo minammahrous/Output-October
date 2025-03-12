@@ -146,7 +146,17 @@ def generate_pdf(summary_df, downtime_summary, fig):
     pdf.ln(5)
 
     # Convert Plotly figure to image bytes and save as PNG
-    img_bytes = pio.to_image(fig, format="png")
+    import plotly.io as pio
+    import tempfile
+
+    # Save the figure as a temporary file using 'orca'
+    temp_img_path = tempfile.NamedTemporaryFile(suffix=".png", delete=False).name
+    fig.write_image(temp_img_path, format="png")
+
+    # Insert the image into the PDF
+    pdf.image(temp_img_path, x=10, y=pdf.get_y(), w=250)
+    pdf.ln(10)
+
 
     # Save the image as a file
     with open("temp_chart.png", "wb") as f:
