@@ -7,7 +7,7 @@ from auth import check_authentication, check_access
 from fpdf import FPDF
 import matplotlib.pyplot as plt
 import io
-
+import plotly.io as pio  # ✅ Fix for write_image function
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
