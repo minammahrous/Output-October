@@ -102,33 +102,38 @@ def create_pdf(df_av, df_archive, df_production, fig):
     img = ImageReader(img_buf)
     c.drawImage(img, margin_x, height - 300, width=500, height=200)
 
-    # ✅ Function to Add Tables
-    def add_table(c, title, df, y_start):
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(50, y_start, title)
-        c.setFont("Helvetica", 10)
+def add_table(c, title, df, y_start):
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y_start, title)
+    c.setFont("Helvetica", 10)
 
     # ✅ Ensure numerical values are rounded
-        df = df.fillna("N/A").applymap(lambda x: round(x, 2) if isinstance(x, (int, float)) else x)
+    df = df.fillna("N/A").applymap(lambda x: round(x, 2) if isinstance(x, (int, float)) else x)
 
-        if df.empty:
-            c.drawString(50, y_start - 20, "No data available")
-        else:
-            y = y_start - 20
-            col_widths = [80, 100, 150, 100, 100]  # ✅ Adjust widths (Product column is wider)
-            headers = list(df.columns)
+    if df.empty:
+        c.drawString(50, y_start - 20, "No data available")
+    else:
+        y = y_start - 20
+        col_widths = [80, 100, 150, 100, 100]  # ✅ Column widths (Product column is wider)
+        headers = list(df.columns)
 
-        # ✅ Add headers with spacing
+        # ✅ Compute column start positions
         x_positions = [50]
-        for width in col_widths[:-1]:  # Compute column start positions
+        for width in col_widths[:-1]:
             x_positions.append(x_positions[-1] + width)
 
+        # ✅ Draw header row with borders
+        c.setStrokeColorRGB(0, 0, 0)  # Black border color
+        c.line(50, y + 5, x_positions[-1] + 100, y + 5)  # Top border
         for i, col in enumerate(headers):
-            c.drawString(x_positions[i], y, col)
+            c.drawString(x_positions[i] + 5, y, col)  # Add header text
+            c.line(x_positions[i], y + 5, x_positions[i], y - 15)  # Vertical line
+
         y -= 15
 
-        # ✅ Add row data with proper alignment & text wrapping
+        # ✅ Draw row data with text wrapping and borders
         for _, row in df.iterrows():
+            c.line(50, y + 5, x_positions[-1] + 100, y + 5)  # Row top border
             x = 50
             for i, (col_name, item) in enumerate(zip(headers, row)):
                 wrapped_text = str(item)
@@ -136,12 +141,17 @@ def create_pdf(df_av, df_archive, df_production, fig):
                 if col_name == "Product":  # ✅ Wrap Product names properly
                     wrapped_lines = wrap(str(item), width=20)  # Wrap at 20 characters
                     for line in wrapped_lines:
-                        c.drawString(x_positions[i], y, line)
-                        y -= 10  # Move down for the next line
-                    continue  # Skip the normal row movement
+                        c.drawString(x_positions[i] + 5, y, line)
+                        y -= 10
+                    continue  # Skip normal row movement
 
-                c.drawString(x_positions[i], y, wrapped_text[:20])  # Truncate long text
+                c.drawString(x_positions[i] + 5, y, wrapped_text[:20])  # Truncate long text
+                c.line(x_positions[i], y + 5, x_positions[i], y - 15)  # Column vertical border
+
             y -= 15
+
+        # ✅ Draw bottom border for the table
+        c.line(50, y + 5, x_positions[-1] + 100, y + 5)
 
 
     # ✅ Add tables with proper spacing
