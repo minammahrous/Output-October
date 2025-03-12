@@ -124,6 +124,7 @@ if not st.session_state.df_av.empty:
         trace.text = [f"{y:.2%}" for y in trace.y]
 
     
+st.plotly_chart(fig)import matplotlib.pyplot as plt
 
 def save_summary_graph(summary_df, fig):
     """Combine summary table and graph into a single image."""
