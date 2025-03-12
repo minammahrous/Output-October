@@ -11,7 +11,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
 from textwrap import wrap
 
-# ✅ Hide Streamlit's menu and sidebar
+# ✅ Hide Streamlit UI elements
 st.markdown("""
     <style>
         [data-testid="stToolbar"] {visibility: hidden !important;}
@@ -21,7 +21,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ✅ Authenticate and enforce role-based access
+# ✅ Authenticate & enforce access control
 check_authentication()
 check_access(["user", "power user", "admin", "report"])
 
@@ -38,106 +38,66 @@ def get_data(query, params=None):
         st.error(f"❌ Database connection failed: {e}")
         return pd.DataFrame()
 
-# ✅ SQL Query to Fetch Production Data
-query_production = """
-    SELECT 
-        "Machine", 
-        "batch number",  
-        a."Product" AS "Product",  
-        SUM("quantity") AS "Produced Quantity"
-    FROM archive a
-    WHERE "Activity" = 'Production' AND "Date" = :date AND "Day/Night/plan" = :shift
-    GROUP BY "Machine", "batch number", a."Product"
-    ORDER BY "Machine", "batch number";
-"""
+# ✅ Report Type Selection
+report_type = st.radio("📊 Select Report Type", ["Single Shift Report", "Date Range Report"])
 
-# ✅ Function to Create PDF Report
-def create_pdf(df_av, df_archive, df_production, fig):
-    buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=letter)
+# ✅ User Input Fields
+if report_type == "Single Shift Report":
+    date_selected = st.date_input("📅 Select Date")
+    shift_selected = st.selectbox("🕒 Select Shift Type", ["Day", "Night", "Plan"])
+    params = {"date": date_selected, "shift": shift_selected}
+    file_suffix = f"{shift_selected}_{date_selected}"
+    
+    # ✅ Queries for Single Shift
+    query_av = """
+        SELECT "machine", "Availability", "Av Efficiency", "OEE"
+        FROM av
+        WHERE "date" = :date AND "shift" = :shift
+    """
+    query_archive = """
+        SELECT "Machine", "Activity", SUM("time") as "Total_Time", AVG("efficiency") as "Avg_Efficiency"
+        FROM archive
+        WHERE "Date" = :date AND "Day/Night/plan" = :shift
+        GROUP BY "Machine", "Activity"
+    """
+    query_production = """
+        SELECT "Machine", "batch number", a."Product" AS "Product", SUM("quantity") AS "Produced Quantity"
+        FROM archive a
+        WHERE "Activity" = 'Production' AND "Date" = :date AND "Day/Night/plan" = :shift
+        GROUP BY "Machine", "batch number", a."Product"
+        ORDER BY "Machine", "batch number";
+    """
+    
+elif report_type == "Date Range Report":
+    start_date = st.date_input("📅 Start Date")
+    end_date = st.date_input("📅 End Date")
+    params = {"start_date": start_date, "end_date": end_date}
+    file_suffix = f"{start_date}_to_{end_date}"
 
-    # ✅ Set PDF Title
-    c.setTitle("Machine Performance Report")
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, 750, "📊 Machine Performance Report")
-
-    # ✅ Convert Plotly graph to high-quality PNG
-    img_buf = io.BytesIO()
-    pio.write_image(fig, img_buf, format="png", scale=3)
-    img_buf.seek(0)
-    img = ImageReader(img_buf)
-    c.drawImage(img, 50, 500, width=500, height=200)
-
-    # ✅ Add tables
-    add_table(c, "📋 Machine Activity Summary", df_archive, 450)
-    add_table(c, "🏭 Production Summary", df_production, 300)
-    add_table(c, "📈 AV Data", df_av, 150)
-
-    # ✅ Save PDF
-    c.save()
-    buffer.seek(0)
-
-    return buffer.getvalue()
-
-# ✅ Function to Add Tables to PDF
-def add_table(c, title, df, y_start):
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y_start, title)
-    c.setFont("Helvetica", 10)
-
-    df = df.fillna("N/A").applymap(lambda x: round(x, 2) if isinstance(x, (int, float)) else x)
-
-    if df.empty:
-        c.drawString(50, y_start - 20, "No data available")
-    else:
-        y = y_start - 20
-        col_widths = [100, 120, 150, 120, 100]
-        row_height = 25
-        headers = list(df.columns)
-
-        for i, col in enumerate(headers):
-            c.drawString(50 + i * 120, y, col)
-
-        y -= row_height
-
-        for _, row in df.iterrows():
-            for i, (col_name, item) in enumerate(zip(headers, row)):
-                wrapped_text = str(item)
-
-                if col_name == "Product":
-                    wrapped_lines = wrap(str(item), width=25)
-                    for line in wrapped_lines:
-                        c.drawString(50 + i * 120, y, line)
-                        y -= 12
-                    continue
-
-                c.drawString(50 + i * 120, y, wrapped_text)
-
-            y -= row_height
-
-# ✅ Streamlit UI
-st.title("📊 Machine Performance Dashboard")
-
-# ✅ User Inputs
-date_selected = st.date_input("📅 Select Date")
-shift_selected = st.selectbox("🕒 Select Shift Type", ["Day", "Night", "Plan"])
+    # ✅ Queries for Date Range
+    query_av = """
+        SELECT "machine", "Availability", "Av Efficiency", "OEE"
+        FROM av
+        WHERE "date" BETWEEN :start_date AND :end_date
+    """
+    query_archive = """
+        SELECT "Machine", "Activity", SUM("time") as "Total_Time", AVG("efficiency") as "Avg_Efficiency"
+        FROM archive
+        WHERE "Date" BETWEEN :start_date AND :end_date
+        GROUP BY "Machine", "Activity"
+    """
+    query_production = """
+        SELECT "Machine", "batch number", a."Product" AS "Product", SUM("quantity") AS "Produced Quantity"
+        FROM archive a
+        WHERE "Activity" = 'Production' AND "Date" BETWEEN :start_date AND :end_date
+        GROUP BY "Machine", "batch number", a."Product"
+        ORDER BY "Machine", "batch number";
+    """
 
 # ✅ Fetch Data
-query_av = """
-    SELECT "machine", "Availability", "Av Efficiency", "OEE"
-    FROM av
-    WHERE "date" = :date AND "shift" = :shift
-"""
-query_archive = """
-    SELECT "Machine", "Activity", SUM("time") as "Total_Time", AVG("efficiency") as "Avg_Efficiency"
-    FROM archive
-    WHERE "Date" = :date AND "Day/Night/plan" = :shift
-    GROUP BY "Machine", "Activity"
-"""
-
-df_av = get_data(query_av, {"date": date_selected, "shift": shift_selected})
-df_archive = get_data(query_archive, {"date": date_selected, "shift": shift_selected})
-df_production = get_data(query_production, {"date": date_selected, "shift": shift_selected})
+df_av = get_data(query_av, params)
+df_archive = get_data(query_archive, params)
+df_production = get_data(query_production, params)
 
 # ✅ Generate Graph
 if not df_av.empty:
@@ -155,16 +115,6 @@ st.dataframe(df_archive)
 
 st.subheader("🏭 Production Summary per Machine")
 st.dataframe(df_production)
-
-# ✅ PDF Download Button
-if st.button("📥 Download Full Report as PDF"):
-    pdf_report = create_pdf(df_av, df_archive, df_production, fig)
-    file_name = f"{shift_selected}_{date_selected}.pdf"
-
-    st.download_button(label="📥 Click here to download", 
-                       data=pdf_report, 
-                       file_name=file_name, 
-                       mime="application/pdf")
 
 # ✅ Function to Create Full Page as HTML
 def generate_full_html():
@@ -196,10 +146,20 @@ def generate_full_html():
     """
 
 html_bytes = generate_full_html().encode("utf-8")
-html_file = f"{shift_selected}_{date_selected}.html"
+html_file = f"Report_{file_suffix}.html"
 
 # ✅ HTML Download Button
 st.download_button(label="📥 Download Full Page as HTML", 
                    data=html_bytes, 
                    file_name=html_file, 
                    mime="text/html")
+
+# ✅ PDF Download Button
+if st.button("📥 Download Full Report as PDF"):
+    pdf_report = create_pdf(df_av, df_archive, df_production, fig)
+    pdf_file = f"Report_{file_suffix}.pdf"
+    
+    st.download_button(label="📥 Click here to download", 
+                       data=pdf_report, 
+                       file_name=pdf_file, 
+                       mime="application/pdf")
