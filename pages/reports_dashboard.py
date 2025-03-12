@@ -42,6 +42,13 @@ def get_data(query, params=None):
         return pd.DataFrame()
 
 # Function to generate PDF with Unicode support
+import io
+import plotly.io as pio
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.utils import ImageReader
+from textwrap import wrap
+
 def create_pdf(df_av, df_archive, df_production, fig):
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)  # ✅ Set PDF to portrait mode
@@ -58,28 +65,29 @@ def create_pdf(df_av, df_archive, df_production, fig):
     c.setFont("Helvetica-Bold", 16)
     c.drawString(margin_x, height - margin_y, "📊 Machine Performance Report")
 
-    # ✅ Force Plotly to keep colors in the exported image
+    # ✅ Define custom colors for the graph
     custom_colors = ["#1f77b4", "#ff7f0e", "#2ca02c"]  # Blue, Orange, Green
 
+    # ✅ Force Plotly to use colors and export in high quality
     fig.update_layout(
         template="plotly_white",
-        plot_bgcolor="white",  # White background
-        paper_bgcolor="white",  # White background
-        font=dict(color="black"),  # Black text
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        font=dict(color="black"),
         colorway=custom_colors,  # ✅ Force colors in graph
     )
 
-    # ✅ Fix Kaleido issue in cloud environments (ensures proper color rendering)
-    pio.kaleido.scope.chromium_args += ("--single-process",)
+    # ✅ Convert Plotly graph to SVG first to preserve colors
+    img_svg = pio.to_image(fig, format="svg")  
+    img_buf = io.BytesIO(img_svg)
 
-    # ✅ Save the figure as PNG with high resolution
-    img_buf = io.BytesIO()
-    pio.write_image(fig, img_buf, format="png", scale=3)  # High-quality export
+    # ✅ Convert SVG to PNG with high resolution
+    pio.write_image(fig, img_buf, format="png", scale=3)
     img_buf.seek(0)
 
     # ✅ Embed the colored graph in the PDF
     img = ImageReader(img_buf)
-    c.drawImage(img, margin_x, height - 300, width=500, height=200)  # Adjusted for portrait mode
+    c.drawImage(img, margin_x, height - 300, width=500, height=200)
 
     # ✅ Function to add tables with proper spacing & text wrapping
     def add_table(c, title, df, y_start):
