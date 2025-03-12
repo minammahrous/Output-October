@@ -28,6 +28,13 @@ check_access(["user", "power user", "admin", "report"])
 # Get database engine
 engine = get_sqlalchemy_engine()
 
+# Ensure session state variables are initialized
+if "df_av" not in st.session_state:
+    st.session_state.df_av = pd.DataFrame()
+
+if "df_archive" not in st.session_state:
+    st.session_state.df_archive = pd.DataFrame()
+
 # Restore Graph for Machine Performance
 if not st.session_state.df_av.empty:
     st.subheader("📈 Machine Performance Metrics")
