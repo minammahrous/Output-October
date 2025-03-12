@@ -72,7 +72,7 @@ if st.button("Run Custom Report"):
     st.session_state.report_type = "custom"
     st.session_state.report_name = f"custom_report_{start_date}_to_{end_date}"
 
-# Data Processing: Pivot Summary by Machine
+# Data Processing: Summary Table
 def process_summary(df):
     if df is None or df.empty:
         return pd.DataFrame()
@@ -87,8 +87,13 @@ def process_summary(df):
     # Calculate total quantity for the same batch on the same machine
     df["total_batch_quantity"] = df.groupby(["machine", "batch_number"])["quantity"].transform("sum")
     
-    summary = df.pivot_table(index=["machine", "activity"], columns="batch_number", values=["quantity", "time", "total_batch_quantity"], aggfunc="sum").fillna(0)
-    return summary.reset_index()
+    summary = df.groupby(["machine", "activity", "batch_number"]).agg(
+        quantity=("quantity", "sum"),
+        time=("time", "sum"),
+        total_batch_quantity=("total_batch_quantity", "max")
+    ).reset_index()
+    
+    return summary
 
 summary_df = process_summary(st.session_state.df_archive)
 if "activity" in st.session_state.df_archive.columns:
@@ -101,8 +106,14 @@ else:
 
 # Display Summary Table
 if not summary_df.empty:
-    st.subheader("📊 Summary Report (Pivot View)")
+    st.subheader("📊 Summary Report")
     st.dataframe(summary_df)
+
+# Restore Graph for Machine Performance
+if not st.session_state.df_av.empty:
+    st.subheader("📈 Machine Performance Metrics")
+    fig = px.bar(st.session_state.df_av, x="machine", y=["availability", "av_efficiency", "oee"], barmode="group", title="Machine Performance")
+    st.plotly_chart(fig)
 
 def generate_pdf(summary_df, downtime_summary):
     pdf = FPDF()
@@ -117,7 +128,7 @@ def generate_pdf(summary_df, downtime_summary):
     pdf.set_font("Arial", "", 10)
     
     for i, row in summary_df.iterrows():
-        pdf.cell(0, 10, str(row.tolist()), ln=True)
+        pdf.cell(0, 10, " | ".join(map(str, row.tolist())), ln=True)
     pdf.ln(5)
     
     pdf.set_font("Arial", "B", 12)
@@ -125,7 +136,7 @@ def generate_pdf(summary_df, downtime_summary):
     pdf.set_font("Arial", "", 10)
     
     for i, row in downtime_summary.iterrows():
-        pdf.cell(0, 10, str(row.tolist()), ln=True)
+        pdf.cell(0, 10, " | ".join(map(str, row.tolist())), ln=True)
     pdf.ln(5)
     
     pdf_output = BytesIO()
