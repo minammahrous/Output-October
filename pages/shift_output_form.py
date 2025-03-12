@@ -11,6 +11,10 @@ from db import get_sqlalchemy_engine
 from db import get_db_connection
 from decimal import Decimal
 import numpy as np
+from auth import check_authentication, check_access
+
+check_authentication()  # Ensure the user is logged in
+check_access(["admin", "power user", "user"])  # Restrict access to only admins and power users
 
 def get_standard_rate(product, machine):
     """Fetch the standard rate from the database using psycopg2."""
