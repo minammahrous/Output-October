@@ -113,12 +113,12 @@ if not summary_df.empty:
 if not st.session_state.df_av.empty:
     st.subheader("📈 Machine Performance Metrics")
     fig = px.bar(st.session_state.df_av, x="machine", y=["availability", "av_efficiency", "oee"],
-                 barmode="group", title="Machine Performance")
-    fig.update_traces(texttemplate="%{y:.2%}", textposition="outside", selector=dict(name="oee"))
+                 barmode="group", title="Machine Performance", text_auto=True)
+    fig.for_each_trace(lambda trace: trace.update(texttemplate="%{y:.2%}") if trace.name == "oee" else None)
     st.plotly_chart(fig)
 
 def generate_pdf(summary_df, downtime_summary):
-    pdf = FPDF(orientation='L', unit='mm', format='A4')  # Set landscape mode
+    pdf = FPDF(orientation='L', unit='mm', format='A4')
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
     pdf.set_font("Arial", "B", 16)
@@ -142,7 +142,7 @@ def generate_pdf(summary_df, downtime_summary):
     pdf.ln(5)
     
     pdf_output = BytesIO()
-    pdf.output(pdf_output, dest='S')
+    pdf.output(pdf_output, 'F')
     pdf_output.seek(0)
     return pdf_output
 
