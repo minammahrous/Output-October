@@ -168,9 +168,25 @@ df_production = get_data(query_production, {"date": date_selected, "shift": shif
 # ✅ Visualize AV Data
 if not df_av.empty:
     st.subheader("📈 Machine Efficiency, Availability & OEE")
+   
+    # ✅ Define the Plotly figure before using it
+    fig = px.bar(
+        df_av, 
+        x="machine", 
+        y=["Availability", "Av Efficiency", "OEE"], 
+        barmode="group", 
+        title="Performance Metrics per Machine",
+        color_discrete_map={
+            "Availability": "#1f77b4",  # Blue
+            "Av Efficiency": "#ff7f0e",  # Orange
+            "OEE": "#2ca02c",  # Green
+        }
+    )
+
     st.plotly_chart(fig)
 else:
     st.warning("⚠️ No AV data available for the selected filters.")
+
 
 # ✅ Display Tables
 st.subheader("📋 Machine Activity Summary")
