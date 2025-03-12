@@ -11,6 +11,15 @@ from db import get_db_connection
 import psycopg2
 import bcrypt
 from auth import check_authentication, check_access
+# Hide Streamlit's menu and "Manage app" button
+st.markdown("""
+    <style>
+        [data-testid="stToolbar"] {visibility: hidden !important;}
+        [data-testid="manage-app-button"] {display: none !important;}
+        header {visibility: hidden !important;}
+        footer {visibility: hidden !important;}
+    </style>
+""", unsafe_allow_html=True)
 # Authenticate user before anything else
 check_authentication()
 
