@@ -118,64 +118,55 @@ if not st.session_state.df_av.empty:
     for trace in fig.data:
         trace.text = [f"{y:.2%}" for y in trace.y]
 
-    st.plotly_chart(fig)
+    st.plotly_chart(fig)import matplotlib.pyplot as plt
+import pandas as pd
 import plotly.io as pio
+from PIL import Image
+import io
 
-def generate_pdf(summary_df, downtime_summary, fig):
-    pdf = FPDF(orientation='L', unit='mm', format='A4')
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(200, 10, "Machine Performance Report", ln=True, align='C')
-    pdf.ln(10)
+def save_summary_graph(summary_df, fig):
+    """Combine summary table and graph into a single image."""
+    fig_img = io.BytesIO(fig.to_image(format="png"))  # Convert Plotly graph to image
     
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 10, "Summary Table", ln=True)
-    pdf.set_font("Arial", "", 10)
-    
-    for _, row in summary_df.iterrows():
-        pdf.multi_cell(270, 10, " | ".join(str(row[col]) for col in summary_df.columns), border=1)
-    pdf.ln(5)
-    
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 10, "Downtime Summary", ln=True)
-    pdf.set_font("Arial", "", 10)
-    
-    for _, row in downtime_summary.iterrows():
-        pdf.multi_cell(270, 10, " | ".join(str(row[col]) for col in downtime_summary.columns), border=1)
-    pdf.ln(5)
+    # Convert summary table to an image using Matplotlib
+    fig_table, ax = plt.subplots(figsize=(10, len(summary_df) * 0.5 + 1))
+    ax.axis('tight')
+    ax.axis('off')
+    table_data = [summary_df.columns.tolist()] + summary_df.values.tolist()
+    table = ax.table(cellText=table_data, colLabels=None, cellLoc='center', loc='center')
 
-    # Convert Plotly figure to image bytes and save as PNG
-    import plotly.io as pio
-    import tempfile
+    table.auto_set_font_size(False)
+    table.set_fontsize(8)
+    table.auto_set_column_width([i for i in range(len(summary_df.columns))])  # Adjust column width
 
-    # Save the figure as a temporary file using 'orca'
-    temp_img_path = tempfile.NamedTemporaryFile(suffix=".png", delete=False).name
-    fig.write_image(temp_img_path, format="png")
+    table_img = io.BytesIO()
+    plt.savefig(table_img, format="png", bbox_inches="tight", dpi=300)
+    plt.close(fig_table)
 
-    # Insert the image into the PDF
-    pdf.image(temp_img_path, x=10, y=pdf.get_y(), w=250)
-    pdf.ln(10)
+    # Open both images and combine them vertically
+    summary_image = Image.open(table_img)
+    graph_image = Image.open(fig_img)
 
+    total_width = max(summary_image.width, graph_image.width)
+    total_height = summary_image.height + graph_image.height
 
-    # Save the image as a file
-    with open("temp_chart.png", "wb") as f:
-        f.write(img_bytes)
+    combined_image = Image.new("RGB", (total_width, total_height), (255, 255, 255))
+    combined_image.paste(summary_image, (0, 0))
+    combined_image.paste(graph_image, (0, summary_image.height))
 
-    # Insert image into the PDF
-    pdf.image("temp_chart.png", x=10, y=pdf.get_y(), w=250)
-    pdf.ln(10)
+    final_img = io.BytesIO()
+    combined_image.save(final_img, format="PNG")
+    final_img.seek(0)
 
-    pdf_output = BytesIO()
-    pdf.output(pdf_output, dest='S')
-    pdf_output.seek(0)
-    
-    return pdf_output
+    return final_img
 
+# Add download button for the combined image
+if not summary_df.empty:
+    summary_graph_img = save_summary_graph(summary_df, fig)
+    st.download_button(
+        label="📥 Download Summary & Graph as PNG",
+        data=summary_graph_img,
+        file_name="summary_and_graph.png",
+        mime="image/png"
+    )
 
-if st.button("Download PDF Report"):
-    if not summary_df.empty:
-        pdf_file = generate_pdf(summary_df, downtime_summary, fig)  # Now passing fig
-        st.download_button("Download PDF", pdf_file, f"{st.session_state.report_name}.pdf", "application/pdf")
-    else:
-        st.error("❌ No data available for the PDF report.")
