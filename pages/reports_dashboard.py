@@ -50,16 +50,27 @@ def create_pdf(df_av, df_archive, df_production, fig):
     # Title
     c.setFont("Helvetica-Bold", 16)
     c.drawString(30, 550, "📊 Machine Performance Report")
+    # Define custom colors for better contrast
+    custom_colors = ["#1f77b4", "#ff7f0e", "#2ca02c"]  # Blue, Orange, Green
 
-    # ✅ Convert Plotly figure to a colored image
+# Update the figure with colors and white background
+    fig.update_layout(
+        template="plotly_white",  # Ensures white background (Fixes black issue)
+        plot_bgcolor="white",  # White background
+        paper_bgcolor="white",  # White export background
+        font=dict(color="black")  # Ensures text is visible
+    )
+
+    # Save the figure as a PNG with colors
     img_buf = io.BytesIO()
-    fig.update_layout(template="plotly_white")  # Ensures color theme
-    pio.write_image(fig, img_buf, format="png", scale=2)  # Higher resolution
+    pio.write_image(fig, img_buf, format="png", scale=2)  # Ensures high resolution
     img_buf.seek(0)
-    
-    img = ImageReader(img_buf)
-    c.drawImage(img, 30, 300, width=500, height=250)  # Adjusted height
 
+    # Embed the image into the PDF
+    img = ImageReader(img_buf)
+    c.drawImage(img, 30, 300, width=500, height=250)  # Adjusted size
+
+    
     # ✅ Function to add tables with improved spacing
     def add_table(c, title, df, y_start):
         c.setFont("Helvetica-Bold", 12)
