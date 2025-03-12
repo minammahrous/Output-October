@@ -43,53 +43,58 @@ def get_data(query, params=None):
 def create_pdf(df_av, df_archive, df_production, fig):
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=landscape(letter))
+    
+    # Set document title
+    c.setTitle("Machine Performance Report")
 
     # Title
     c.setFont("Helvetica-Bold", 16)
     c.drawString(30, 550, "📊 Machine Performance Report")
 
-    # Convert Plotly figure to image
+    # ✅ Convert Plotly figure to an image
     img_buf = io.BytesIO()
-    fig.write_image(img_buf, format="png")
+    pio.write_image(fig, img_buf, format="png")  # Requires `pip install kaleido`
     img_buf.seek(0)
     img = ImageReader(img_buf)
     c.drawImage(img, 30, 300, width=500, height=200)
 
-    # Function to add a table
-    # Function to add a table
+    # ✅ Function to add tables to the PDF with improved formatting
     def add_table(c, title, df, y_start):
         c.setFont("Helvetica-Bold", 12)
         c.drawString(30, y_start, title)
         c.setFont("Helvetica", 10)
 
+        # ✅ Replace NaN values with "N/A" and round numbers
+        df = df.fillna("N/A").round(2)
+
         if df.empty:
             c.drawString(30, y_start - 20, "No data available")
         else:
             y = y_start - 20
+            col_width = 100  # Adjust for better spacing
+
+            # ✅ Add column headers
             for col in df.columns:
-                c.drawString(30, y, col)
-                y -= 15
-            y -= 10
+                c.drawString(30 + df.columns.get_loc(col) * col_width, y, col)
+            y -= 15
+
+            # ✅ Add rows with proper alignment
             for _, row in df.iterrows():
                 x = 30
                 for item in row:
                     c.drawString(x, y, str(item))
-                    x += 100
-                y -= 15
+                    x += col_width
+                y -= 15  # Move to the next row
 
-    # Add tables
+    # ✅ Add tables
     add_table(c, "📋 Machine Activity Summary", df_archive, 250)
     add_table(c, "🏭 Production Summary", df_production, 150)
     add_table(c, "📈 AV Data", df_av, 50)
 
-    # Save PDF
+    # ✅ Save PDF
     c.save()
     buffer.seek(0)
     return buffer
-
-
-    
-   
 
 # Streamlit UI
 st.title("📊 Machine Performance Dashboard")
