@@ -6,6 +6,7 @@ from db import get_sqlalchemy_engine
 from auth import check_authentication, check_access
 from io import BytesIO
 from fpdf import FPDF
+import numpy as np
 
 # Hide Streamlit's menu and "Manage app" button
 st.markdown("""
@@ -78,22 +79,37 @@ def generate_pdf(df_av, df_archive):
     pdf.cell(200, 10, "Machine Performance Report", ln=True, align='C')
     pdf.ln(10)
     
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 10, "AV Data", ln=True)
-    pdf.set_font("Arial", "", 10)
-    for index, row in df_av.iterrows():
-        pdf.multi_cell(0, 10, str(row.to_dict()))
+    def add_table(pdf, df, title):
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 10, title, ln=True)
+        pdf.set_font("Arial", "", 10)
+        
+        if df.empty:
+            pdf.cell(0, 10, "No data available", ln=True)
+            pdf.ln(5)
+            return
+        
+        df = df.fillna("N/A")  # Replace NaN values
+        columns = df.columns.tolist()
+        column_width = 190 // len(columns)
+        
+        pdf.set_font("Arial", "B", 10)
+        for col in columns:
+            pdf.cell(column_width, 10, col, border=1, align='C')
+        pdf.ln()
+        
+        pdf.set_font("Arial", "", 8)
+        for _, row in df.iterrows():
+            for col in columns:
+                pdf.cell(column_width, 10, str(row[col]), border=1, align='C')
+            pdf.ln()
+        pdf.ln(5)
     
-    pdf.ln(10)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 10, "Archive Data", ln=True)
-    pdf.set_font("Arial", "", 10)
-    for index, row in df_archive.iterrows():
-        pdf.multi_cell(0, 10, str(row.to_dict()))
+    add_table(pdf, df_av, "AV Data")
+    add_table(pdf, df_archive, "Archive Data")
     
     pdf_output = BytesIO()
-    pdf_bytes = pdf.output(dest='S').encode('latin1')
-    pdf_output.write(pdf_bytes)
+    pdf.output(pdf_output, dest='S').encode('latin1')
     pdf_output.seek(0)
     return pdf_output
 
