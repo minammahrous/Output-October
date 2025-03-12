@@ -92,7 +92,7 @@ def generate_pdf(df_av, df_archive):
         pdf.multi_cell(0, 10, str(row.to_dict()))
     
     pdf_output = BytesIO()
-    pdf.output(pdf_output, dest='S')
+    pdf.output(pdf_output, dest='F')
     pdf_output.seek(0)
     return pdf_output
 
