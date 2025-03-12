@@ -45,6 +45,7 @@ if "reports_dashboard" in allowed_pages:
 
 if "master_data" in allowed_pages:
     st.page_link("pages/master_data.py", label="Master Data Control")
-
+if "user management" in allowed_pages:
+    st.page_link("pages/user_management.py", label="Master Data Control")
 # Success message
 st.success(f"Now working on: {st.session_state['branch']}")
