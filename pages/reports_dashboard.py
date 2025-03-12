@@ -119,10 +119,6 @@ if not st.session_state.df_av.empty:
         trace.text = [f"{y:.2%}" for y in trace.y]
 
     st.plotly_chart(fig)
-
-import matplotlib.pyplot as plt
-import tempfile
-from PIL import Image
 import plotly.io as pio
 
 def generate_pdf(summary_df, downtime_summary, fig):
@@ -149,21 +145,23 @@ def generate_pdf(summary_df, downtime_summary, fig):
         pdf.multi_cell(270, 10, " | ".join(str(row[col]) for col in downtime_summary.columns), border=1)
     pdf.ln(5)
 
-    # Save the graph as an HTML file and take a screenshot
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_img:
-        temp_html = "temp_chart.html"
-        pio.write_html(fig, temp_html)  # Save Plotly figure as an HTML file
-        img = Image.open(temp_html)  # Open and take a screenshot
-        img.save(temp_img.name, format="PNG")  # Save as PNG
-    
-        pdf.image(temp_img.name, x=10, y=pdf.get_y(), w=250)  # Embed in PDF
-        pdf.ln(10)
-    
+    # Convert Plotly figure to image bytes and save as PNG
+    img_bytes = pio.to_image(fig, format="png")
+
+    # Save the image as a file
+    with open("temp_chart.png", "wb") as f:
+        f.write(img_bytes)
+
+    # Insert image into the PDF
+    pdf.image("temp_chart.png", x=10, y=pdf.get_y(), w=250)
+    pdf.ln(10)
+
     pdf_output = BytesIO()
-    pdf_output.write(pdf.output(dest='S').encode('latin1'))
+    pdf.output(pdf_output, dest='S')
     pdf_output.seek(0)
     
     return pdf_output
+
 
 if st.button("Download PDF Report"):
     if not summary_df.empty:
