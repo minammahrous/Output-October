@@ -58,7 +58,8 @@ date_selected = st.date_input("📅 Select Date")
 shift_selected = st.selectbox("🕒 Select Shift Type", ["Day", "Night", "Plan"])
 if st.button("Run Shift Report"):
     st.session_state.df_av = get_data("SELECT * FROM av WHERE date = :date AND shift = :shift", {"date": date_selected, "shift": shift_selected})
-    st.session_state.df_archive = get_data("SELECT * FROM archive WHERE date = :date AND day_night_plan = :shift", {"date": date_selected, "shift": shift_selected})
+    st.session_state.df_archive = get_data('SELECT * FROM archive WHERE "Date" = :date AND "Day/Night/Plan" = :shift',
+    {"date": date_selected, "shift": shift_selected})
     st.session_state.report_type = "shift"
     st.session_state.report_name = f"shift_report_{date_selected}"
 
@@ -68,7 +69,8 @@ start_date = st.date_input("Start Date")
 end_date = st.date_input("End Date")
 if st.button("Run Custom Report"):
     st.session_state.df_av = get_data("SELECT * FROM av WHERE date BETWEEN :start_date AND :end_date", {"start_date": start_date, "end_date": end_date})
-    st.session_state.df_archive = get_data("SELECT * FROM archive WHERE date BETWEEN :start_date AND :end_date", {"start_date": start_date, "end_date": end_date})
+    st.session_state.df_archive = get_data('SELECT * FROM archive WHERE "Date" BETWEEN :start_date AND :end_date',
+    {"start_date": start_date, "end_date": end_date})
     st.session_state.report_type = "custom"
     st.session_state.report_name = f"custom_report_{start_date}_to_{end_date}"
 
