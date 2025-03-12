@@ -12,4 +12,4 @@ pandas
 plotly
 Pillow
 matplotlib
-orca
+reportlab
