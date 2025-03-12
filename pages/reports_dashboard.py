@@ -115,7 +115,7 @@ if not st.session_state.df_av.empty:
     fig = px.bar(st.session_state.df_av, x="machine", y=["availability", "av_efficiency", "oee"],
                  barmode="group", title="Machine Performance", text_auto=True)
     for trace in fig.data:
-    trace.text = [f"{y:.2%}" for y in trace.y]
+        trace.text = [f"{y:.2%}" for y in trace.y]
 st.plotly_chart(fig)
 
 def generate_pdf(summary_df, downtime_summary, fig):
