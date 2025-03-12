@@ -545,7 +545,7 @@ else:
         ax.barh(["Total Time"], [standard_shift_time], color="gray", alpha=0.5, label="Shift Standard Time")
 
     # Ensure limits are set correctly
-    valid_times = [total_recorded_time]
+    valid_times = float([total_recorded_time])
     if standard_shift_time is not None:
         valid_times.append(standard_shift_time)
 
