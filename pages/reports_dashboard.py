@@ -8,6 +8,9 @@ from fpdf import FPDF
 import matplotlib.pyplot as plt
 import io
 
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
 # Hide Streamlit's menu and "Manage app" button
 st.markdown("""
     <style>
@@ -35,6 +38,70 @@ def get_data(query, params=None):
     except Exception as e:
         st.error(f"❌ Database connection failed: {e}")
         return pd.DataFrame()
+
+# Function to generate PDF with Unicode support
+def create_pdf(df_av, df_archive, df_production, fig):
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=landscape(letter))
+
+    # Title
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(30, 550, "📊 Machine Performance Report")
+
+    # Convert Plotly figure to image
+    img_buf = io.BytesIO()
+    fig.write_image(img_buf, format="png")
+    img_buf.seek(0)
+    img = ImageReader(img_buf)
+    c.drawImage(img, 30, 300, width=500, height=200)
+
+    # Function to add a table
+    def add_table(c, title, df, y_start):
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(30, y_start, title)
+        c.setFont("Helvetica", 10)
+
+        if df.empty:
+            c.drawString(30, y_start - 20, "No data available")
+        else:
+            y = y_start - 20
+            for col in df.columns:
+                c.drawString(30, y, col)
+                y -= 15
+            y -= 10
+            for _, row in df.iterrows():
+                x = 30
+                for item in row:
+                    c.drawString(x, y, str(item))
+                    x += 100
+                y -= 15
+
+    
+   
+
+# Streamlit UI
+st.title("📊 Machine Performance Dashboard")
+
+# Sample Data (Replace with actual database data)
+df_av = pd.DataFrame({"machine": ["A", "B"], "Availability": [90, 85], "OEE": [80, 75]})
+df_archive = pd.DataFrame({"Machine": ["A", "B"], "Activity": ["Run", "Stop"], "Total_Time": [120, 45]})
+df_production = pd.DataFrame({"Machine": ["A"], "batch number": ["B001"], "Produced Quantity": [1000]})
+
+# Generate Graph
+fig = px.bar(df_av, x="machine", y=["Availability", "OEE"], barmode='group', title="Performance Metrics")
+# Add tables
+    add_table(c, "📋 Machine Activity Summary", df_archive, 250)
+    add_table(c, "🏭 Production Summary", df_production, 150)
+    add_table(c, "📈 AV Data", df_av, 50)
+
+# PDF Download Button
+if st.button("📥 Download Full Report as PDF"):
+       # Save PDF
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+
 
 # ✅ Streamlit UI
 st.title("📊 Machine Performance Dashboard")
