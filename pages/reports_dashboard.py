@@ -112,7 +112,9 @@ if not summary_df.empty:
 # Restore Graph for Machine Performance
 if not st.session_state.df_av.empty:
     st.subheader("📈 Machine Performance Metrics")
-    fig = px.bar(st.session_state.df_av, x="machine", y=["availability", "av_efficiency", "oee"], barmode="group", title="Machine Performance")
+    fig = px.bar(st.session_state.df_av, x="machine", y=["availability", "av_efficiency", "oee"],
+                 barmode="group", title="Machine Performance",
+                 text_auto=".2%")
     st.plotly_chart(fig)
 
 def generate_pdf(summary_df, downtime_summary):
@@ -128,9 +130,7 @@ def generate_pdf(summary_df, downtime_summary):
     pdf.set_font("Arial", "", 10)
     
     for _, row in summary_df.iterrows():
-        for col in summary_df.columns:
-            pdf.cell(40, 10, str(row[col]), border=1)
-        pdf.ln()
+        pdf.cell(190, 10, " | ".join(str(row[col]) for col in summary_df.columns), border=1, ln=True)
     pdf.ln(5)
     
     pdf.set_font("Arial", "B", 12)
@@ -138,16 +138,13 @@ def generate_pdf(summary_df, downtime_summary):
     pdf.set_font("Arial", "", 10)
     
     for _, row in downtime_summary.iterrows():
-        for col in downtime_summary.columns:
-            pdf.cell(40, 10, str(row[col]), border=1)
-        pdf.ln()
+        pdf.cell(190, 10, " | ".join(str(row[col]) for col in downtime_summary.columns), border=1, ln=True)
     pdf.ln(5)
     
     pdf_output = BytesIO()
-    pdf.output(pdf_output, dest='S').encode('latin1')
+    pdf.output(pdf_output, dest='S')
     pdf_output.seek(0)
     return pdf_output
-
 
 if st.button("Download PDF Report"):
     if not summary_df.empty:
