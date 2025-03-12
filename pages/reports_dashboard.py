@@ -51,12 +51,14 @@ def create_pdf(df_av, df_archive, df_production, fig):
     c.setFont("Helvetica-Bold", 16)
     c.drawString(30, 550, "📊 Machine Performance Report")
 
-    # ✅ Convert Plotly figure to an image
+    # ✅ Convert Plotly figure to a colored image
     img_buf = io.BytesIO()
-    pio.write_image(fig, img_buf, format="png")  # ✅ Uses Kaleido
+    fig.update_layout(template="plotly_white")  # Ensures color theme
+    pio.write_image(fig, img_buf, format="png", scale=2)  # Higher resolution
     img_buf.seek(0)
+    
     img = ImageReader(img_buf)
-    c.drawImage(img, 30, 300, width=500, height=200)
+    c.drawImage(img, 30, 300, width=500, height=250)  # Adjusted height
 
     # ✅ Function to add tables with improved spacing
     def add_table(c, title, df, y_start):
@@ -94,7 +96,6 @@ def create_pdf(df_av, df_archive, df_production, fig):
     c.save()
     buffer.seek(0)
     return buffer
-
 # Streamlit UI
 st.title("📊 Machine Performance Dashboard")
 
