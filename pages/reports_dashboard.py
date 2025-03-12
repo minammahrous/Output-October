@@ -55,8 +55,6 @@ if st.button("Run Shift Report"):
     st.session_state.df_archive = get_data('SELECT * FROM archive WHERE "Date" = :date AND "Day/Night/plan" = :shift', {"date": date_selected, "shift": shift_selected})
     st.session_state.report_type = "shift"
     st.session_state.report_name = f"shift_report_{date_selected}"
-    st.dataframe(st.session_state.df_av)
-    st.dataframe(st.session_state.df_archive)
 
 # Custom Date Range Report
 st.subheader("📅 Select Date Range for Custom Report")
@@ -67,11 +65,32 @@ if st.button("Run Custom Report"):
     st.session_state.df_archive = get_data('SELECT * FROM archive WHERE "Date" BETWEEN :start_date AND :end_date', {"start_date": start_date, "end_date": end_date})
     st.session_state.report_type = "custom"
     st.session_state.report_name = f"custom_report_{start_date}_to_{end_date}"
-    st.dataframe(st.session_state.df_av)
-    st.dataframe(st.session_state.df_archive)
+
+# Data Processing: Summarize by Machine
+def process_summary(df):
+    if df is None or df.empty:
+        return pd.DataFrame()
+    summary = df.groupby(["Machine", "Activity", "batch number"]).agg(
+        Quantity=("quantity", "sum"),
+        Time=("time", "sum"),
+        Total_Quantity=("quantity", "sum")
+    ).reset_index()
+    return summary
+
+summary_df = process_summary(st.session_state.df_archive)
+downtime_summary = st.session_state.df_archive.groupby("Activity")["time", "comments"].agg({"time": "sum", "comments": lambda x: ", ".join(x.dropna().unique())}).reset_index()
+
+def generate_charts(df):
+    if df is None or df.empty:
+        return
+    avg_metrics = df.groupby("Machine")["Availability", "Av Efficiency", "OEE"].mean().reset_index()
+    fig = px.bar(avg_metrics, x="Machine", y=["Availability", "Av Efficiency", "OEE"], barmode="group", title="Machine Performance Metrics")
+    st.plotly_chart(fig)
+
+generate_charts(st.session_state.df_av)
 
 # Export to PDF
-def generate_pdf(df_av, df_archive):
+def generate_pdf(summary_df, downtime_summary):
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
@@ -108,34 +127,17 @@ def generate_pdf(df_av, df_archive):
             pdf.ln()
         pdf.ln(5)
     
-    add_table(pdf, df_av, "AV Data")
-    add_table(pdf, df_archive, "Archive Data")
+    add_table(pdf, summary_df, "Machine Summary")
+    add_table(pdf, downtime_summary, "Downtime Summary")
     
     pdf_output = BytesIO()
-    pdf_bytes = pdf.output(dest='S').encode('latin1')
-    pdf_output.write(pdf_bytes)
+    pdf.output(pdf_output, dest='S').encode('latin1')
     pdf_output.seek(0)
     return pdf_output
 
 if st.button("Download PDF Report"):
-    if st.session_state.df_av is not None and st.session_state.df_archive is not None:
-        pdf_file = generate_pdf(st.session_state.df_av, st.session_state.df_archive)
+    if not summary_df.empty:
+        pdf_file = generate_pdf(summary_df, downtime_summary)
         st.download_button("Download PDF", pdf_file, f"{st.session_state.report_name}.pdf", "application/pdf")
     else:
-        st.error("❌ Please run a report before downloading the PDF.")
-
-# Export to Excel
-def generate_excel(df_av, df_archive):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df_av.to_excel(writer, sheet_name='AV Data', index=False)
-        df_archive.to_excel(writer, sheet_name='Archive Data', index=False)
-    output.seek(0)
-    return output
-
-if st.button("Download Excel Report"):
-    if st.session_state.df_av is not None and st.session_state.df_archive is not None:
-        excel_file = generate_excel(st.session_state.df_av, st.session_state.df_archive)
-        st.download_button("Download Excel", excel_file, f"{st.session_state.report_name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    else:
-        st.error("❌ Please run a report before downloading the Excel file.")
+        st.error("❌ No data available for the PDF report.")
