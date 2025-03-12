@@ -339,6 +339,8 @@ for dt_type in downtime_types:
 # Construct archive_df (Production batch records)
 # ✅ Initialize average_efficiency with a default value
 average_efficiency = 0  # Default to 0 if no efficiency data is available
+# ✅ Always initialize production_data before using it
+production_data = []
 efficiencies = []  # Declare only once
 
 if "product_batches" in st.session_state and st.session_state["product_batches"]:
