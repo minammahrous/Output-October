@@ -146,10 +146,16 @@ def generate_pdf(summary_df, downtime_summary, fig):
     
     # Save the graph as an image and add it to the PDF
     import matplotlib.pyplot as plt
-    from plotly.io import to_image
+    import plotly.io as pio
+
+    img_path = "temp_chart.png"
+    pio.write_image(fig, img_path, format="png")
+
+    pdf.image(img_path, x=10, y=pdf.get_y(), w=250)
+
 
     pdf_output = BytesIO()
-    img_bytes = to_image(fig, format="png")
+    
 
     with open("temp_chart.png", "wb") as img_file:
         img_file.write(img_bytes)
