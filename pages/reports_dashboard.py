@@ -171,3 +171,40 @@ if st.button("📥 Download Full Report as PDF"):
                        data=pdf_report, 
                        file_name=file_name,  # ✅ Uses dynamic filename
                        mime="application/pdf")
+
+
+# ✅ Function to Get Page Content as HTML
+def get_page_html():
+    return f"""
+    <html>
+    <head>
+        <title>Streamlit Page Export</title>
+        <style>
+            [data-testid="stSidebar"] {{ display: none; }}  /* Hide Sidebar */
+        </style>
+    </head>
+    <body>
+        {st.session_state["html_content"]}
+    </body>
+    </html>
+    """
+
+# ✅ Capture the Current Page Content
+st.session_state["html_content"] = st.markdown("### Your Page Content Goes Here")._repr_html_()
+
+# ✅ Generate the HTML file content
+html_content = get_page_html()
+
+# ✅ Convert HTML to a Downloadable File
+html_bytes = html_content.encode("utf-8")
+
+# ✅ Generate dynamic filename using Shift + Date
+shift_selected = st.session_state.get("shift_selected", "Shift")
+date_selected = st.session_state.get("date_selected", "2025-03-12")
+file_name = f"{shift_selected}_{date_selected}.html"
+
+# ✅ HTML Download Button
+st.download_button(label="📥 Download Page as HTML", 
+                   data=html_bytes, 
+                   file_name=file_name, 
+                   mime="text/html")
