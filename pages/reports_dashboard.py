@@ -143,10 +143,11 @@ def generate_pdf(summary_df, downtime_summary):
         pdf.ln()
     pdf.ln(5)
     
-    pdf_output = BytesIO()
-    pdf.output(pdf_output, dest='S')
-    pdf_output.seek(0)
-    return pdf_output
+   pdf_output = BytesIO()
+  pdf.output(pdf_output, dest='S').encode('latin1')
+  pdf_output.seek(0)
+  return pdf_output
+
 
 if st.button("Download PDF Report"):
     if not summary_df.empty:
