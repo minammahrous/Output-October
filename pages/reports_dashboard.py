@@ -34,7 +34,7 @@ def get_data(query, params=None):
         df = df.replace({None: np.nan})  # Ensure NULLs stay as NaN
         
         # Standardize column names (lowercase and remove spaces)
-        df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
+        df.columns = df.columns.str.strip().str.lower()
 
         return df
     except Exception as e:
@@ -58,7 +58,7 @@ date_selected = st.date_input("📅 Select Date")
 shift_selected = st.selectbox("🕒 Select Shift Type", ["Day", "Night", "Plan"])
 if st.button("Run Shift Report"):
     st.session_state.df_av = get_data("SELECT * FROM av WHERE date = :date AND shift = :shift", {"date": date_selected, "shift": shift_selected})
-    st.session_state.df_archive = get_data('SELECT * FROM archive WHERE "Date" = :date AND "Day/Night/plan" = :shift', {"date": date_selected, "shift": shift_selected})
+    st.session_state.df_archive = get_data("SELECT * FROM archive WHERE date = :date AND day_night_plan = :shift", {"date": date_selected, "shift": shift_selected})
     st.session_state.report_type = "shift"
     st.session_state.report_name = f"shift_report_{date_selected}"
 
@@ -68,7 +68,7 @@ start_date = st.date_input("Start Date")
 end_date = st.date_input("End Date")
 if st.button("Run Custom Report"):
     st.session_state.df_av = get_data("SELECT * FROM av WHERE date BETWEEN :start_date AND :end_date", {"start_date": start_date, "end_date": end_date})
-    st.session_state.df_archive = get_data('SELECT * FROM archive WHERE "Date" BETWEEN :start_date AND :end_date', {"start_date": start_date, "end_date": end_date})
+    st.session_state.df_archive = get_data("SELECT * FROM archive WHERE date BETWEEN :start_date AND :end_date", {"start_date": start_date, "end_date": end_date})
     st.session_state.report_type = "custom"
     st.session_state.report_name = f"custom_report_{start_date}_to_{end_date}"
 
@@ -77,8 +77,11 @@ def process_summary(df):
     if df is None or df.empty:
         return pd.DataFrame()
 
-    if "machine" not in df.columns or "activity" not in df.columns or "batch_number" not in df.columns:
-        st.error("❌ Required columns are missing in the dataset.")
+    required_columns = {"machine", "activity", "batch_number", "quantity", "time"}
+    missing_columns = required_columns - set(df.columns)
+    
+    if missing_columns:
+        st.error(f"❌ Required columns are missing: {', '.join(missing_columns)}")
         return pd.DataFrame()
 
     summary = df.groupby(["machine", "activity", "batch_number"]).agg(
@@ -89,20 +92,19 @@ def process_summary(df):
 
     return summary.replace({None: np.nan})
 
-
 summary_df = process_summary(st.session_state.df_archive)
 if "activity" in st.session_state.df_archive.columns:
     downtime_summary = st.session_state.df_archive.groupby("activity")[["time", "comments"]].agg(
         {"time": "sum", "comments": lambda x: ", ".join(x.dropna().astype(str).unique())}
     ).reset_index()
 else:
-    downtime_summary = pd.DataFrame()  # Empty DataFrame if 'activity' is missing
+    downtime_summary = pd.DataFrame()
     st.warning("⚠️ 'activity' column is missing in the archive data. Please check the source.")
 
-
+# Data Visualization
 def generate_charts(df):
-   def generate_charts(df):
     if df is None or df.empty:
+        st.warning("⚠️ No data available for visualization.")
         return
 
     available_columns = [col for col in ["availability", "av_efficiency", "oee"] if col in df.columns]
@@ -118,9 +120,9 @@ def generate_charts(df):
     else:
         st.warning("⚠️ Required columns for metrics visualization are missing.")
 
-    
-st.write("Columns in df_av:", st.session_state.df_av.columns.tolist())
-st.write(st.session_state.df_av.head())
+st.write("📌 Archive Data Columns:", st.session_state.df_archive.columns.tolist())
+st.write(st.session_state.df_archive.head())
+
 generate_charts(st.session_state.df_av)
 
 # Export to PDF
@@ -132,40 +134,8 @@ def generate_pdf(summary_df, downtime_summary):
     pdf.cell(200, 10, "Machine Performance Report", ln=True, align='C')
     pdf.ln(10)
     
-    def add_table(pdf, df, title):
-        pdf.set_font("Arial", "B", 12)
-        pdf.cell(0, 10, title, ln=True)
-        pdf.set_font("Arial", "", 10)
-        
-        if df.empty:
-            pdf.cell(0, 10, "No data available", ln=True)
-            pdf.ln(5)
-            return
-        
-        df = df.fillna("")  # Keep NaN values as empty
-        columns = df.columns.tolist()
-        column_width = max(190 // len(columns), 20)
-        
-        pdf.set_font("Arial", "B", 10)
-        for col in columns:
-            pdf.cell(column_width, 10, col[:15], border=1, align='C')
-        pdf.ln()
-        
-        pdf.set_font("Arial", "", 8)
-        for _, row in df.iterrows():
-            for col in columns:
-                value = row[col]
-                if isinstance(value, (int, float)):
-                    value = f"{value:.2f}"  # Limit to 2 decimal places
-                pdf.cell(column_width, 10, str(value)[:15], border=1, align='C')
-            pdf.ln()
-        pdf.ln(5)
-    
-    add_table(pdf, summary_df, "Machine Summary")
-    add_table(pdf, downtime_summary, "Downtime Summary")
-    
     pdf_output = BytesIO()
-    pdf.output(pdf_output, dest='S').encode('latin1')
+    pdf.output(pdf_output, dest='S')
     pdf_output.seek(0)
     return pdf_output
 
