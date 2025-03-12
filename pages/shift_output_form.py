@@ -340,14 +340,22 @@ for dt_type in downtime_types:
 # ✅ Initialize average_efficiency with a default value
 average_efficiency = 0  # Default to 0 if no efficiency data is available
 efficiencies = []  # Declare only once
-production_data = []  # Separate list for production data
 
-for product, batch_list in st.session_state.get("product_batches", {}).items():
-    for batch in batch_list:
-        rate = batch["quantity"] / batch["time_consumed"] if batch["time_consumed"] != 0 else 0
-        standard_rate = get_standard_rate(product, selected_machine) or 1  # Avoid division by zero
-        efficiency = rate / standard_rate
-        efficiencies.append(efficiency)
+if "product_batches" in st.session_state and st.session_state["product_batches"]:
+    for product, batch_list in st.session_state["product_batches"].items():
+        for batch in batch_list:
+            rate = batch["quantity"] / batch["time_consumed"] if batch["time_consumed"] != 0 else 0
+            standard_rate = get_standard_rate(product, selected_machine) or 1  # Avoid division by zero
+            efficiency = rate / standard_rate
+            efficiencies.append(efficiency)
+
+# ✅ Ensure efficiency calculation runs even if no products are added
+if efficiencies:
+    average_efficiency = sum(efficiencies) / len(efficiencies)
+
+# ✅ Now, this line will not cause an error
+OEE = 0.99 * availability * average_efficiency
+
 
         production_data.append({
             "Date": date,
