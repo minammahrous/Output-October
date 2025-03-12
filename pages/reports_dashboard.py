@@ -120,6 +120,11 @@ if not st.session_state.df_av.empty:
 
     st.plotly_chart(fig)
 
+import matplotlib.pyplot as plt
+import tempfile
+from PIL import Image
+import plotly.io as pio
+
 def generate_pdf(summary_df, downtime_summary, fig):
     pdf = FPDF(orientation='L', unit='mm', format='A4')
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -143,29 +148,18 @@ def generate_pdf(summary_df, downtime_summary, fig):
     for _, row in downtime_summary.iterrows():
         pdf.multi_cell(270, 10, " | ".join(str(row[col]) for col in downtime_summary.columns), border=1)
     pdf.ln(5)
+
+    # Save the graph as an HTML file and take a screenshot
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_img:
+        temp_html = "temp_chart.html"
+        pio.write_html(fig, temp_html)  # Save Plotly figure as an HTML file
+        img = Image.open(temp_html)  # Open and take a screenshot
+        img.save(temp_img.name, format="PNG")  # Save as PNG
     
-    # Save the graph as an image and add it to the PDF
-    import matplotlib.pyplot as plt
-    from plotly.tools import mpl_to_plotly
-
-    # Convert Plotly figure to Matplotlib and save
-    mpl_fig = fig.to_image(format="png")
-    img_path = "temp_chart.png"
-    with open(img_path, "wb") as f:
-        f.write(mpl_fig)
-
-    pdf.image(img_path, x=10, y=pdf.get_y(), w=250)
-
-
+        pdf.image(temp_img.name, x=10, y=pdf.get_y(), w=250)  # Embed in PDF
+        pdf.ln(10)
+    
     pdf_output = BytesIO()
-    
-
-    with open("temp_chart.png", "wb") as img_file:
-        img_file.write(img_bytes)
-
-    pdf.image("temp_chart.png", x=10, y=pdf.get_y(), w=250)
-    pdf.ln(10)
-
     pdf_output.write(pdf.output(dest='S').encode('latin1'))
     pdf_output.seek(0)
     
