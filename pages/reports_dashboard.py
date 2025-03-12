@@ -146,7 +146,7 @@ def generate_pdf(summary_df, downtime_summary):
     pdf_output = BytesIO()
     pdf.output(pdf_output, dest='S').encode('latin1')
     pdf_output.seek(0)
-      return pdf_output
+    return pdf_output
 
 
 if st.button("Download PDF Report"):
