@@ -44,7 +44,7 @@ def create_pdf(df_av, df_archive, df_production, fig):
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=landscape(letter))
     
-    # Set document title
+    # Set PDF title
     c.setTitle("Machine Performance Report")
 
     # Title
@@ -53,38 +53,37 @@ def create_pdf(df_av, df_archive, df_production, fig):
 
     # ✅ Convert Plotly figure to an image
     img_buf = io.BytesIO()
-    pio.write_image(fig, img_buf, format="png")  # Requires `pip install kaleido`
+    pio.write_image(fig, img_buf, format="png")  # ✅ Uses Kaleido
     img_buf.seek(0)
     img = ImageReader(img_buf)
     c.drawImage(img, 30, 300, width=500, height=200)
 
-    # ✅ Function to add tables to the PDF with improved formatting
+    # ✅ Function to add tables with improved spacing
     def add_table(c, title, df, y_start):
         c.setFont("Helvetica-Bold", 12)
         c.drawString(30, y_start, title)
         c.setFont("Helvetica", 10)
 
-        # ✅ Replace NaN values with "N/A" and round numbers
-        df = df.fillna("N/A").round(2)
+        df = df.fillna("N/A").round(2)  # ✅ Replace NaN with "N/A" and round numbers
 
         if df.empty:
             c.drawString(30, y_start - 20, "No data available")
         else:
             y = y_start - 20
-            col_width = 100  # Adjust for better spacing
+            col_width = 100  # Adjust column width
 
-            # ✅ Add column headers
+            # ✅ Add headers
             for col in df.columns:
                 c.drawString(30 + df.columns.get_loc(col) * col_width, y, col)
             y -= 15
 
-            # ✅ Add rows with proper alignment
+            # ✅ Add row data with spacing
             for _, row in df.iterrows():
                 x = 30
                 for item in row:
                     c.drawString(x, y, str(item))
                     x += col_width
-                y -= 15  # Move to the next row
+                y -= 15
 
     # ✅ Add tables
     add_table(c, "📋 Machine Activity Summary", df_archive, 250)
