@@ -46,14 +46,24 @@ def save_to_database(archive_df, av_df):
     try:
         cur = conn.cursor()
 
-        # ✅ Convert Decimal columns to float before inserting into DB
-        for col in ["time", "efficiency", "quantity", "rate", "standard rate"]:
+        # ✅ Convert all numeric columns to float before inserting into DB
+        numeric_cols_archive = ["time", "efficiency", "quantity", "rate", "standard rate"]
+        numeric_cols_av = ["hours", "T.production time", "Availability", "Av Efficiency", "OEE"]
+
+        for col in numeric_cols_archive:
             if col in archive_df.columns:
-                archive_df[col] = archive_df[col].apply(lambda x: float(x) if isinstance(x, Decimal) else x)
-    
-        for col in ["hours", "T.production time", "Availability", "Av Efficiency", "OEE"]:
+                archive_df[col] = pd.to_numeric(archive_df[col], errors="coerce")  # Convert strings to float, replace errors with NaN
+
+        for col in numeric_cols_av:
             if col in av_df.columns:
-                av_df[col] = av_df[col].apply(lambda x: float(x) if isinstance(x, Decimal) else x)
+                av_df[col] = pd.to_numeric(av_df[col], errors="coerce")  # Convert strings to float, replace errors with NaN
+
+        # ✅ Debug: Print Data Types Before Saving
+        st.write("DEBUG: Archive Data Types Before Saving")
+        st.write(archive_df.dtypes)
+
+        st.write("DEBUG: AV Data Types Before Saving")
+        st.write(av_df.dtypes)
 
         # ✅ Save archive data
         for _, row in archive_df.iterrows():
@@ -91,7 +101,6 @@ def save_to_database(archive_df, av_df):
     finally:
         cur.close()
         conn.close()  # ✅ Ensure connection is always closed
-
 # Function to fetch data from PostgreSQL
 def fetch_data(query):
     """Fetch data using SQLAlchemy (for reading only)."""
