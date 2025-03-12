@@ -142,7 +142,7 @@ def generate_pdf(summary_df, downtime_summary):
     pdf.ln(5)
     
     pdf_output = BytesIO()
-    pdf.output(pdf_output, dest='F')
+    pdf.output(pdf_output, dest='S')
     pdf_output.seek(0)
     return pdf_output
 
