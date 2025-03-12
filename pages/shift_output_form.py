@@ -317,10 +317,10 @@ else:
 
  
     # Construct archive_df (Downtime records)
-    archive_data = []
-    for dt_type in downtime_types:
-        if downtime_data[dt_type] > 0:
-            archive_row = {
+archive_data = []
+for dt_type in downtime_types:
+    if downtime_data[dt_type] > 0:
+        archive_row = {
             "Date": date,
             "Machine": selected_machine,
             "Day/Night/plan": shift_type,
@@ -333,12 +333,12 @@ else:
             "rate": "",
             "standard rate": "",
             "efficiency": "",
-             }
-            archive_data.append(archive_row)
-            archive_df = pd.DataFrame(archive_data)
+        }
+        archive_data.append(archive_row)  # Append to the list
 
-            # Construct archive_df (Production batch records)
+# Construct archive_df (Production batch records)
 efficiencies = []  # Declare only once
+production_data = []  # Separate list for production data
 
 for product, batch_list in st.session_state.get("product_batches", {}).items():
     for batch in batch_list:
@@ -347,22 +347,7 @@ for product, batch_list in st.session_state.get("product_batches", {}).items():
         efficiency = rate / standard_rate
         efficiencies.append(efficiency)
 
-# Calculate average efficiency once at the end
-average_efficiency = sum(efficiencies) / len(efficiencies) if efficiencies else 0
-
-
-archive_data = []
-for product, batch_list in st.session_state.product_batches.items():
-    for batch in batch_list:
-        rate = batch["quantity"] / batch["time_consumed"] if batch["time_consumed"] != 0 else 0
-        standard_rate = get_standard_rate(product, selected_machine)
-
-        if standard_rate == 0:
-            st.warning(f"No rate found for Product: {product}, Machine: {selected_machine}. Using 0 as default.")
-
-        efficiency = rate / standard_rate if standard_rate != 0 else 0
-
-        archive_data.append({
+        production_data.append({
             "Date": date,
             "Machine": selected_machine,
             "Day/Night/plan": shift_type,
@@ -376,7 +361,11 @@ for product, batch_list in st.session_state.product_batches.items():
             "standard rate": standard_rate,
             "efficiency": efficiency,
         })
+
+# ✅ Merge both downtime and production records
 archive_data.extend(production_data)
+
+# ✅ Create DataFrame from the combined list
 archive_df = pd.DataFrame(archive_data)
 
             # Construct av_df
