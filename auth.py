@@ -5,10 +5,10 @@ from db import get_db_connection
 
 # Role-based access control
 ROLE_ACCESS = {
-    "admin": ["shift_output_form", "reports_dashboard", "master_data", "user_management"],
-    "user": ["shift_output_form", "reports_dashboard"],
-    "power user": ["shift_output_form", "reports_dashboard", "master_data"],
-    "report": ["reports_dashboard"],
+    "admin": ["shift_output_form", "reports_dashboard", "master_data", "user_management", "extract_data"],
+    "user": ["shift_output_form", "reports_dashboard", "extract_data"],
+    "power user": ["shift_output_form", "reports_dashboard", "master_data", "extract_data"],
+    "report": ["reports_dashboard", "extract_data"],
 }
 
 def check_authentication():
