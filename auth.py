@@ -2,6 +2,7 @@ import streamlit as st
 import psycopg2
 import bcrypt
 from db import get_db_connection
+from db import get_main_db_connection
 
 # Role-based access control
 ROLE_ACCESS = {
@@ -39,7 +40,7 @@ def authenticate_user():
     password = st.sidebar.text_input("Password", type="password", key="login_password")
 
     if st.sidebar.button("Login", key="login_button"):
-        conn = get_db_connection()
+        conn = get_main_db_connection()
         cur = conn.cursor()
 
         try:
