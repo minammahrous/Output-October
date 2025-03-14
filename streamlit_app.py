@@ -38,8 +38,8 @@ if st.session_state["role"] == "admin":
 # Display UI
 st.title("Welcome to the App")
 st.write("Use the sidebar to navigate.")
-st.write(f"DEBUG: User Role → {st.session_state['role']}")
-st.write(f"DEBUG: Assigned Branch → {st.session_state['branch']}")
+st.write(f" User Role → {st.session_state['role']}")
+st.write(f" Assigned Branch → {st.session_state['branch']}")
 
 # Define accessible pages based on role
 allowed_pages = ROLE_ACCESS.get(st.session_state["role"], [])
