@@ -4,6 +4,16 @@ from db import get_sqlalchemy_engine
 from io import BytesIO
 from auth import check_authentication
 
+# Hide Streamlit's menu and "Manage app" button
+st.markdown("""
+    <style>
+        [data-testid="stToolbar"] {visibility: hidden !important;}
+        [data-testid="manage-app-button"] {display: none !important;}
+        header {visibility: hidden !important;}
+        footer {visibility: hidden !important;}
+    </style>
+""", unsafe_allow_html=True)
+
 def fetch_data(engine, table, start_date, end_date):
     """Fetch data from a given table between two dates."""
     column_mapping = {
