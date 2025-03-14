@@ -10,6 +10,11 @@ st.markdown("""
         footer {visibility: hidden !important;}
     </style>
 """, unsafe_allow_html=True)
+# Format branch display
+display_branch = "October SDF" if st.session_state["branch"] == "main" else st.session_state["branch"]
+
+# Show user details with bold formatting
+st.markdown(f"**👤 Role:** `{st.session_state['role']}`  |  **🏢 Branch:** `{display_branch}`")
 # Authenticate user
 user = authenticate_user()
 
@@ -38,8 +43,6 @@ if st.session_state["role"] == "admin":
 # Display UI
 st.title("Welcome to the App")
 st.write("Use the sidebar to navigate.")
-st.write(f" User Role → {st.session_state['role']}")
-st.write(f" Assigned Branch → {st.session_state['branch']}")
 
 # Define accessible pages based on role
 allowed_pages = ROLE_ACCESS.get(st.session_state["role"], [])
