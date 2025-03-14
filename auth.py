@@ -6,10 +6,10 @@ from db import get_main_db_connection
 
 # Role-based access control
 ROLE_ACCESS = {
-    "admin": ["shift_output_form", "reports_dashboard", "master_data", "user_management", "extract_data"],
-    "user": ["shift_output_form", "reports_dashboard", "extract_data"],
-    "power user": ["shift_output_form", "reports_dashboard", "master_data", "extract_data"],
-    "report": ["reports_dashboard", "extract_data"],
+    "admin": ["shift_output_form", "reports_dashboard", "master_data", "user_management", "extract_data", "change_password"],
+    "user": ["shift_output_form", "reports_dashboard", "extract_data", "change_password"],
+    "power user": ["shift_output_form", "reports_dashboard", "master_data", "extract_data", "change_password"],
+    "report": ["reports_dashboard", "extract_data", "change_password"],
 }
 
 def check_authentication():
