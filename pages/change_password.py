@@ -1,7 +1,7 @@
 import streamlit as st
 import bcrypt
 import psycopg2
-from db import get_main_db_connection()  # Ensure it connects to the 'main' branch
+from db import get_main_db_connection  # Ensure it connects to the 'main' branch
 
 def update_password(username, old_password, new_password):
     conn = get_main_db_connection()  # Connect to the main branch
