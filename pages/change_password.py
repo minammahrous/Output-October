@@ -3,6 +3,16 @@ import bcrypt
 import psycopg2
 from db import get_main_db_connection  # Ensure it connects to the 'main' branch
 
+# Hide Streamlit's menu and "Manage app" button
+st.markdown("""
+    <style>
+        [data-testid="stToolbar"] {visibility: hidden !important;}
+        [data-testid="manage-app-button"] {display: none !important;}
+        header {visibility: hidden !important;}
+        footer {visibility: hidden !important;}
+    </style>
+""", unsafe_allow_html=True)
+
 def update_password(username, old_password, new_password):
     conn = get_main_db_connection()  # Connect to the main branch
     if not conn:
