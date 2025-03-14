@@ -3,6 +3,7 @@ import pandas as pd
 from sqlalchemy.sql import text
 from db import get_sqlalchemy_engine
 from auth import check_authentication, check_access
+
 # Hide Streamlit's menu and "Manage app" button
 st.markdown("""
     <style>
@@ -12,6 +13,7 @@ st.markdown("""
         footer {visibility: hidden !important;}
     </style>
 """, unsafe_allow_html=True)
+
 # ✅ Authenticate user before proceeding
 check_authentication()
 
@@ -51,7 +53,7 @@ with st.expander("✏️ Edit Product Definition", expanded=False):
         try:
             with engine.connect() as conn:
                 df = pd.read_sql(query, conn, params={"id": product_id})
-            return df.iloc[0] if not df.empty else None
+            return df.iloc[0].to_dict() if not df.empty else None  # ✅ Always return a dictionary
         except Exception as e:
             st.error(f"❌ Error fetching product details: {e}")
             return None
@@ -86,12 +88,11 @@ with st.expander("✏️ Edit Product Definition", expanded=False):
                         oracle_code = EXCLUDED.oracle_code
                 """)
                 try:
-                    with engine.connect() as conn:
+                    with engine.begin() as conn:  # ✅ Use `begin()` instead of manual commit
                         conn.execute(query, {
                             "name": name, "batch_size": batch_size, "units_per_box": units_per_box,
                             "primary_units_per_box": primary_units_per_box, "oracle_code": oracle_code
                         })
-                        conn.commit()
                     st.success("✅ Product saved successfully!")
                 except Exception as e:
                     st.error(f"❌ Error saving product: {e}")
@@ -127,46 +128,49 @@ with st.expander("⚙️ Edit Product Standard Rate", expanded=False):
             st.error(f"❌ Error fetching rates: {e}")
             return pd.DataFrame()
 
-    if selected_product != "Select":
-        rates_df = fetch_rates(selected_product)
-        updated_rates = {}
+    # ✅ Prevent executing query if no product is selected
+    if selected_product == "Select":
+        st.warning("Please select a product to edit rates.")
+        st.stop()
 
-        for _, row in rates_df.iterrows():
-            machine = row["machine"]
-            qty_uom = row["qty_uom"]
-            rate_value = row["standard_rate"]
-            updated_rate = st.number_input(f"{machine} (Rate in {qty_uom})", min_value=0.0, value=rate_value)
-            if updated_rate != rate_value:
-                updated_rates[machine] = updated_rate
+    rates_df = fetch_rates(selected_product)
+    updated_rates = {}
 
-        if updated_rates:
-            st.markdown("### Summary of Changes")
-            for machine, rate in updated_rates.items():
-                st.write(f"{machine}: {rate}")
+    for _, row in rates_df.iterrows():
+        machine = row["machine"]
+        qty_uom = row["qty_uom"]
+        rate_value = row["standard_rate"]
+        updated_rate = st.number_input(f"{machine} (Rate in {qty_uom})", min_value=0.0, value=rate_value)
+        if updated_rate != rate_value:
+            updated_rates[machine] = updated_rate
 
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("✅ Save Changes"):
-                    def save_rates():
-                        """Save updated rates."""
-                        query = text("""
-                            INSERT INTO rates (product, machine, standard_rate)
-                            VALUES (:product, :machine, :standard_rate)
-                            ON CONFLICT (product, machine) 
-                            DO UPDATE SET standard_rate = EXCLUDED.standard_rate
-                        """)
-                        try:
-                            with engine.connect() as conn:
-                                for machine, rate in updated_rates.items():
-                                    conn.execute(query, {"product": selected_product, "machine": machine, "standard_rate": rate})
-                                conn.commit()
-                            st.success("✅ Rates updated successfully!")
-                        except Exception as e:
-                            st.error(f"❌ Error saving rates: {e}")
+    if updated_rates:
+        st.markdown("### Summary of Changes")
+        for machine, rate in updated_rates.items():
+            st.write(f"{machine}: {rate}")
 
-                    save_rates()
-                    st.rerun()
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("✅ Save Changes"):
+                def save_rates():
+                    """Save updated rates."""
+                    query = text("""
+                        INSERT INTO rates (product, machine, standard_rate)
+                        VALUES (:product, :machine, :standard_rate)
+                        ON CONFLICT (product, machine) 
+                        DO UPDATE SET standard_rate = EXCLUDED.standard_rate
+                    """)
+                    try:
+                        with engine.begin() as conn:  # ✅ Use `begin()` instead of commit
+                            for machine, rate in updated_rates.items():
+                                conn.execute(query, {"product": selected_product, "machine": machine, "standard_rate": rate})
+                        st.success("✅ Rates updated successfully!")
+                    except Exception as e:
+                        st.error(f"❌ Error saving rates: {e}")
 
-            with col2:
-                if st.button("❌ Cancel"):
-                    st.rerun()
+                save_rates()
+                st.rerun()
+
+        with col2:
+            if st.button("❌ Cancel"):
+                st.rerun()
