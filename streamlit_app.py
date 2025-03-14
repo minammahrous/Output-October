@@ -10,16 +10,27 @@ st.markdown("""
         footer {visibility: hidden !important;}
     </style>
 """, unsafe_allow_html=True)
-# Format branch display
-display_branch = "October SDF" if st.session_state["branch"] == "main" else st.session_state["branch"]
+# Ensure authentication before setting branch
+if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
+    st.warning("You must log in to access this page.")
+    st.stop()
+
+# Safely get user branch after authentication
+branch = st.session_state.get("branch", None)
+if branch is None:
+    st.error("Branch information is missing. Please log in again.")
+    st.stop()
+
+display_branch = "October SDF" if branch == "main" else branch
 
 # Show user details with bold formatting
-st.markdown(f"**👤 Role:** `{st.session_state['role']}`  |  **🏢 Branch:** `{display_branch}`")
+st.markdown(f"**👤 Role:** `{st.session_state.get('role', 'Unknown')}`  |  **🏢 Branch:** `{display_branch}`")
+
 # Authenticate user
 user = authenticate_user()
 
 if not user:  # Prevent undefined variable errors
-    st.warning("Authentication failed. Please log in again.")
+    st.warning("Please Login first")
     st.stop()
 
 # Retrieve role and branch safely
