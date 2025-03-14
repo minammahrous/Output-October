@@ -60,5 +60,7 @@ if "user management" in allowed_pages:
 if "user management" in allowed_pages:
     st.page_link("pages/extract_data.py", label="Extract Data")
     
+if "user management" in allowed_pages:
+    st.page_link("pages/extract_data.py", label="Extract Data")    
 # Success message
 st.success(f"Now working on: {st.session_state['branch']}")
