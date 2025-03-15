@@ -14,3 +14,4 @@ Pillow
 matplotlib
 reportlab
 Kaleido
+bs4
