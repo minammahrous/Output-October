@@ -10,7 +10,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
 from textwrap import wrap
-
+from bs4 import BeautifulSoup
 # ✅ Hide Streamlit's menu and sidebar
 st.markdown("""
     <style>
@@ -79,7 +79,37 @@ def create_pdf(df_av, df_archive, df_production, fig):
     buffer.seek(0)
 
     return buffer.getvalue()
+def generate_full_html():
+    fig_html = fig.to_html(full_html=False) if not df_av.empty else ""
 
+    raw_html = f"""
+    <html>
+    <head>
+        <title>Machine Performance Report</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; padding: 20px; }}
+            table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+            th, td {{ border: 1px solid black; padding: 8px; text-align: left; }}
+            th {{ background-color: #f2f2f2; }}
+            .graph-container {{ text-align: center; margin: 20px 0; }}
+        </style>
+    </head>
+    <body>
+        <h1>📊 Machine Performance Report</h1>
+        <div class="graph-container">{fig_html}</div>
+        <h2>📋 Machine Activity Summary</h2>
+        {df_archive.to_html(index=False)}
+        <h2>🏭 Production Summary</h2>
+        {df_production.to_html(index=False)}
+        <h2>📈 AV Data</h2>
+        {df_av.to_html(index=False)}
+    </body>
+    </html>
+    """
+
+    # Minify and clean HTML using BeautifulSoup
+    soup = BeautifulSoup(raw_html, "html.parser")
+    return soup.prettify(formatter="minimal")
 # ✅ Streamlit UI
 st.title("📊 Machine Performance Dashboard")
 
@@ -131,34 +161,6 @@ if st.button("📥 Download Full Report as PDF"):
                        file_name=file_name, 
                        mime="application/pdf")
 
-# ✅ Function to Create Full Page as HTML
-def generate_full_html():
-    fig_html = fig.to_html(full_html=False) if not df_av.empty else ""
-
-    return f"""
-    <html>
-    <head>
-        <title>Machine Performance Report</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; padding: 20px; }}
-            table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
-            th, td {{ border: 1px solid black; padding: 8px; text-align: left; }}
-            th {{ background-color: #f2f2f2; }}
-            .graph-container {{ text-align: center; margin: 20px 0; }}
-        </style>
-    </head>
-    <body>
-        <h1>📊 Machine Performance Report</h1>
-        <div class="graph-container">{fig_html}</div>
-        <h2>📋 Machine Activity Summary</h2>
-        {df_archive.to_html(index=False)}
-        <h2>🏭 Production Summary</h2>
-        {df_production.to_html(index=False)}
-        <h2>📈 AV Data</h2>
-        {df_av.to_html(index=False)}
-    </body>
-    </html>
-    """
 
 html_bytes = generate_full_html().encode("utf-8")
 html_file = f"{shift_selected}_{date_selected}.html"
