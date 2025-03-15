@@ -447,7 +447,7 @@ except IndexError:
 # Compute total recorded time (downtime + production time)
 total_production_time = sum(batch["time_consumed"] for batch in st.session_state.product_batches[selected_product])
 total_downtime = sum(downtime_data[dt] for dt in downtime_types)
-total_recorded_time = total_production_time + total_downtime
+total_recorded_time = archive_df["time"].sum()
 
 # Special check for "partial" shift
 if shift_duration == "partial":
