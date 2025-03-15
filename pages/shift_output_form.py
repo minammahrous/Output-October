@@ -359,24 +359,24 @@ if "product_batches" in st.session_state and st.session_state["product_batches"]
             standard_rate = get_standard_rate(product, selected_machine) or 1  # Avoid division by zero
             efficiency = rate / standard_rate
             efficiencies.append(efficiency)
+            # ✅ Ensure efficiency calculation runs even if no products are added
+            if efficiencies:
+                average_efficiency = sum(efficiencies) / len(efficiencies)
+                production_data.append({
+                    "Date": date,
+                    "Machine": selected_machine,
+                    "Day/Night/plan": shift_type,
+                    "Activity": "Production",
+                    "time": batch["time_consumed"],
+                    "Product": product,
+                    "batch number": batch["batch"],
+                    "quantity": batch["quantity"],
+                    "comments": "",
+                    "rate": rate,
+                    "standard rate": standard_rate,
+                    "efficiency": efficiency,
+                })
 
-# ✅ Ensure efficiency calculation runs even if no products are added
-if efficiencies:
-    average_efficiency = sum(efficiencies) / len(efficiencies)
-    production_data.append({
-            "Date": date,
-            "Machine": selected_machine,
-            "Day/Night/plan": shift_type,
-            "Activity": "Production",
-            "time": batch["time_consumed"],
-            "Product": product,
-            "batch number": batch["batch"],
-            "quantity": batch["quantity"],
-            "comments": "",
-            "rate": rate,
-            "standard rate": standard_rate,
-            "efficiency": efficiency,
-        })
 
 # ✅ Merge both downtime and production records
 archive_data.extend(production_data)
