@@ -30,17 +30,19 @@ check_access(["user", "power user", "admin"])
 engine = get_sqlalchemy_engine()
 
 def reset_form():
-    """Clears all session state variables and resets the form without logging out."""
-    for key in [
+    """Resets only the input fields without logging the user out."""
+    keys_to_reset = [
         "submitted_archive_df", "submitted_av_df", "modify_mode", "proceed_clicked",
         "product_batches", "selected_product", "date", "machine", "shift_type",
         "shift_duration", "show_confirmation", "replace_data", "restart_form",
         "submitted"
-    ]:
-        if key in st.session_state:
-            del st.session_state[key]
+    ]
     
-    st.experimental_rerun()  # Refresh the Streamlit page without logging out
+    for key in keys_to_reset:
+        if key in st.session_state:
+            st.session_state[key] = None if isinstance(st.session_state[key], (str, type(None))) else {}
+    
+    st.toast("🔄 Form reset successfully!")  # Temporary notification
 
 def save_to_database(archive_df, av_df):
     """Saves archive and av dataframes to PostgreSQL using SQLAlchemy."""
