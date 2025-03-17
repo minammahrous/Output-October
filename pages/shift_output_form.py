@@ -34,7 +34,7 @@ def reset_form():
     
     # ✅ Reset form fields
     
-    st.session_state["machine"] = ""
+ 
     st.session_state["shift_type"] = ""
     st.session_state["shift_duration"] = ""
 
