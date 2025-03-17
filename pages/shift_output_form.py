@@ -32,41 +32,37 @@ engine = get_sqlalchemy_engine()
 def reset_form():
     """Fully resets all form inputs, including downtime and batch entries, without logging out the user."""
     
-    # ✅ Reset form fields
-    
- 
-    st.session_state["shift_type"] = ""
-    st.session_state["shift_duration"] = ""
-
-    # ✅ Remove `selected_product` safely
+    # ✅ Safely reset form fields
+    st.session_state.pop("machine", None)
+    st.session_state.pop("shift_type", None)
+    st.session_state.pop("shift_duration", None)
     st.session_state.pop("selected_product", None)
+    st.session_state.pop("product_batches", None)
+    
+    # ✅ Ensure submitted data is cleared
+    st.session_state.pop("submitted_archive_df", None)
+    st.session_state.pop("submitted_av_df", None)
+    st.session_state.pop("modify_mode", None)
+    st.session_state.pop("proceed_clicked", None)
+    st.session_state.pop("show_confirmation", None)
+    st.session_state.pop("replace_data", None)
+    st.session_state.pop("restart_form", None)
+    st.session_state.pop("submitted", None)
 
-    # ✅ Clear batch entries
-    st.session_state["product_batches"] = {}
-
-    # ✅ Reset submitted data
-    st.session_state["submitted_archive_df"] = pd.DataFrame()
-    st.session_state["submitted_av_df"] = pd.DataFrame()
-    st.session_state["modify_mode"] = False
-    st.session_state["proceed_clicked"] = False
-    st.session_state["show_confirmation"] = False
-    st.session_state["replace_data"] = False
-    st.session_state["restart_form"] = False
-    st.session_state["submitted"] = False
-
-    # ✅ Ensure downtime is completely removed
+    # ✅ Reset downtime entries
     downtime_types = [
         "Maintenance DT", "Production DT", "Material DT", "Utility DT", 
         "QC DT", "Cleaning DT", "QA DT", "Changeover DT"
     ]
     
     for dt_type in downtime_types:
-        st.session_state.pop(dt_type, None)  # ✅ Completely remove downtime hours
+        st.session_state.pop(dt_type, None)  # ✅ Remove downtime hours
         st.session_state.pop(f"{dt_type}_comment", None)  # ✅ Remove downtime comments
 
     st.toast("🔄 Form reset successfully!")
+    st.rerun()  # ✅ Force UI refresh to clear inputs
     
-def save_to_database(archive_df, av_df):
+    def save_to_database(archive_df, av_df):
     """Saves archive and av dataframes to PostgreSQL using SQLAlchemy."""
     engine = get_sqlalchemy_engine()
 
