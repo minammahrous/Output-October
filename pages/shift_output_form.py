@@ -29,6 +29,19 @@ check_access(["user", "power user", "admin"])
 # Get the correct database engine for the assigned branch
 engine = get_sqlalchemy_engine()
 
+def reset_form():
+    """Clears all session state variables and resets the form without logging out."""
+    for key in [
+        "submitted_archive_df", "submitted_av_df", "modify_mode", "proceed_clicked",
+        "product_batches", "selected_product", "date", "machine", "shift_type",
+        "shift_duration", "show_confirmation", "replace_data", "restart_form",
+        "submitted"
+    ]:
+        if key in st.session_state:
+            del st.session_state[key]
+    
+    st.experimental_rerun()  # Refresh the Streamlit page without logging out
+
 def save_to_database(archive_df, av_df):
     """Saves archive and av dataframes to PostgreSQL using SQLAlchemy."""
     engine = get_sqlalchemy_engine()
@@ -130,10 +143,7 @@ if "submitted_av_df" not in st.session_state:
 if "modify_mode" not in st.session_state:
     st.session_state.modify_mode = False
 if st.button("Restart App"):
-    st.markdown(
-        """<meta http-equiv="refresh" content="0">""",
-        unsafe_allow_html=True,
-    )
+    reset_form()
 # Check if product_list is empty
 if not product_list:
     st.error("Product list is empty. Please check products.csv.")
@@ -534,6 +544,7 @@ if st.button("Approve and Save"):
                 archive_df.to_sql("archive", engine, if_exists="append", index=False)
                 av_df.to_sql("av", engine, if_exists="append", index=False)
                 st.success("Data saved to database successfully!")
-
+                # ✅ Reset form after successful save
+                reset_form()
     except Exception as e:
         st.error(f"Error saving data: {e}")
