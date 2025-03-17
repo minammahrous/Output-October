@@ -33,24 +33,27 @@ import datetime
 
 import datetime
 
+import datetime
+
 def reset_form():
-    """Resets only input fields without logging the user out or modifying already rendered widgets."""
+    """Fully resets all form inputs without logging out the user."""
     
-    form_keys = [
-        "submitted_archive_df", "submitted_av_df", "modify_mode", "proceed_clicked",
-        "product_batches", "selected_product", "machine", "shift_type",
-        "shift_duration", "show_confirmation", "replace_data", "restart_form",
-        "submitted"
-    ]
-    
-    for key in form_keys:
-        if key in st.session_state:
-            del st.session_state[key]  # ✅ Remove keys instead of modifying widgets directly
-
-    # ✅ Ensure date is reset properly
+    # ✅ Reset all input fields to their default values
     st.session_state["date"] = datetime.date.today()
+    st.session_state["machine"] = ""
+    st.session_state["shift_type"] = ""
+    st.session_state["shift_duration"] = ""
+    st.session_state["selected_product"] = ""
+    st.session_state["product_batches"] = {}
+    st.session_state["submitted_archive_df"] = pd.DataFrame()
+    st.session_state["submitted_av_df"] = pd.DataFrame()
+    st.session_state["modify_mode"] = False
+    st.session_state["proceed_clicked"] = False
+    st.session_state["show_confirmation"] = False
+    st.session_state["replace_data"] = False
+    st.session_state["restart_form"] = False
+    st.session_state["submitted"] = False
 
-    # ✅ Keep user authentication intact (DO NOT clear the entire session state)
     st.toast("🔄 Form reset successfully!")
 def save_to_database(archive_df, av_df):
     """Saves archive and av dataframes to PostgreSQL using SQLAlchemy."""
