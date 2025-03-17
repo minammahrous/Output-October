@@ -189,7 +189,7 @@ else:
 # Step 1: User selects Date, Machine, and Shift Type
 st.subheader("Step 1: Select Shift Details")
 shift_types = ["Day", "Night", "Plan"]
-date = st.date_input("Date", None, key="date")  
+date = st.date_input("Date", value=st.session_state.get("date", datetime.date.today()), key="date")
 selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
 shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0, key="shift_type")
 if st.button("Proceed"):
