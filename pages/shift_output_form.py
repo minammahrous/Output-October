@@ -54,17 +54,18 @@ def reset_form():
     st.session_state["restart_form"] = False
     st.session_state["submitted"] = False
 
-    # ✅ Reset downtime inputs correctly
+    # ✅ Ensure downtime is completely removed
     downtime_types = [
         "Maintenance DT", "Production DT", "Material DT", "Utility DT", 
         "QC DT", "Cleaning DT", "QA DT", "Changeover DT"
     ]
     
     for dt_type in downtime_types:
-        st.session_state[dt_type] = 0.0  # Reset downtime hours
-        st.session_state[f"{dt_type}_comment"] = ""  # Reset downtime comments
+        st.session_state.pop(dt_type, None)  # ✅ Completely remove downtime hours
+        st.session_state.pop(f"{dt_type}_comment", None)  # ✅ Remove downtime comments
 
     st.toast("🔄 Form reset successfully!")
+    
 def save_to_database(archive_df, av_df):
     """Saves archive and av dataframes to PostgreSQL using SQLAlchemy."""
     engine = get_sqlalchemy_engine()
@@ -167,6 +168,7 @@ if "modify_mode" not in st.session_state:
     st.session_state.modify_mode = False
 if st.button("Restart App"):
     reset_form()
+    st.rerun()  # ✅ Force rerun to apply changes
 # Check if product_list is empty
 if not product_list:
     st.error("Product list is empty. Please check products.csv.")
@@ -255,19 +257,31 @@ if st.session_state.get("proceed_clicked", False):
     
 shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
     
-    # Downtime inputs with comments
+# Define downtime categories
+downtime_types = [
+    "Maintenance DT", "Production DT", "Material DT", "Utility DT", 
+    "QC DT", "Cleaning DT", "QA DT", "Changeover DT"
+]
+
 st.subheader("Downtime (hours)")
 downtime_data = {}
-downtime_types = ["Maintenance DT", "Production DT", "Material DT", "Utility DT", "QC DT", "Cleaning DT", "QA DT", "Changeover DT"]
+
 for dt_type in downtime_types:
-        col1, col2 = st.columns(2)
-        with col1:
-            downtime_data[dt_type] = st.number_input(dt_type, min_value=0.0, step=0.1, format="%.1f")
-        with col2:
-            if downtime_data[dt_type] > 0:
-                downtime_data[dt_type + "_comment"] = st.text_area(f"Comment for {dt_type}", placeholder="Enter comment here (required for downtime)")
-            else:
-                downtime_data[dt_type + "_comment"] = ""
+    col1, col2 = st.columns(2)
+    with col1:
+        downtime_data[dt_type] = st.number_input(
+            dt_type, min_value=0.0, step=0.1, format="%.1f",
+            key=dt_type, value=st.session_state.get(dt_type, 0.0)  # ✅ Use default 0.0 if not set
+        )
+    with col2:
+        if downtime_data[dt_type] > 0:
+            downtime_data[f"{dt_type}_comment"] = st.text_area(
+                f"Comment for {dt_type}",
+                value=st.session_state.get(f"{dt_type}_comment", ""),  # ✅ Use default empty string
+                placeholder="Enter comment here (required for downtime)",
+                key=f"{dt_type}_comment"
+            )
+
 
 if "product_batches" not in st.session_state:
     st.session_state.product_batches = {}
@@ -569,5 +583,6 @@ if st.button("Approve and Save"):
                 st.success("Data saved to database successfully!")
                 # ✅ Reset form after successful save
                 reset_form()
+                st.rerun()  # ✅ Force rerun to apply changes
     except Exception as e:
         st.error(f"Error saving data: {e}")
