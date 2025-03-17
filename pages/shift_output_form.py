@@ -35,16 +35,18 @@ import datetime
 
 import datetime
 
+import datetime
+import pandas as pd
+
 def reset_form():
-    """Fully resets all form inputs without logging out the user."""
+    """Fully resets all form inputs, including downtime and batch entries, without logging out the user."""
     
-    # ✅ Reset all input fields to their default values
+    # ✅ Reset all input fields to default values
     st.session_state["date"] = datetime.date.today()
     st.session_state["machine"] = ""
     st.session_state["shift_type"] = ""
     st.session_state["shift_duration"] = ""
     st.session_state["selected_product"] = ""
-    st.session_state["product_batches"] = {}
     st.session_state["submitted_archive_df"] = pd.DataFrame()
     st.session_state["submitted_av_df"] = pd.DataFrame()
     st.session_state["modify_mode"] = False
@@ -53,6 +55,22 @@ def reset_form():
     st.session_state["replace_data"] = False
     st.session_state["restart_form"] = False
     st.session_state["submitted"] = False
+
+    # ✅ Clear batch entries
+    st.session_state["product_batches"] = {}  # Remove all added batches
+    st.session_state["batch"] = ""  # Clear batch number input
+    st.session_state["quantity"] = 0.0  # Clear quantity input
+    st.session_state["time_consumed"] = 0.0  # Clear time input
+
+    # ✅ Reset downtime inputs
+    downtime_types = [
+        "Maintenance DT", "Production DT", "Material DT", "Utility DT", 
+        "QC DT", "Cleaning DT", "QA DT", "Changeover DT"
+    ]
+    
+    for dt_type in downtime_types:
+        st.session_state[dt_type] = 0.0  # Reset downtime hours
+        st.session_state[f"{dt_type}_comment"] = ""  # Reset downtime comments
 
     st.toast("🔄 Form reset successfully!")
 def save_to_database(archive_df, av_df):
