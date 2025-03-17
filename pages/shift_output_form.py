@@ -33,7 +33,7 @@ def reset_form():
     """Fully resets all form inputs, including downtime and batch entries, without logging out the user."""
     
     # ✅ Reset form fields
-    st.session_state["date"] = datetime.date.today()
+    
     st.session_state["machine"] = ""
     st.session_state["shift_type"] = ""
     st.session_state["shift_duration"] = ""
