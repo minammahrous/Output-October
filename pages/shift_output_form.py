@@ -62,7 +62,7 @@ def reset_form():
     st.toast("🔄 Form reset successfully!")
     st.rerun()  # ✅ Force UI refresh to clear inputs
     
-    def save_to_database(archive_df, av_df):
+def save_to_database(archive_df, av_df):
     """Saves archive and av dataframes to PostgreSQL using SQLAlchemy."""
     engine = get_sqlalchemy_engine()
 
