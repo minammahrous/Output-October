@@ -29,24 +29,22 @@ check_access(["user", "power user", "admin"])
 # Get the correct database engine for the assigned branch
 engine = get_sqlalchemy_engine()
 
-import datetime
-
-import datetime
-
-import datetime
-
-import datetime
-import pandas as pd
-
 def reset_form():
     """Fully resets all form inputs, including downtime and batch entries, without logging out the user."""
     
-    # ✅ Reset all input fields to default values
+    # ✅ Reset form fields
     st.session_state["date"] = datetime.date.today()
     st.session_state["machine"] = ""
     st.session_state["shift_type"] = ""
     st.session_state["shift_duration"] = ""
-    st.session_state["selected_product"] = ""
+
+    # ✅ Remove `selected_product` safely
+    st.session_state.pop("selected_product", None)
+
+    # ✅ Clear batch entries
+    st.session_state["product_batches"] = {}
+
+    # ✅ Reset submitted data
     st.session_state["submitted_archive_df"] = pd.DataFrame()
     st.session_state["submitted_av_df"] = pd.DataFrame()
     st.session_state["modify_mode"] = False
@@ -56,13 +54,7 @@ def reset_form():
     st.session_state["restart_form"] = False
     st.session_state["submitted"] = False
 
-    # ✅ Clear batch entries
-    st.session_state["product_batches"] = {}  # Remove all added batches
-    st.session_state["batch"] = ""  # Clear batch number input
-    st.session_state["quantity"] = 0.0  # Clear quantity input
-    st.session_state["time_consumed"] = 0.0  # Clear time input
-
-    # ✅ Reset downtime inputs
+    # ✅ Reset downtime inputs correctly
     downtime_types = [
         "Maintenance DT", "Production DT", "Material DT", "Utility DT", 
         "QC DT", "Cleaning DT", "QA DT", "Changeover DT"
