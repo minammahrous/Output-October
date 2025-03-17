@@ -31,21 +31,27 @@ engine = get_sqlalchemy_engine()
 
 import datetime
 
+import datetime
+
 def reset_form():
-    """Safely resets the form without modifying instantiated widgets."""
+    """Resets only input fields without logging the user out or modifying already rendered widgets."""
     
-    # ✅ Store date separately to prevent NoneType issues
-    current_date = datetime.date.today()
+    form_keys = [
+        "submitted_archive_df", "submitted_av_df", "modify_mode", "proceed_clicked",
+        "product_batches", "selected_product", "machine", "shift_type",
+        "shift_duration", "show_confirmation", "replace_data", "restart_form",
+        "submitted"
+    ]
     
-    # ✅ Clear entire session state safely
-    st.session_state.clear()
-    
-    # ✅ Restore critical values (like date)
-    st.session_state["date"] = current_date
+    for key in form_keys:
+        if key in st.session_state:
+            del st.session_state[key]  # ✅ Remove keys instead of modifying widgets directly
 
-    st.toast("🔄 Form reset successfully!")  # Temporary notification
+    # ✅ Ensure date is reset properly
+    st.session_state["date"] = datetime.date.today()
 
-
+    # ✅ Keep user authentication intact (DO NOT clear the entire session state)
+    st.toast("🔄 Form reset successfully!")
 def save_to_database(archive_df, av_df):
     """Saves archive and av dataframes to PostgreSQL using SQLAlchemy."""
     engine = get_sqlalchemy_engine()
