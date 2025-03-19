@@ -445,10 +445,7 @@ if shift_duration == "partial":
     total_downtime = sum(downtime_data.values()) - sum(1 for key in downtime_data if "_comment" in key)
     availability = total_production_time / (total_production_time + total_downtime) if (total_production_time + total_downtime) != 0 else 0
 else:
-    if standard_shift_time is not None and standard_shift_time != 0:
-        availability = total_production_time / standard_shift_time
-    else:
-        availability = 0  # Default value to avoid errors
+    availability = total_production_time / standard_shift_time if standard_shift_time != 0 else 0
 
 OEE = 0.99 * availability * average_efficiency
 av_row = {
@@ -491,10 +488,7 @@ except IndexError:
     standard_shift_time = 0  # Default to 0 to avoid None issues
 
 # Compute total recorded time (downtime + production time)
-if selected_product and selected_product in st.session_state.product_batches:
-    total_production_time = sum(batch["time_consumed"] for batch in st.session_state.product_batches[selected_product])
-else:
-    total_production_time = 0  # Default to 0 when no product is selected
+total_production_time = sum(batch["time_consumed"] for batch in st.session_state.product_batches[selected_product])
 total_downtime = sum(downtime_data[dt] for dt in downtime_types)
 total_recorded_time = archive_df["time"].sum()
 
