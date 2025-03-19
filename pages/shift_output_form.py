@@ -35,7 +35,7 @@ def reset_form():
     # ✅ Safely reset form fields
     st.session_state.pop("machine", None)
     st.session_state.pop("shift_type", None)
-    st.session_state.pop("shift_duration", None)
+    st.session_state.pop("shift_duration", "LD")
     st.session_state.pop("selected_product", None)
     st.session_state.pop("product_batches", None)
     
