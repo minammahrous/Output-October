@@ -491,7 +491,10 @@ except IndexError:
     standard_shift_time = 0  # Default to 0 to avoid None issues
 
 # Compute total recorded time (downtime + production time)
-total_production_time = sum(batch["time_consumed"] for batch in st.session_state.product_batches[selected_product])
+if selected_product and selected_product in st.session_state.product_batches:
+    total_production_time = sum(batch["time_consumed"] for batch in st.session_state.product_batches[selected_product])
+else:
+    total_production_time = 0  # Default to 0 when no product is selected
 total_downtime = sum(downtime_data[dt] for dt in downtime_types)
 total_recorded_time = archive_df["time"].sum()
 
