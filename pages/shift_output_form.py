@@ -30,37 +30,25 @@ check_access(["user", "power user", "admin"])
 engine = get_sqlalchemy_engine()
 
 def reset_form():
-    """Fully resets all form inputs, including downtime and batch entries, without logging out the user."""
+    """Resets all form inputs except the top section (Date, Machine, Shift Type)."""
     
-    # ✅ Safely reset form fields
-    st.session_state.pop("machine", None)
-    st.session_state.pop("shift_type", None)
-    st.session_state.pop("shift_duration", None)
-    st.session_state.pop("selected_product", None)
-    st.session_state.pop("product_batches", None)
-    
-    # ✅ Ensure submitted data is cleared
-    st.session_state.pop("submitted_archive_df", None)
-    st.session_state.pop("submitted_av_df", None)
-    st.session_state.pop("modify_mode", None)
-    st.session_state.pop("proceed_clicked", None)
-    st.session_state.pop("show_confirmation", None)
-    st.session_state.pop("replace_data", None)
-    st.session_state.pop("restart_form", None)
-    st.session_state.pop("submitted", None)
+    # Keep Step 1 selections
+    date = st.session_state.get("date", datetime.date.today())
+    machine = st.session_state.get("machine", "")
+    shift_type = st.session_state.get("shift_type", "")
 
-    # ✅ Reset downtime entries
-    downtime_types = [
-        "Maintenance DT", "Production DT", "Material DT", "Utility DT", 
-        "QC DT", "Cleaning DT", "QA DT", "Changeover DT"
-    ]
+    # Reset only Step 2 form fields
+    st.session_state.clear()
+    st.session_state.proceed_clicked = False  # Ensure only Step 1 is shown
     
-    for dt_type in downtime_types:
-        st.session_state.pop(dt_type, None)  # ✅ Remove downtime hours
-        st.session_state.pop(f"{dt_type}_comment", None)  # ✅ Remove downtime comments
+    # Restore Step 1 values
+    st.session_state.date = date
+    st.session_state.machine = machine
+    st.session_state.shift_type = shift_type
 
     st.toast("🔄 Form reset successfully!")
     st.rerun()  # ✅ Force UI refresh to clear inputs
+
     
 def save_to_database(archive_df, av_df):
     """Saves archive and av dataframes to PostgreSQL using SQLAlchemy."""
@@ -182,15 +170,42 @@ else:
         st.error(f"An error occurred reading shifts.csv: {e}")
         shift_durations = []
         shift_working_hours = []
-# Step 1: User selects Date, Machine, and Shift Type
 st.subheader("Step 1: Select Shift Details")
-shift_types = ["Day", "Night", "Plan"]
+
 date = st.date_input("Date", value=st.session_state.get("date", datetime.date.today()), key="date")
+
+machine_list = fetch_data("SELECT name FROM machines")
 selected_machine = st.selectbox("Select Machine", [""] + machine_list, index=0, key="machine")
+
+shift_types = ["Day", "Night", "Plan"]
 shift_type = st.selectbox("Shift Type", [""] + shift_types, index=0, key="shift_type")
+
+# Proceed Button
 if st.button("Proceed"):
-    st.session_state.proceed_clicked = True
-    st.rerun()
+    if selected_machine and shift_type:
+        st.session_state.proceed_clicked = True
+        st.rerun()
+    else:
+        st.warning("⚠️ Please select both Machine and Shift Type before proceeding.")
+
+# Reset Button
+if st.button("Reset Form"):
+    reset_form()
+
+# Step 2 should only appear AFTER clicking "Proceed"
+if st.session_state.get("proceed_clicked", False):
+    st.subheader("Step 2: Enter Shift Details")
+    
+    # Read shift types from shifts.csv
+    try:
+        shifts_df = pd.read_csv("shifts.csv")
+        shift_durations = shifts_df["code"].tolist()
+    except FileNotFoundError:
+        st.error("⚠️ shifts.csv file not found. Please create the file.")
+        shift_durations = []
+
+    shift_duration = st.selectbox("Shift Duration", [""] + shift_durations, index=0, key="shift_duration")
+
 if st.session_state.get("proceed_clicked", False):
     # Query to check if a record exists in 'av' table
     query = text("""
