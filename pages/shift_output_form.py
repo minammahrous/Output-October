@@ -539,17 +539,25 @@ else:
     
 if st.button("Approve and Save"):
     try:
-        # Check for duplicate entries in the database
-        query = text("""
-        SELECT COUNT(*) FROM av 
-        WHERE date = :date AND "shift type" = :shift_type AND machine = :machine
+        # Check for duplicate entries in both "av" and "archive" tables
+        query_av = text("""
+            SELECT COUNT(*) FROM av 
+            WHERE date = :date AND "shift" = :shift AND machine = :machine
+        """)
+        query_archive = text("""
+            SELECT COUNT(*) FROM archive 
+            WHERE "Date" = :date AND "Machine" = :machine AND "Day/Night/plan" = :shift
         """)
 
         with engine.connect() as conn:
-            result = conn.execute(query, {"date": date, "shift_type": shift_type, "machine": selected_machine}).fetchone()
+            result_av = conn.execute(query_av, {"date": date, "shift": shift_type, "machine": selected_machine}).fetchone()
+            result_archive = conn.execute(query_archive, {"date": date, "shift": shift_type, "machine": selected_machine}).fetchone()
 
-        if result and result[0] > 0:  # If a record already exists
-            st.warning("A report for this date, shift type, and machine already exists. Modify or confirm replacement.")
+        # If a duplicate exists in either table, STOP execution completely
+        if (result_av and result_av[0] > 0) or (result_archive and result_archive[0] > 0):
+            st.error("❌ A report for this Date, Shift Type, and Machine already exists. Modify your selection or delete existing data before saving.")
+            st.stop()  # ⛔ Completely stop execution
+
         else:
             st.success("No existing record found. Proceeding with approval.")
 
