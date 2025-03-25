@@ -143,7 +143,7 @@ query_archive = """
 df_av = get_data(query_av, {"date": date_selected, "shift": shift_selected})
 df_archive = get_data(query_archive, {"date": date_selected, "shift": shift_selected})
 df_production = get_data(query_production, {"date": date_selected, "shift": shift_selected})
-df_total_output = calculate_total_batch_output(date_selected, shift_selected)
+df_total_output = calculate_total_batch_output(date_selected)  # ✅ Pass only the date
 
 # Merge the total batch output data
 df_production = df_production.merge(df_total_output, on="Machine", how="left")
