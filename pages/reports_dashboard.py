@@ -51,6 +51,16 @@ query_production = """
     GROUP BY "Machine", "batch number", a."Product"
     ORDER BY "Machine", "batch number";
 """
+def calculate_total_batch_output(date, shift):
+    query = """
+        SELECT 
+            "Machine", 
+            SUM("quantity") AS "Total Batch Output"
+        FROM archive
+        WHERE "Activity" = 'Production' AND "Date" = :date AND "Day/Night/plan" = :shift
+        GROUP BY "Machine"
+    """
+    return get_data(query, {"date": date, "shift": shift})
 
 # ✅ Function to Create PDF Report
 def create_pdf(df_av, df_archive, df_production, fig):
@@ -133,6 +143,13 @@ query_archive = """
 df_av = get_data(query_av, {"date": date_selected, "shift": shift_selected})
 df_archive = get_data(query_archive, {"date": date_selected, "shift": shift_selected})
 df_production = get_data(query_production, {"date": date_selected, "shift": shift_selected})
+df_total_output = calculate_total_batch_output(date_selected, shift_selected)
+
+# Merge the total batch output data
+df_production = df_production.merge(df_total_output, on="Machine", how="left")
+
+
+
 
 # ✅ Generate Graph
 if not df_av.empty:
@@ -147,7 +164,7 @@ else:
 # ✅ Display Tables
 st.subheader("📋 Machine Activity Summary")
 st.dataframe(df_archive)
-
+# Display updated production table
 st.subheader("🏭 Production Summary per Machine and Batch")
 st.dataframe(df_production)
 
