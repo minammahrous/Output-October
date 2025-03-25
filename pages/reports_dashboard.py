@@ -148,6 +148,9 @@ df_total_output = calculate_total_batch_output(date_selected)  # ✅ Pass only t
 # Merge the total batch output data
 df_production = df_production.merge(df_total_output, on="Machine", how="left")
 
+# Drop the duplicate column and rename correctly
+df_production["Total Batch Output"] = df_production["Total Batch Output_y"]
+df_production.drop(columns=["Total Batch Output_x", "Total Batch Output_y"], inplace=True)
 
 
 
