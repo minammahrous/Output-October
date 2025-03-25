@@ -51,16 +51,16 @@ query_production = """
     GROUP BY "Machine", "batch number", a."Product"
     ORDER BY "Machine", "batch number";
 """
-def calculate_total_batch_output(date, shift):
+def calculate_total_batch_output(date):
     query = """
         SELECT 
             "Machine", 
             SUM("quantity") AS "Total Batch Output"
         FROM archive
-        WHERE "Activity" = 'Production' AND "Date" = :date AND "Day/Night/plan" = :shift
+        WHERE "Activity" = 'Production' AND "Date" = :date
         GROUP BY "Machine"
     """
-    return get_data(query, {"date": date, "shift": shift})
+    return get_data(query, {"date": date})
 
 # ✅ Function to Create PDF Report
 def create_pdf(df_av, df_archive, df_production, fig):
