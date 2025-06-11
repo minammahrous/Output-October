@@ -532,8 +532,8 @@ else:
     if standard_shift_time is not None:
         if total_recorded_time > standard_shift_time:
             st.warning("⚠️ Total recorded time exceeds the standard shift time!")
-        elif total_recorded_time < 0.75 * standard_shift_time:
-            st.warning("⚠️ Recorded time is less than 75% of the standard shift time.")
+        elif total_recorded_time < 0.9 * standard_shift_time:
+            st.warning("⚠️ Recorded time is less than 90% of the standard shift time.")
 
          # xchecks & Approve and Save 
     
@@ -572,7 +572,7 @@ if st.button("Approve and Save"):
             total_recorded_time = archive_df["time"].sum()
             efficiency_invalid = (archive_df["efficiency"] > 1).any()
             time_exceeds_shift = total_recorded_time > standard_shift_time
-            time_below_75 = total_recorded_time < (0.75 * standard_shift_time)
+            time_below_90 = total_recorded_time < (0.9 * standard_shift_time)
 
             if efficiency_invalid:
                 st.error("Efficiency must not exceed 1. Please review and modify the data.")
