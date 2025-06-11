@@ -1,9 +1,8 @@
 ﻿code,description,working hours
-ELD,to 12,13.5
-LD,long day,10.5
-ND,normal day,8
-NS,night shift,10.5
-Plan,Plan,
+ELD,to 12,15.5
+LD,long day,11
+ND,normal day,9
+NS,night shift,11
 1 hr,Partial manned shift,1
 2 hr,Partial manned shift,2
 3 hr,Partial manned shift,3
