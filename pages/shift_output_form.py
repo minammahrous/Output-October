@@ -578,8 +578,8 @@ if st.button("Approve and Save"):
                 st.error("Efficiency must not exceed 1. Please review and modify the data.")
             elif time_exceeds_shift:
                 st.error(f"Total recorded time ({total_recorded_time} hrs) exceeds shift standard time ({standard_shift_time} hrs). Modify the data.")
-            elif time_below_75:
-                st.error(f"Total recorded time ({total_recorded_time} hrs) is less than 75% of shift standard time ({0.75 * standard_shift_time} hrs). Modify the data.")
+            elif time_below_90:
+                st.error(f"Total recorded time ({total_recorded_time} hrs) is less than 90% of shift standard time ({0.9 * standard_shift_time} hrs). Modify the data.")
             else:
                 # Save cleaned data to PostgreSQL
                 archive_df.to_sql("archive", engine, if_exists="append", index=False)
